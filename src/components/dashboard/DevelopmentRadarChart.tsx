@@ -48,7 +48,7 @@ export default function DevelopmentRadarChart({
   }, {} as any);
 
 
-  if (data.length === 0) {
+  if (data.length === 0 || data.every(d => d.value === 0 && d.fullMark === 0)) {
     return (
       <Card className="flex flex-col items-center justify-center min-h-[300px] bg-card border-border shadow-md">
         <CardHeader>
@@ -66,38 +66,36 @@ export default function DevelopmentRadarChart({
 
   return (
     <Card className="bg-card border-border shadow-md h-full">
-      <CardHeader className="items-start pb-0"> {/* Changed to items-start and removed items-center */}
+      <CardHeader className="items-start pb-0">
         <div className="flex items-center gap-2">
-          <ClipboardList className="h-5 w-5 text-primary" /> {/* Added icon from image */}
+          <ClipboardList className="h-5 w-5 text-primary" />
           <CardTitle className="text-xl font-semibold text-primary">{title}</CardTitle>
         </div>
-        <CardDescription>
-          {description}
-        </CardDescription>
+        {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent className="pb-0">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square max-h-[280px]" // Reduced max-h for tighter fit
+          className="mx-auto aspect-square max-h-[280px]"
         >
           <RadarChart data={data} margin={{ top: 20, right: 30, left: 30, bottom: 10 }}>
             <ChartTooltip
               cursor={false}
               content={<ChartTooltipContent indicator="line" />}
             />
-            <PolarGrid stroke="hsla(var(--foreground), 0.15)" />
-            <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={{ stroke: "hsla(var(--foreground), 0.15)" }} />
+            <PolarGrid stroke="hsla(var(--muted-foreground), 0.4)" />
+            <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={{ stroke: "hsla(var(--muted-foreground), 0.4)" }} />
             <PolarRadiusAxis 
                 angle={90} 
                 domain={[0, Math.max(...data.map(d => d.fullMark), 1)]} 
                 tickCount={4} 
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} 
-                axisLine={{ stroke: "hsla(var(--foreground), 0.15)" }}
-                tickLine={{ stroke: "hsla(var(--foreground), 0.15)" }}
+                axisLine={{ stroke: "hsla(var(--muted-foreground), 0.4)" }}
+                tickLine={{ stroke: "hsla(var(--muted-foreground), 0.4)" }}
             />
             <Radar
               dataKey="value"
-              fill="hsla(var(--primary), 0.3)"
+              fill="hsla(var(--primary), 0.5)"
               stroke="hsl(var(--primary))"
               strokeWidth={2}
               dot={{

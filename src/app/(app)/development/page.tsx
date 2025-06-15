@@ -8,8 +8,9 @@ interface Attribute {
   name: string;
   icon: LucideIcon;
   description: string;
-  currentLevel: string;
-  xpInArea: string;
+  currentLevel: string; 
+  xpInArea: string; 
+  value: number; // Added for direct use in radar chart
   comingSoonText: string;
 }
 
@@ -18,71 +19,79 @@ const attributes: Attribute[] = [
     name: "Motivación",
     icon: TrendingUp,
     description: "Impulso interno y externo para actuar y alcanzar metas.",
-    currentLevel: "0/100",
-    xpInArea: "0/100",
+    currentLevel: "75/100",
+    xpInArea: "750/1000",
+    value: 75,
     comingSoonText: "Próximamente: Herramientas y estrategias para mejorar esta área."
   },
   {
     name: "Energía",
     icon: Zap,
     description: "Nivel de vitalidad física y mental para afrontar el día.",
-    currentLevel: "0/100",
-    xpInArea: "0/100",
+    currentLevel: "65/100",
+    xpInArea: "650/1000",
+    value: 65,
     comingSoonText: "Próximamente: Herramientas y estrategias para mejorar esta área."
   },
   {
     name: "Disciplina",
     icon: ShieldCheck,
     description: "Capacidad de autocontrol y constancia en hábitos y tareas.",
-    currentLevel: "0/100",
-    xpInArea: "0/100",
+    currentLevel: "85/100",
+    xpInArea: "850/1000",
+    value: 85,
     comingSoonText: "Próximamente: Herramientas y estrategias para mejorar esta área."
   },
   {
     name: "Enfoque",
     icon: Target,
     description: "Habilidad para concentrarse en una tarea sin distracciones.",
-    currentLevel: "0/100",
-    xpInArea: "0/100",
+    currentLevel: "50/100",
+    xpInArea: "500/1000",
+    value: 50,
     comingSoonText: "Próximamente: Herramientas y estrategias para mejorar esta área."
   },
   {
     name: "Resiliencia",
     icon: Activity,
     description: "Capacidad para superar adversidades y adaptarse al cambio.",
-    currentLevel: "0/100",
-    xpInArea: "0/100",
+    currentLevel: "70/100",
+    xpInArea: "700/1000",
+    value: 70,
     comingSoonText: "Próximamente: Herramientas y estrategias para mejorar esta área."
   },
   {
     name: "Adaptabilidad",
     icon: GitFork,
     description: "Flexibilidad para ajustarse a nuevas situaciones o entornos.",
-    currentLevel: "0/100",
-    xpInArea: "0/100",
+    currentLevel: "80/100",
+    xpInArea: "800/1000",
+    value: 80,
     comingSoonText: "Próximamente: Herramientas y estrategias para mejorar esta área."
   },
   {
     name: "Estrategia",
     icon: Lightbulb,
     description: "Habilidad para planificar y tomar decisiones efectivas a largo plazo.",
-    currentLevel: "0/100",
-    xpInArea: "0/100",
+    currentLevel: "40/100",
+    xpInArea: "400/1000",
+    value: 40,
     comingSoonText: "Próximamente: Herramientas y estrategias para mejorar esta área."
   },
   {
     name: "Conocimiento",
     icon: BookOpen,
     description: "Adquisición y aplicación de información y habilidades.",
-    currentLevel: "0/100",
-    xpInArea: "0/100",
+    currentLevel: "60/100",
+    xpInArea: "600/1000",
+    value: 60,
     comingSoonText: "Próximamente: Herramientas y estrategias para mejorar esta área."
   }
 ];
 
 const developmentRadarData: RadarChartDataPoint[] = attributes.map(attr => ({
   category: attr.name,
-  value: 0, // As per image, all values are 0
+  value: attr.value, 
   fullMark: 100,
 }));
 

@@ -23,7 +23,6 @@ interface HabitProgressChartProps {
   habits: Habit[];
 }
 
-// Define a fixed set of categories for the radar chart
 const developmentCategories = [
   "Salud Física", "Desarrollo Mental", "Productividad", "Bienestar Emocional", "Relaciones Sociales", "Crecimiento Espiritual"
 ];
@@ -31,13 +30,11 @@ const developmentCategories = [
 export default function HabitProgressChart({ habits }: HabitProgressChartProps) {
   const chartData = developmentCategories.map(category => {
     const categoryHabits = habits.filter(h => h.category === category && h.completed);
-    // For simplicity, sum XP of completed habits in this category
-    // Or use a count, or average completion rate. Let's use count of completed.
     const value = categoryHabits.length; 
     return {
       category: category,
-      value: value, // Max value could be total habits in that category
-      fullMark: habits.filter(h => h.category === category).length || 1, // Avoid division by zero
+      value: value,
+      fullMark: Math.max(habits.filter(h => h.category === category).length, 1), // Ensure fullMark is at least 1
     };
   });
   
@@ -84,17 +81,24 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
               cursor={false}
               content={<ChartTooltipContent indicator="line" />}
             />
-            <PolarGrid stroke="hsla(var(--muted-foreground), 0.3)" />
-            <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickLine={{ stroke: "hsla(var(--muted-foreground), 0.3)" }} />
-            <PolarRadiusAxis angle={30} domain={[0, Math.max(...chartData.map(d => d.fullMark), 1)]} tickCount={4} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} axisLine={{ stroke: "hsla(var(--muted-foreground), 0.3)" }} tickLine={{ stroke: "hsla(var(--muted-foreground), 0.3)" }} />
+            <PolarGrid stroke="hsla(var(--muted-foreground), 0.4)" />
+            <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickLine={{ stroke: "hsla(var(--muted-foreground), 0.4)" }} />
+            <PolarRadiusAxis 
+                angle={30} 
+                domain={[0, Math.max(...chartData.map(d => d.fullMark), 1)]} 
+                tickCount={4} 
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} 
+                axisLine={{ stroke: "hsla(var(--muted-foreground), 0.4)" }}
+                tickLine={{ stroke: "hsla(var(--muted-foreground), 0.4)" }} 
+            />
             <Radar
               dataKey="value"
-              fill="hsla(var(--primary), 0.4)"
+              fill="hsla(var(--primary), 0.5)"
               stroke="hsl(var(--primary))"
               strokeWidth={2}
               dot={{
                 r: 4,
-                fillOpacity: 1,
+                fill: "hsl(var(--primary))",
                 stroke: "hsl(var(--primary))"
               }}
             />
