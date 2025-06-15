@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from 'lucide-react';
 
 export interface Habit {
@@ -13,11 +14,21 @@ export interface Attribute {
   name: string;
   icon: LucideIcon;
   description: string;
-  currentLevel: string; // Display purposes, can be derived or static for now
-  xpInArea: string;     // Display purposes, can be derived or static for now
+  currentLevel: string; 
+  xpInArea: string;     
   value: number;        // Core value (0-100) for radar charts and stats
   comingSoonText: string;
 }
 
-// Keep Rank type definition in RankItem and import where needed or move here if widely used outside ranks component
-// For now, RankItem.tsx exports it.
+export interface Goal {
+  id: string;
+  title: string; // Specific
+  description?: string; // Further detail for Specific
+  measurable: string; // How will progress be measured?
+  achievable: string; // Steps to make it achievable
+  relevant: string; // Why is this goal important?
+  timeBound: string; // ISO date string for deadline
+  isCompleted: boolean;
+  createdAt: string; // ISO Date string
+  xp: number;
+}

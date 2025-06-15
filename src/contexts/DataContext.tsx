@@ -2,8 +2,8 @@
 "use client";
 
 import type { Rank } from '@/components/ranks/RankItem';
-import { RANKS_DATA, INITIAL_ATTRIBUTES, DEFAULT_USERNAME, INITIAL_XP, HABIT_CATEGORY_XP_MAP, DEFAULT_HABIT_XP } from '@/lib/app-config';
-import type { Habit, Attribute } from '@/types';
+import { RANKS_DATA, INITIAL_ATTRIBUTES, DEFAULT_USERNAME, INITIAL_XP, HABIT_CATEGORY_XP_MAP, DEFAULT_HABIT_XP, INITIAL_GOALS, DEFAULT_GOAL_XP } from '@/lib/app-config';
+import type { Habit, Attribute, Goal } from '@/types';
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 
 interface DataContextState {
@@ -11,6 +11,7 @@ interface DataContextState {
   userXP: number;
   habits: Habit[];
   attributes: Attribute[];
+  goals: Goal[];
   currentRank: Rank;
   nextRank: Rank | null;
   xpTowardsNextRank: number;
@@ -18,8 +19,12 @@ interface DataContextState {
   rankProgressPercent: number;
   totalHabits: number;
   completedHabits: number;
+  activeGoalsCount: number;
   addHabit: (name: string, category: string) => void;
   toggleHabit: (id: string) => void;
+  addGoal: (goalData: Omit<Goal, 'id' | 'isCompleted' | 'createdAt'>) => void;
+  toggleGoalCompletion: (id: string) => void;
+  deleteGoal: (id: string) => void;
   setUserNameState: (name: string) => void; 
   isLoading: boolean;
 }
@@ -32,69 +37,59 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [userXP, setUserXP] = useState<number>(INITIAL_XP);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>(INITIAL_ATTRIBUTES);
+  const [goals, setGoals] = useState<Goal[]>(INITIAL_GOALS);
 
   useEffect(() => {
     setIsLoading(true);
     const storedUserName = localStorage.getItem('username');
     const storedUserXP = localStorage.getItem('userXP');
     const storedHabits = localStorage.getItem('habits');
+    const storedGoals = localStorage.getItem('goals');
+    const storedAvatar = localStorage.getItem('userAvatar'); // To ensure avatar is reset if we clear everything
 
-    if (storedUserName) {
-      setUserName(storedUserName);
-    } else {
-      setUserName(DEFAULT_USERNAME);
-      // localStorage.setItem('username', DEFAULT_USERNAME); // Save default if not found
-    }
-
-    if (storedUserXP) {
-      setUserXP(Number(storedUserXP));
-    } else {
-      setUserXP(INITIAL_XP);
-      // localStorage.setItem('userXP', String(INITIAL_XP)); // Save default if not found
-    }
-
-    if (storedHabits) {
-      try {
-        const parsedHabits = JSON.parse(storedHabits);
-        if (Array.isArray(parsedHabits)) {
-            setHabits(parsedHabits);
-        } else {
-            console.error("Stored habits are not an array, resetting.");
-            setHabits([]);
-            // localStorage.setItem('habits', JSON.stringify([]));
-        }
-      } catch (e) {
-        console.error("Error parsing habits from localStorage, resetting.", e);
+    // Reset logic - if these keys don't exist, it implies a fresh start or data wipe.
+    // This part implements the "reset if no data" behavior
+    if (!storedUserName && !storedUserXP && !storedHabits && !storedGoals && !storedAvatar) {
+        localStorage.removeItem('username');
+        localStorage.removeItem('userXP');
+        localStorage.removeItem('habits');
+        localStorage.removeItem('goals');
+        localStorage.removeItem('userAvatar');
+        setUserName(DEFAULT_USERNAME);
+        setUserXP(INITIAL_XP);
         setHabits([]);
-        // localStorage.setItem('habits', JSON.stringify([])); 
-      }
+        setGoals(INITIAL_GOALS);
+        setAttributes(INITIAL_ATTRIBUTES.map(attr => ({ ...attr, value: 0, currentLevel: "0/100", xpInArea: "0/1000" })));
     } else {
-      setHabits([]);
-      // localStorage.setItem('habits', JSON.stringify([])); 
+        setUserName(storedUserName || DEFAULT_USERNAME);
+        setUserXP(Number(storedUserXP) || INITIAL_XP);
+
+        try {
+            setHabits(storedHabits ? JSON.parse(storedHabits) : []);
+        } catch (e) {
+            console.error("Error parsing habits, resetting to empty.", e);
+            setHabits([]);
+        }
+        try {
+            setGoals(storedGoals ? JSON.parse(storedGoals) : INITIAL_GOALS);
+        } catch (e) {
+            console.error("Error parsing goals, resetting to empty.", e);
+            setGoals(INITIAL_GOALS);
+        }
+        setAttributes(INITIAL_ATTRIBUTES.map(attr => ({ ...attr, value: 0, currentLevel: "0/100", xpInArea: "0/1000" }))); // Ensure attributes start at 0
     }
     
-    setAttributes(INITIAL_ATTRIBUTES); 
-
     setIsLoading(false);
   }, []); 
 
   useEffect(() => {
     if (!isLoading) {
       localStorage.setItem('username', userName);
-    }
-  }, [userName, isLoading]);
-
-  useEffect(() => {
-    if (!isLoading) {
       localStorage.setItem('userXP', String(userXP));
-    }
-  }, [userXP, isLoading]);
-
-  useEffect(() => {
-    if (!isLoading) {
       localStorage.setItem('habits', JSON.stringify(habits));
+      localStorage.setItem('goals', JSON.stringify(goals));
     }
-  }, [habits, isLoading]);
+  }, [userName, userXP, habits, goals, isLoading]);
 
 
   const setUserNameState = useCallback((name: string) => {
@@ -114,9 +109,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const toggleHabit = useCallback((id: string) => {
-    setHabits(prevHabits => {
-      let xpChange = 0;
-      const updatedHabits = prevHabits.map(habit => {
+    let xpChange = 0;
+    setHabits(prevHabits => 
+      prevHabits.map(habit => {
         if (habit.id === id) {
           const newCompletedStatus = !habit.completed;
           xpChange = newCompletedStatus ? habit.xp : -habit.xp;
@@ -127,9 +122,44 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           };
         }
         return habit;
-      });
-      setUserXP(currentXP => Math.max(0, currentXP + xpChange));
-      return updatedHabits;
+      })
+    );
+    setUserXP(currentXP => Math.max(0, currentXP + xpChange));
+  }, []);
+
+  const addGoal = useCallback((goalData: Omit<Goal, 'id' | 'isCompleted' | 'createdAt'>) => {
+    const newGoal: Goal = {
+      ...goalData,
+      id: String(Date.now()),
+      isCompleted: false,
+      createdAt: new Date().toISOString(),
+    };
+    setGoals(prev => [newGoal, ...prev]);
+  }, []);
+
+  const toggleGoalCompletion = useCallback((id: string) => {
+    let xpChange = 0;
+    setGoals(prevGoals => 
+      prevGoals.map(goal => {
+        if (goal.id === id) {
+          const newCompletedStatus = !goal.isCompleted;
+          xpChange = newCompletedStatus ? goal.xp : -goal.xp;
+          return { ...goal, isCompleted: newCompletedStatus };
+        }
+        return goal;
+      })
+    );
+    setUserXP(currentXP => Math.max(0, currentXP + xpChange));
+  }, []);
+  
+  const deleteGoal = useCallback((id: string) => {
+    setGoals(prevGoals => {
+      const goalToDelete = prevGoals.find(g => g.id === id);
+      if (goalToDelete && goalToDelete.isCompleted) {
+        // Optionally deduct XP if a completed goal is deleted
+        // setUserXP(currentXP => Math.max(0, currentXP - goalToDelete.xp));
+      }
+      return prevGoals.filter(goal => goal.id !== id);
     });
   }, []);
   
@@ -166,14 +196,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             progressPercent = totalXPForLevel > 0 ? (xpTowardsNext / totalXPForLevel) * 100 : 100;
              if (userXP >= currentRankCalculated.xpRequired) progressPercent = 100;
         } else { 
-            progressPercent = 100; // Should be 100 if it's the first rank and XP met or exceeded
+            progressPercent = 100; 
         }
-    } else { // This covers the very first rank where xpRequired is 0
-        if (RANKS_DATA.length > 1 && RANKS_DATA[1].xpRequired > 0) { // if there's a next rank
+    } else { 
+        if (RANKS_DATA.length > 1 && RANKS_DATA[1].xpRequired > 0) { 
             totalXPForLevel = RANKS_DATA[1].xpRequired;
             progressPercent = totalXPForLevel > 0 ? (userXP / totalXPForLevel) * 100 : 0;
-        } else { // Only one rank in the system or first rank is also max rank
-            progressPercent = userXP > 0 ? 100:0; // or 100 if any XP means 100% of the only rank
+        } else { 
+            progressPercent = userXP > 0 ? 100:0; 
         }
     }
      if (userXP >= currentRankCalculated.xpRequired && !nextRankCalculated) { 
@@ -191,10 +221,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const totalHabits = habits.length;
   const completedHabits = habits.filter(h => h.completed).length;
+  const activeGoalsCount = goals.filter(g => !g.isCompleted).length;
 
   if (isLoading && typeof window !== 'undefined') {
-    return <div className="flex h-screen w-screen flex-col items-center justify-center bg-background space-y-4"><p className="text-xl text-foreground">Cargando Datos...</p></div>;
+     return (
+      <div className="flex h-screen w-screen flex-col items-center justify-center bg-background space-y-4">
+        {/* Icono de carga Loader2 u otro SVG/Spinner aquí */}
+        <p className="text-xl text-foreground">Cargando Datos...</p>
+      </div>
+     );
   }
+
 
   return (
     <DataContext.Provider value={{
@@ -202,6 +239,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       userXP,
       habits,
       attributes,
+      goals,
       currentRank,
       nextRank,
       xpTowardsNextRank,
@@ -209,8 +247,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       rankProgressPercent,
       totalHabits,
       completedHabits,
+      activeGoalsCount,
       addHabit,
       toggleHabit,
+      addGoal,
+      toggleGoalCompletion,
+      deleteGoal,
       setUserNameState,
       isLoading
     }}>

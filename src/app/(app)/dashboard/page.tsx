@@ -49,7 +49,7 @@ const KeyIndicatorItem: React.FC<KeyIndicatorProps> = ({ name, percentage }) => 
 
 const quickActions = [
   { label: "Registrar Hábitos Diarios", icon: ListPlus, href: "/habits" },
-  { label: "Gestionar Metas", icon: Target, href: "/goals" }, // Goals not yet implemented
+  { label: "Gestionar Metas", icon: Target, href: "/goals" },
   { label: "Registrar Sueño", icon: BedDouble, href: "/sleep" }, // Sleep not yet implemented
 ];
 
@@ -62,7 +62,8 @@ export default function DashboardPage() {
     userXP,
     totalHabits, 
     completedHabits,
-    attributes 
+    attributes,
+    activeGoalsCount
   } = useData();
 
   const xpNeededForNextRankDisplay = nextRank ? `${(nextRank.xpRequired - userXP).toLocaleString()} XP para ${nextRank.name.split(" - ")[1]}` : "Rango Máximo Alcanzado";
@@ -73,7 +74,6 @@ export default function DashboardPage() {
     fullMark: 100,
   }));
 
-  // Find specific attributes for KeyIndicatorItems from DataContext
   const motivacionAttr = attributes.find(attr => attr.name.toLowerCase() === "motivación")?.value || 0;
   const energiaAttr = attributes.find(attr => attr.name.toLowerCase() === "energía")?.value || 0;
   const disciplinaAttr = attributes.find(attr => attr.name.toLowerCase() === "disciplina")?.value || 0;
@@ -92,7 +92,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Rango Actual" value={currentRank.name.split(" - ")[1] || currentRank.name} subtitle={xpNeededForNextRankDisplay} icon={History} />
         <StatCard title="Hábitos de Hoy" value={`${completedHabits}/${totalHabits}`} subtitle="Objetivos diarios" icon={CheckCircle2} />
-        <StatCard title="Metas Activas" value="0" subtitle="Misiones en curso" icon={Target} /> {/* Goals not implemented */}
+        <StatCard title="Metas Activas" value={String(activeGoalsCount)} subtitle="Misiones en curso" icon={Target} />
         <StatCard title="Prom. Sueño" value="0 hrs" subtitle="Últimos 7 días" icon={Moon} /> {/* Sleep not implemented */}
       </div>
 
