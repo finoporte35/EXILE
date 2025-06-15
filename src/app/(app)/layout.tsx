@@ -6,10 +6,11 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Loader2 } from 'lucide-react';
+import { DataProvider } from '@/contexts/DataContext';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthLoading, setIsAuthLoading] = useState(true); // Renamed to avoid clash
 
   useEffect(() => {
     // This check should only run on the client side.
@@ -17,11 +18,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!isLoggedIn) {
       router.replace('/login');
     } else {
-      setIsLoading(false); 
+      setIsAuthLoading(false); 
     }
   }, [router]);
   
-  if (isLoading) {
+  if (isAuthLoading) {
      return (
       <div className="flex h-screen w-screen flex-col items-center justify-center bg-background space-y-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -31,14 +32,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <SidebarProvider defaultOpen={true}>
-        <AppSidebar />
-        <SidebarInset>
-          <AppHeader />
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-            {children}
-          </main>
-        </SidebarInset>
-    </SidebarProvider>
+    <DataProvider>
+      <SidebarProvider defaultOpen={true}>
+          <AppSidebar />
+          <SidebarInset>
+            <AppHeader />
+            <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+              {children}
+            </main>
+          </SidebarInset>
+      </SidebarProvider>
+    </DataProvider>
   );
 }

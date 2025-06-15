@@ -12,10 +12,12 @@ import { Eye, EyeOff, Mail, User, AlertTriangle } from 'lucide-react';
 import Logo from '@/components/shared/Logo';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+// import { useData } from '@/contexts/DataContext'; // Not needed if just setting localStorage
 
 export default function SignupForm() {
   const router = useRouter();
   const { toast } = useToast();
+  // const { setUserNameState } = useData(); // To update context directly, but localStorage should be enough
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,15 +41,22 @@ export default function SignupForm() {
       return;
     }
     
-    // Simulate successful profile setup
     await new Promise(resolve => setTimeout(resolve, 500));
 
     localStorage.setItem('isLoggedIn', 'true'); 
-    // Mock storing username, in a real app this would be persisted
     localStorage.setItem('username', username); 
+    // setUserNameState(username); // Optionally call context update function if available and needed for immediate effect without re-render trigger
+    
+    // Initialize userXP and habits if they don't exist, DataContext will handle defaults if not set
+    if (!localStorage.getItem('userXP')) {
+      localStorage.setItem('userXP', '0');
+    }
+    if (!localStorage.getItem('habits')) {
+      localStorage.setItem('habits', JSON.stringify([]));
+    }
+
     toast({ title: "Perfil Configurado", description: "Bienvenido a EXILE. Tu aventura comienza ahora." });
     router.push('/dashboard');
-    // setIsLoading(false); // No need to set to false if redirecting immediately
   };
 
   return (
@@ -100,7 +109,7 @@ export default function SignupForm() {
             <AlertTriangle className="h-4 w-4 text-primary" />
             <AlertTitle className="text-sm font-semibold text-primary">Aviso Importante</AlertTitle>
             <AlertDescription className="text-xs text-muted-foreground">
-                Tus datos (nombre, correo, etc.) se guardan localmente en tu navegador. EXILE no almacena tu información en la nube. Puedes configurar tu avatar en la sección de Perfil. Considera realizar copias de seguridad de tu progreso.
+                Tus datos (nombre, correo, XP, hábitos) se guardan localmente en tu navegador. EXILE no almacena tu información en la nube. Puedes configurar tu avatar en la sección de Perfil. Considera realizar copias de seguridad de tu progreso.
             </AlertDescription>
         </Alert>
       </CardContent>

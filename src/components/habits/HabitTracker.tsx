@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Zap, Flame, Filter } from "lucide-react";
+import { PlusCircle, Zap, Filter } from "lucide-react";
 import HabitItem from "./HabitItem";
 import HabitProgressChart from './HabitProgressChart';
 import { Progress } from '@/components/ui/progress';
@@ -15,71 +15,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-export interface Habit {
-  id: string;
-  name: string;
-  completed: boolean;
-  xp: number;
-  streak: number;
-  category: string; // e.g., Salud Física, Desarrollo Mental, Productividad, etc.
-}
-
-const initialHabits: Habit[] = []; // No initial habits
-
-const categories = ["Todos", "Salud Física", "Desarrollo Mental", "Productividad", "Bienestar Emocional", "Relaciones Sociales", "Crecimiento Espiritual"];
-
-const categoryXpMap: Record<string, number> = {
-  'Salud Física': 20,
-  'Desarrollo Mental': 15,
-  'Productividad': 10,
-  'Bienestar Emocional': 15,
-  'Relaciones Sociales': 10,
-  'Crecimiento Espiritual': 20,
-};
-const defaultXpForNewHabit = 5; // Default XP if category not in map or for "Todos" (though "Todos" isn't selectable for new habit)
+import { useData } from '@/contexts/DataContext';
+import { HABIT_CATEGORIES } from '@/lib/app-config';
+import type { Habit } from '@/types'; // Ensure Habit type is imported
 
 export default function HabitTracker() {
-  const [habits, setHabits] = useState<Habit[]>(initialHabits);
+  const { habits, addHabit: contextAddHabit, toggleHabit, userXP } = useData();
   const [newHabitName, setNewHabitName] = useState('');
-  const [newHabitCategory, setNewHabitCategory] = useState(categories[1]); // Default to first real category
+  // Default to first real category, excluding "Todos"
+  const availableCategories = HABIT_CATEGORIES;
+  const [newHabitCategory, setNewHabitCategory] = useState(availableCategories[0]);
   const [filter, setFilter] = useState<string>("Todos");
 
-  const toggleHabit = (id: string) => {
-    setHabits(
-      habits.map((habit) =>
-        habit.id === id ? { ...habit, completed: !habit.completed, streak: !habit.completed ? habit.streak + 1 : Math.max(0, habit.streak -1) } : habit
-      )
-    );
-  };
-
-  const addHabit = () => {
+  const handleAddHabit = () => {
     if (newHabitName.trim() === '') return;
-    const assignedXp = categoryXpMap[newHabitCategory] || defaultXpForNewHabit;
-    const newHabit: Habit = {
-      id: String(Date.now()),
-      name: newHabitName,
-      completed: false,
-      xp: assignedXp,
-      streak: 0,
-      category: newHabitCategory,
-    };
-    setHabits([newHabit, ...habits]);
+    contextAddHabit(newHabitName, newHabitCategory);
     setNewHabitName('');
-    // Optionally reset newHabitCategory to default if desired:
-    // setNewHabitCategory(categories[1]); 
+    // setNewHabitCategory(availableCategories[0]); // Optionally reset category
   };
 
-  const totalXP = useMemo(() => habits.reduce((sum, habit) => sum + (habit.completed ? habit.xp : 0), 0), [habits]);
-  const maxXP = useMemo(() => habits.reduce((sum, habit) => sum + habit.xp, 0), [habits]);
-  const progressPercentage = maxXP > 0 ? (totalXP / maxXP) * 100 : 0;
+  const totalXPFromCompletedHabits = useMemo(() => habits.reduce((sum, habit) => sum + (habit.completed ? habit.xp : 0), 0), [habits]);
+  const maxPossibleXPFromHabits = useMemo(() => habits.reduce((sum, habit) => sum + habit.xp, 0), [habits]);
+  const progressPercentage = maxPossibleXPFromHabits > 0 ? (totalXPFromCompletedHabits / maxPossibleXPFromHabits) * 100 : 0;
   
   const [animatedProgress, setAnimatedProgress] = useState(0);
   useEffect(() => {
+    // Animate progress bar
     const timer = setTimeout(() => setAnimatedProgress(progressPercentage), 100);
     return () => clearTimeout(timer);
   }, [progressPercentage]);
-
 
   const filteredHabits = useMemo(() => {
     if (filter === "Todos") return habits;
@@ -105,12 +69,12 @@ export default function HabitTracker() {
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
             <SelectContent>
-              {categories.filter(c => c !== "Todos").map(cat => (
+              {availableCategories.map(cat => (
                 <SelectItem key={cat} value={cat}>{cat}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={addHabit} className="bg-new-button-gradient text-primary-foreground hover:opacity-90 whitespace-nowrap">
+          <Button onClick={handleAddHabit} className="bg-new-button-gradient text-primary-foreground hover:opacity-90 whitespace-nowrap">
             <PlusCircle className="mr-2 h-4 w-4" /> Añadir
           </Button>
         </div>
@@ -119,7 +83,7 @@ export default function HabitTracker() {
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between p-4 bg-card rounded-lg shadow">
         <div className="flex items-center gap-2 text-lg">
           <Zap className="h-6 w-6 text-yellow-400" />
-          <span className="font-semibold text-foreground">XP Hoy: {totalXP} / {maxXP}</span>
+          <span className="font-semibold text-foreground">XP Hoy (Hábitos): {totalXPFromCompletedHabits} / {maxPossibleXPFromHabits}</span>
         </div>
         <div className="w-full sm:w-auto flex items-center gap-2">
           <Filter className="h-5 w-5 text-muted-foreground" />
@@ -128,7 +92,7 @@ export default function HabitTracker() {
               <SelectValue placeholder="Filtrar por categoría" />
             </SelectTrigger>
             <SelectContent>
-              {categories.map(cat => (
+              {["Todos", ...availableCategories].map(cat => (
                 <SelectItem key={cat} value={cat}>{cat}</SelectItem>
               ))}
             </SelectContent>
@@ -138,21 +102,21 @@ export default function HabitTracker() {
       
       <div className="mb-6">
         <div className="flex justify-between text-sm text-muted-foreground mb-1">
-          <span>Progreso Diario de XP</span>
+          <span>Progreso Diario de XP (Hábitos)</span>
           <span>{Math.round(progressPercentage)}%</span>
         </div>
         <Progress 
             value={animatedProgress} 
             className="h-3 bg-secondary" 
             indicatorClassName="bg-main-gradient" 
-            aria-label={`Progreso diario de XP: ${Math.round(progressPercentage)}%`} 
+            aria-label={`Progreso diario de XP de hábitos: ${Math.round(progressPercentage)}%`} 
         />
       </div>
 
       {filteredHabits.length > 0 ? (
         <div className="space-y-3">
           {filteredHabits.map((habit) => (
-            <HabitItem key={habit.id} habit={habit} onToggle={toggleHabit} />
+            <HabitItem key={habit.id} habit={habit} onToggle={() => toggleHabit(habit.id)} />
           ))}
         </div>
       ) : (

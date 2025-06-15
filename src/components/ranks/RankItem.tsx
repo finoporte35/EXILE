@@ -28,7 +28,7 @@ export default function RankItem({ rank }: RankItemProps) {
       </CardHeader>
       <CardContent className="text-center">
         <p className="text-sm text-muted-foreground mb-2">{rank.description}</p>
-        {rank.percentage && (
+        {rank.percentage !== undefined && ( // check for undefined explicitly for 0%
           <p className="text-xs text-accent">
             Top {rank.percentage}% de jugadores
           </p>
@@ -37,7 +37,7 @@ export default function RankItem({ rank }: RankItemProps) {
           <p className="mt-2 text-sm font-semibold text-primary">¡Este es tu rango actual!</p>
         )}
          {rank.isNext && !rank.isCurrent && (
-          <p className="mt-2 text-sm font-semibold text-secondary">¡Tu próximo desafío!</p>
+          <p className="mt-2 text-sm font-semibold text-accent">¡Tu próximo desafío!</p>
         )}
       </CardContent>
     </Card>

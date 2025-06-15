@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
-  LayoutGrid, User, TrendingUp, ClipboardList, ListChecks, Moon, Target, QuoteIcon, Settings, HelpCircle, LogOut, GitFork, BarChartHorizontalBig 
+  LayoutGrid, User, TrendingUp, ClipboardList, ListChecks, Moon, Target, QuoteIcon, Settings, HelpCircle, LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/shared/Logo';
@@ -12,7 +12,8 @@ import {
   Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, useSidebar, SidebarSeparator, SidebarGroup, SidebarGroupLabel
 } from "@/components/ui/sidebar";
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useData } from '@/contexts/DataContext'; // Import useData
 
 const menuPrincipalItems = [
   { href: '/dashboard', label: 'Panel', icon: LayoutGrid },
@@ -33,21 +34,28 @@ const sistemaItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { open, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
+  const { open, isMobile, setOpenMobile } = useSidebar();
+  const { userName, currentRank, isLoading } = useData(); // Get data from context
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('username');
+    localStorage.removeItem('userXP');
+    localStorage.removeItem('habits');
+    // Potentially clear other localStorage items if DataContext saves more
     if (isMobile) {
       setOpenMobile(false); 
     }
     router.push('/login');
   };
+
+  const sidebarUserName = isLoading ? "Cargando..." : userName;
+  const sidebarRankName = isLoading ? "" : (currentRank.name.split(" - ")[1] || currentRank.name);
   
   return (
     <Sidebar collapsible={open ? "icon" : "offcanvas"} variant="sidebar" side="left">
-        <SidebarHeader className="flex items-center justify-start p-4"> {/* Changed justify-between to justify-start */}
+        <SidebarHeader className="flex items-center justify-start p-4">
           <Logo size="medium" className={cn(open ? "block" : "hidden group-data-[collapsible=icon]:hidden", "ml-1")}/>
-           {/* Removed toggle buttons that were here */}
         </SidebarHeader>
         
         <SidebarContent className="flex-1">
@@ -101,12 +109,13 @@ export function AppSidebar() {
         <SidebarFooter className="p-3 border-t border-sidebar-border mt-auto">
           <div className={cn("flex items-center gap-3", open ? "flex-row" : "flex-col group-data-[collapsible=icon]:flex-col")}>
             <Avatar className={cn("h-10 w-10 bg-primary flex-shrink-0", open ? "" : "group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8")}>
-              {/* <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="user avatar abstract" /> */}
-              <AvatarFallback className="text-primary-foreground text-lg">X</AvatarFallback>
+              <AvatarFallback className="text-primary-foreground text-lg">
+                {sidebarUserName.charAt(0).toUpperCase()}
+              </AvatarFallback>
             </Avatar>
             <div className={cn("flex-grow overflow-hidden", open ? "block" : "hidden group-data-[collapsible=icon]:hidden")}>
-              <p className="text-sm font-semibold truncate text-sidebar-foreground">Usuario</p>
-              <p className="text-xs text-muted-foreground truncate">NPC</p>
+              <p className="text-sm font-semibold truncate text-sidebar-foreground">{sidebarUserName}</p>
+              <p className="text-xs text-muted-foreground truncate">{sidebarRankName}</p>
             </div>
           </div>
           <Button 

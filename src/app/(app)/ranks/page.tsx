@@ -1,99 +1,19 @@
 
-import RankItem, { type Rank } from '@/components/ranks/RankItem';
-import { User, PersonStanding, Sparkles, Shield, Zap, Users, Brain, Crown, Atom, HelpCircle } from 'lucide-react';
-
-// XP del usuario actual.
-const currentUserXP = 0; 
-
-const ranks: Rank[] = [
-  { 
-    name: "Level 1 - NPC", 
-    xpRequired: 0, 
-    description: "El inicio de tu jornada.", 
-    icon: User, 
-    percentage: 86 
-  },
-  { 
-    name: "Level 2 - Hombre", 
-    xpRequired: 100, 
-    description: "Desbloquea Chat con miembros.", 
-    icon: PersonStanding, 
-    percentage: 6 
-  },
-  { 
-    name: "Level 3 - Hombre de alto valor", 
-    xpRequired: 500, 
-    description: "Demuestras valor y potencial.", 
-    icon: Sparkles, 
-    percentage: 3 
-  },
-  { 
-    name: "Level 4 - Héroe", 
-    xpRequired: 1500, 
-    description: "Tus hazañas comienzan a ser reconocidas.", 
-    icon: Shield, 
-    percentage: 1 
-  },
-  { 
-    name: "Level 5 - Superheroe", 
-    xpRequired: 5000, 
-    description: "Un poder extraordinario reside en ti.", 
-    icon: Zap, 
-    percentage: 1 
-  },
-  { 
-    name: "Level 6 - Lider", 
-    xpRequired: 15000, 
-    description: "Guías a otros con tu ejemplo.", 
-    icon: Users, 
-    percentage: 1 
-  },
-  {
-    name: "Level 7 - Líder experto",
-    xpRequired: 30000,
-    description: "Tu sabiduría y liderazgo son incomparables.",
-    icon: Brain,
-    percentage: 1
-  },
-  {
-    name: "Level 8 - Rey",
-    xpRequired: 60000,
-    description: "Gobiernas tu dominio con autoridad.",
-    icon: Crown,
-    percentage: 1
-  },
-  {
-    name: "Level 9 - Dios Griego",
-    xpRequired: 100000,
-    description: "Has trascendido a un plano divino.",
-    icon: Atom,
-    percentage: 0
-  }
-];
-
-
-const ranksWithStatus = ranks.map((rank, index, arr) => {
-  let isCurrent = false;
-  let isNext = false;
-
-  if (currentUserXP >= rank.xpRequired) {
-    if (index === arr.length - 1 || currentUserXP < arr[index+1].xpRequired) {
-      isCurrent = true;
-    }
-  }
-  
-  if (!isCurrent) {
-    const nextRankCandidateIndex = arr.findIndex(r => currentUserXP < r.xpRequired);
-    if (nextRankCandidateIndex === index) {
-      isNext = true;
-    }
-  }
-  
-  return { ...rank, isCurrent, isNext };
-});
+"use client";
+import RankItem from '@/components/ranks/RankItem';
+import { useData } from '@/contexts/DataContext';
+import { RANKS_DATA } from '@/lib/app-config';
 
 
 export default function RanksPage() {
+  const { userXP, currentRank, nextRank } = useData();
+
+  const ranksWithStatus = RANKS_DATA.map(rank => ({
+    ...rank,
+    isCurrent: rank.name === currentRank.name,
+    isNext: nextRank ? rank.name === nextRank.name : false,
+  }));
+
   return (
     <div className="space-y-8">
       <div>
@@ -112,6 +32,7 @@ export default function RanksPage() {
         <p className="text-muted-foreground max-w-2xl mx-auto">
           Cada rango representa un hito en tu desarrollo. Completa hábitos, acumula XP y asciende. Las insignias son un reflejo de tu compromiso y crecimiento constante. ¡Sigue adelante!
         </p>
+        <p className="text-sm text-primary mt-2">XP Actual: {userXP.toLocaleString()}</p>
       </div>
     </div>
   );

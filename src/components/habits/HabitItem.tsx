@@ -1,18 +1,17 @@
+
 "use client";
 
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
-import { Flame, Zap, CalendarDays, TrendingUp } from "lucide-react";
-import type { Habit } from './HabitTracker';
+import { Flame, Zap, CalendarDays } from "lucide-react";
+import type { Habit } from '@/types'; // Use Habit from global types
 import { cn } from "@/lib/utils";
 
 interface HabitItemProps {
   habit: Habit;
   onToggle: (id: string) => void;
-  onDelete?: (id: string) => void; // Optional delete functionality
 }
 
-export default function HabitItem({ habit, onToggle, onDelete }: HabitItemProps) {
+export default function HabitItem({ habit, onToggle }: HabitItemProps) {
   return (
     <div className={cn(
       "flex items-center justify-between p-4 rounded-lg border transition-all duration-300",
@@ -44,12 +43,6 @@ export default function HabitItem({ habit, onToggle, onDelete }: HabitItemProps)
           </div>
         </div>
       </div>
-      {/* Future: Could add an edit/delete button here */}
-      {/* {onDelete && (
-        <Button variant="ghost" size="icon" onClick={() => onDelete(habit.id)} className="text-destructive hover:text-destructive/80">
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      )} */}
     </div>
   );
 }

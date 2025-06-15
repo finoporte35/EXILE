@@ -1,13 +1,15 @@
 
+"use client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import Image from 'next/image';
-import { 
-  History, CheckCircle2, Target, Moon, Zap, ClipboardList, ListTodo, Lightbulb, ListPlus, BedDouble 
-} from 'lucide-react';
 import DevelopmentRadarChart, { type RadarChartDataPoint } from '@/components/dashboard/DevelopmentRadarChart';
+import { 
+  History, CheckCircle2, Target, Moon, Zap, ListTodo, ListPlus, BedDouble 
+} from 'lucide-react';
+import { useData } from '@/contexts/DataContext';
+import type { Attribute } from '@/types';
 
 interface StatCardProps {
   title: string;
@@ -45,24 +47,37 @@ const KeyIndicatorItem: React.FC<KeyIndicatorProps> = ({ name, percentage }) => 
   </div>
 );
 
-const developmentRadarData: RadarChartDataPoint[] = [
-  { category: "Motivación", value: 75, fullMark: 100 },
-  { category: "Conocimiento", value: 60, fullMark: 100 },
-  { category: "Estrategia", value: 40, fullMark: 100 },
-  { category: "Adaptabilidad", value: 80, fullMark: 100 },
-  { category: "Resiliencia", value: 70, fullMark: 100 },
-  { category: "Enfoque", value: 50, fullMark: 100 },
-  { category: "Disciplina", value: 85, fullMark: 100 },
-  { category: "Energía", value: 65, fullMark: 100 },
-];
-
 const quickActions = [
   { label: "Registrar Hábitos Diarios", icon: ListPlus, href: "/habits" },
-  { label: "Gestionar Metas", icon: Target, href: "/goals" },
-  { label: "Registrar Sueño", icon: BedDouble, href: "/sleep" },
+  { label: "Gestionar Metas", icon: Target, href: "/goals" }, // Goals not yet implemented
+  { label: "Registrar Sueño", icon: BedDouble, href: "/sleep" }, // Sleep not yet implemented
 ];
 
 export default function DashboardPage() {
+  const { 
+    userName,
+    currentRank, 
+    nextRank, 
+    rankProgressPercent, 
+    userXP,
+    totalHabits, 
+    completedHabits,
+    attributes 
+  } = useData();
+
+  const xpNeededForNextRankDisplay = nextRank ? `${(nextRank.xpRequired - userXP).toLocaleString()} XP para ${nextRank.name.split(" - ")[1]}` : "Rango Máximo Alcanzado";
+  
+  const developmentRadarData: RadarChartDataPoint[] = attributes.map((attr: Attribute) => ({
+    category: attr.name,
+    value: attr.value,
+    fullMark: 100,
+  }));
+
+  // Find specific attributes for KeyIndicatorItems
+  const motivacionAttr = attributes.find(attr => attr.name === "Motivación")?.value || 0;
+  const energiaAttr = attributes.find(attr => attr.name === "Energía")?.value || 0;
+  const disciplinaAttr = attributes.find(attr => attr.name === "Disciplina")?.value || 0;
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 bg-background text-foreground min-h-full">
       <div className="flex items-center justify-between mb-2">
@@ -71,22 +86,22 @@ export default function DashboardPage() {
       
       <div>
         <h2 className="text-2xl font-semibold text-primary">Tu Panel</h2>
-        <p className="text-muted-foreground">Bienvenido de nuevo, Usuario. Revisa tu progreso.</p>
+        <p className="text-muted-foreground">Bienvenido de nuevo, {userName}. Revisa tu progreso.</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Rango Actual" value="NPC" subtitle="100 XP para Hombre" icon={History} />
-        <StatCard title="Hábitos de Hoy" value="0/0" subtitle="Objetivos diarios" icon={CheckCircle2} />
-        <StatCard title="Metas Activas" value="0" subtitle="Misiones en curso" icon={Target} />
-        <StatCard title="Prom. Sueño" value="0 hrs" subtitle="Últimos 7 días" icon={Moon} />
+        <StatCard title="Rango Actual" value={currentRank.name.split(" - ")[1] || currentRank.name} subtitle={xpNeededForNextRankDisplay} icon={History} />
+        <StatCard title="Hábitos de Hoy" value={`${completedHabits}/${totalHabits}`} subtitle="Objetivos diarios" icon={CheckCircle2} />
+        <StatCard title="Metas Activas" value="0" subtitle="Misiones en curso" icon={Target} /> {/* Goals not implemented */}
+        <StatCard title="Prom. Sueño" value="0 hrs" subtitle="Últimos 7 días" icon={Moon} /> {/* Sleep not implemented */}
       </div>
 
       <div className="bg-card p-4 rounded-lg border border-neutral-800 shadow-md">
         <div className="flex justify-between items-center mb-1">
           <h3 className="text-sm font-medium text-muted-foreground">Progreso al Siguiente Rango</h3>
-          <span className="text-sm font-semibold text-primary">0%</span>
+          <span className="text-sm font-semibold text-primary">{Math.round(rankProgressPercent)}%</span>
         </div>
-        <Progress value={0} className="h-2 bg-neutral-700" indicatorClassName="bg-main-gradient" />
+        <Progress value={rankProgressPercent} className="h-2 bg-neutral-700" indicatorClassName="bg-main-gradient" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -99,9 +114,9 @@ export default function DashboardPage() {
             <CardDescription>Monitorea tus indicadores de rendimiento.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <KeyIndicatorItem name="Motivación" percentage={75} />
-            <KeyIndicatorItem name="Energía" percentage={65} />
-            <KeyIndicatorItem name="Disciplina" percentage={85} />
+            <KeyIndicatorItem name="Motivación" percentage={motivacionAttr} />
+            <KeyIndicatorItem name="Energía" percentage={energiaAttr} />
+            <KeyIndicatorItem name="Disciplina" percentage={disciplinaAttr} />
           </CardContent>
         </Card>
         
@@ -114,7 +129,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6"> {/* Adjusted grid to take full width if only one item */}
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
         <Card className="bg-card border-neutral-800 shadow-md">
           <CardHeader>
             <div className="flex items-center gap-2">
