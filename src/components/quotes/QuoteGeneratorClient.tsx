@@ -120,7 +120,6 @@ export default function QuoteGeneratorClient() {
           <Button 
             onClick={handlePreviousQuote} 
             variant="outline"
-            className="text-primary-foreground hover:opacity-90" 
             disabled={currentIndex === 0 || unlockedCount === 0}
             aria-label="Cita anterior"
           >
@@ -132,7 +131,6 @@ export default function QuoteGeneratorClient() {
           <Button 
             onClick={handleNextQuote} 
             variant="outline"
-            className="text-primary-foreground hover:opacity-90" 
             disabled={currentIndex >= unlockedCount - 1 || unlockedCount === 0}
             aria-label="Siguiente cita"
           >
@@ -166,4 +164,3 @@ export default function QuoteGeneratorClient() {
     </Card>
   );
 }
-
