@@ -18,14 +18,14 @@ export const RANKS_DATA: Rank[] = [
 ];
 
 export const INITIAL_ATTRIBUTES: Attribute[] = [
-  { name: "Motivación", icon: TrendingUp, description: "Impulso interno y externo para actuar y alcanzar metas.", currentLevel: "75/100", xpInArea: "750/1000", value: 75, comingSoonText: "Herramientas y estrategias próximamente." },
-  { name: "Energía", icon: Zap, description: "Nivel de vitalidad física y mental para afrontar el día.", currentLevel: "65/100", xpInArea: "650/1000", value: 65, comingSoonText: "Herramientas y estrategias próximamente." },
-  { name: "Disciplina", icon: ShieldCheck, description: "Capacidad de autocontrol y constancia en hábitos y tareas.", currentLevel: "85/100", xpInArea: "850/1000", value: 85, comingSoonText: "Herramientas y estrategias próximamente." },
-  { name: "Enfoque", icon: Target, description: "Habilidad para concentrarse en una tarea sin distracciones.", currentLevel: "50/100", xpInArea: "500/1000", value: 50, comingSoonText: "Herramientas y estrategias próximamente." },
-  { name: "Resiliencia", icon: Activity, description: "Capacidad para superar adversidades y adaptarse al cambio.", currentLevel: "70/100", xpInArea: "700/1000", value: 70, comingSoonText: "Herramientas y estrategias próximamente." },
-  { name: "Adaptabilidad", icon: GitFork, description: "Flexibilidad para ajustarse a nuevas situaciones o entornos.", currentLevel: "80/100", xpInArea: "800/1000", value: 80, comingSoonText: "Herramientas y estrategias próximamente." },
-  { name: "Estrategia", icon: Lightbulb, description: "Habilidad para planificar y tomar decisiones efectivas.", currentLevel: "40/100", xpInArea: "400/1000", value: 40, comingSoonText: "Herramientas y estrategias próximamente." },
-  { name: "Conocimiento", icon: BookOpen, description: "Adquisición y aplicación de información y habilidades.", currentLevel: "60/100", xpInArea: "600/1000", value: 60, comingSoonText: "Herramientas y estrategias próximamente." }
+  { name: "Motivación", icon: TrendingUp, description: "Impulso interno y externo para actuar y alcanzar metas.", currentLevel: "0/100", xpInArea: "0/1000", value: 0, comingSoonText: "Herramientas y estrategias próximamente." },
+  { name: "Energía", icon: Zap, description: "Nivel de vitalidad física y mental para afrontar el día.", currentLevel: "0/100", xpInArea: "0/1000", value: 0, comingSoonText: "Herramientas y estrategias próximamente." },
+  { name: "Disciplina", icon: ShieldCheck, description: "Capacidad de autocontrol y constancia en hábitos y tareas.", currentLevel: "0/100", xpInArea: "0/1000", value: 0, comingSoonText: "Herramientas y estrategias próximamente." },
+  { name: "Enfoque", icon: Target, description: "Habilidad para concentrarse en una tarea sin distracciones.", currentLevel: "0/100", xpInArea: "0/1000", value: 0, comingSoonText: "Herramientas y estrategias próximamente." },
+  { name: "Resiliencia", icon: Activity, description: "Capacidad para superar adversidades y adaptarse al cambio.", currentLevel: "0/100", xpInArea: "0/1000", value: 0, comingSoonText: "Herramientas y estrategias próximamente." },
+  { name: "Adaptabilidad", icon: GitFork, description: "Flexibilidad para ajustarse a nuevas situaciones o entornos.", currentLevel: "0/100", xpInArea: "0/1000", value: 0, comingSoonText: "Herramientas y estrategias próximamente." },
+  { name: "Estrategia", icon: Lightbulb, description: "Habilidad para planificar y tomar decisiones efectivas.", currentLevel: "0/100", xpInArea: "0/1000", value: 0, comingSoonText: "Herramientas y estrategias próximamente." },
+  { name: "Conocimiento", icon: BookOpen, description: "Adquisición y aplicación de información y habilidades.", currentLevel: "0/100", xpInArea: "0/1000", value: 0, comingSoonText: "Herramientas y estrategias próximamente." }
 ];
 
 export const HABIT_CATEGORIES = ["Salud Física", "Desarrollo Mental", "Productividad", "Bienestar Emocional", "Relaciones Sociales", "Crecimiento Espiritual"];
@@ -39,3 +39,4 @@ export const HABIT_CATEGORY_XP_MAP: Record<string, number> = {
   'Crecimiento Espiritual': 20,
 };
 export const DEFAULT_HABIT_XP = 5;
+
