@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Bell, Palette, Shield, UserCircle, Save, Download, Upload, Database } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DEFAULT_USERNAME, INITIAL_XP } from '@/lib/app-config';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 export default function SettingsPage() {
