@@ -84,9 +84,9 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
               cursor={false}
               content={<ChartTooltipContent indicator="line" />}
             />
-            <PolarGrid stroke="hsla(var(--muted-foreground), 0.2)" />
-            <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickLine={{ stroke: "hsla(var(--muted-foreground), 0.2)" }} />
-            <PolarRadiusAxis angle={30} domain={[0, Math.max(...chartData.map(d => d.fullMark), 1)]} tickCount={4} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} axisLine={{ stroke: "hsla(var(--muted-foreground), 0.2)" }} tickLine={{ stroke: "hsla(var(--muted-foreground), 0.2)" }} />
+            <PolarGrid stroke="hsla(var(--muted-foreground), 0.3)" />
+            <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickLine={{ stroke: "hsla(var(--muted-foreground), 0.3)" }} />
+            <PolarRadiusAxis angle={30} domain={[0, Math.max(...chartData.map(d => d.fullMark), 1)]} tickCount={4} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} axisLine={{ stroke: "hsla(var(--muted-foreground), 0.3)" }} tickLine={{ stroke: "hsla(var(--muted-foreground), 0.3)" }} />
             <Radar
               dataKey="value"
               fill="hsla(var(--primary), 0.4)"
