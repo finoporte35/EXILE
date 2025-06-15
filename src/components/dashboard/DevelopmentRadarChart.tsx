@@ -32,13 +32,13 @@ export interface DevelopmentRadarChartProps {
   footerText?: string;
 }
 
-export default function DevelopmentRadarChart({ 
+export default function DevelopmentRadarChart({
   data,
   title = "Radar de Desarrollo",
   description = "Visualización de tu progreso en áreas clave.",
   footerText = "Completar acciones incrementa tu puntuación."
 }: DevelopmentRadarChartProps) {
-  
+
   const chartConfig = data.reduce((config, item, index) => {
     config[item.category] = {
       label: item.category,
@@ -83,24 +83,24 @@ export default function DevelopmentRadarChart({
               cursor={false}
               content={<ChartTooltipContent indicator="line" />}
             />
-            <PolarGrid stroke="hsla(var(--foreground), 0.05)" /> {/* Very faint grid lines */}
-            <PolarAngleAxis 
-              dataKey="category" 
-              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} 
-              tickLine={false} // Hide tick lines for category labels
+            <PolarGrid stroke="hsla(var(--muted-foreground), 0.6)" /> {/* Changed for visibility */}
+            <PolarAngleAxis
+              dataKey="category"
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+              tickLine={false}
             />
-            <PolarRadiusAxis 
-                angle={90} 
-                domain={[0, Math.max(...data.map(d => d.fullMark), 1)]} 
-                tickCount={4} // Still useful for internal calculations by PolarGrid
-                tick={false} // Hide numeric labels on radius axis
-                axisLine={false} // Hide radial spokes
-                tickLine={false} // Hide tick lines for radius axis
+            <PolarRadiusAxis
+                angle={90}
+                domain={[0, Math.max(...data.map(d => d.fullMark), 1)]}
+                tickCount={4}
+                tick={false}
+                axisLine={false}
+                tickLine={false}
             />
             <Radar
               dataKey="value"
-              fill="transparent" // No fill for the data polygon
-              stroke="hsl(var(--primary))" // Red outline
+              fill="transparent"
+              stroke="hsl(var(--primary))"
               strokeWidth={2}
               dot={{
                 r: 3,
