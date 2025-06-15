@@ -34,38 +34,64 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [attributes, setAttributes] = useState<Attribute[]>(INITIAL_ATTRIBUTES);
 
   useEffect(() => {
-    // Force reset all progress by clearing localStorage and setting defaults
-    localStorage.removeItem('username');
-    localStorage.removeItem('userXP');
-    localStorage.removeItem('habits');
-    localStorage.removeItem('userAvatar'); // Clear avatar as part of "all progress"
+    setIsLoading(true);
+    const storedUserName = localStorage.getItem('username');
+    const storedUserXP = localStorage.getItem('userXP');
+    const storedHabits = localStorage.getItem('habits');
 
-    // Set state to initial defaults from app-config
-    setUserName(DEFAULT_USERNAME);
-    setUserXP(INITIAL_XP);
-    setHabits([]); // Reset habits to an empty array
-    setAttributes(INITIAL_ATTRIBUTES); // Reset attributes to initial values from config
+    if (storedUserName) {
+      setUserName(storedUserName);
+    } else {
+      setUserName(DEFAULT_USERNAME);
+      // localStorage.setItem('username', DEFAULT_USERNAME); // Save default if not found
+    }
+
+    if (storedUserXP) {
+      setUserXP(Number(storedUserXP));
+    } else {
+      setUserXP(INITIAL_XP);
+      // localStorage.setItem('userXP', String(INITIAL_XP)); // Save default if not found
+    }
+
+    if (storedHabits) {
+      try {
+        const parsedHabits = JSON.parse(storedHabits);
+        if (Array.isArray(parsedHabits)) {
+            setHabits(parsedHabits);
+        } else {
+            console.error("Stored habits are not an array, resetting.");
+            setHabits([]);
+            // localStorage.setItem('habits', JSON.stringify([]));
+        }
+      } catch (e) {
+        console.error("Error parsing habits from localStorage, resetting.", e);
+        setHabits([]);
+        // localStorage.setItem('habits', JSON.stringify([])); 
+      }
+    } else {
+      setHabits([]);
+      // localStorage.setItem('habits', JSON.stringify([])); 
+    }
+    
+    setAttributes(INITIAL_ATTRIBUTES); 
 
     setIsLoading(false);
-  }, []); // Empty dependency array ensures this runs once on mount, effectively resetting on load
+  }, []); 
 
   useEffect(() => {
     if (!isLoading) {
-      // This effect will now save the default/reset values after the initial reset
       localStorage.setItem('username', userName);
     }
   }, [userName, isLoading]);
 
   useEffect(() => {
     if (!isLoading) {
-      // This effect will now save the default/reset values
       localStorage.setItem('userXP', String(userXP));
     }
   }, [userXP, isLoading]);
 
   useEffect(() => {
     if (!isLoading) {
-      // This effect will now save the default/reset values
       localStorage.setItem('habits', JSON.stringify(habits));
     }
   }, [habits, isLoading]);
@@ -140,10 +166,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             progressPercent = totalXPForLevel > 0 ? (xpTowardsNext / totalXPForLevel) * 100 : 100;
              if (userXP >= currentRankCalculated.xpRequired) progressPercent = 100;
         } else { 
-            progressPercent = 100;
+            progressPercent = 100; // Should be 100 if it's the first rank and XP met or exceeded
         }
-    } else { 
-        progressPercent = 100;
+    } else { // This covers the very first rank where xpRequired is 0
+        if (RANKS_DATA.length > 1 && RANKS_DATA[1].xpRequired > 0) { // if there's a next rank
+            totalXPForLevel = RANKS_DATA[1].xpRequired;
+            progressPercent = totalXPForLevel > 0 ? (userXP / totalXPForLevel) * 100 : 0;
+        } else { // Only one rank in the system or first rank is also max rank
+            progressPercent = userXP > 0 ? 100:0; // or 100 if any XP means 100% of the only rank
+        }
     }
      if (userXP >= currentRankCalculated.xpRequired && !nextRankCalculated) { 
       progressPercent = 100;
