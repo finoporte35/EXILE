@@ -23,10 +23,10 @@ export default function VerifyAccessForm() {
     
     // Mock verification
     setTimeout(() => {
-      if (invitationCode.toUpperCase() === "EXILE") { // Changed from EXILE2025 to EXILE
-        localStorage.setItem('isLoggedIn', 'true');
-        toast({ title: "Acceso Verificado", description: "Bienvenido a EXILE." });
-        router.push('/dashboard');
+      if (invitationCode.toUpperCase() === "EXILE") {
+        // localStorage.setItem('isLoggedIn', 'true'); // Removed: Will be set after profile setup
+        toast({ title: "Acceso Verificado", description: "Ahora configura tu perfil para continuar." });
+        router.push('/signup'); // Redirect to signup/profile setup page
       } else {
         toast({ variant: "destructive", title: "Código Inválido", description: "El código de invitación no es correcto." });
         setIsLoading(false);
@@ -72,13 +72,9 @@ export default function VerifyAccessForm() {
       </CardContent>
       <CardFooter className="flex flex-col items-center space-y-2 pb-8">
         <p className="text-sm text-muted-foreground">
-          ¿Ya tienes una cuenta?{' '}
-          <Link href="/login" className="font-medium text-primary hover:underline">
-            Inicia Sesión
-          </Link>
+          ¿No tienes un código? Contacta para obtener acceso.
         </p>
       </CardFooter>
     </Card>
   );
 }
-
