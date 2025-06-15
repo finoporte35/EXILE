@@ -1,0 +1,17 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Permite leer y escribir en cualquier documento.
+    // ¡ADVERTENCIA! Esto es muy permisivo y solo debe usarse para desarrollo inicial.
+    // Deberás actualizar estas reglas para que sean seguras antes de un lanzamiento real,
+    // especialmente después de implementar la autenticación de usuarios.
+    // Una regla más segura con autenticación sería:
+    // match /users/{userId}/{document=**} {
+    //   allow read, write: if request.auth != null && request.auth.uid == userId;
+    // }
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
