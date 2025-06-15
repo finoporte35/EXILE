@@ -20,7 +20,7 @@ interface DataContextState {
   completedHabits: number;
   addHabit: (name: string, category: string) => void;
   toggleHabit: (id: string) => void;
-  setUserNameState: (name: string) => void; // To allow signup form to update context
+  setUserNameState: (name: string) => void; 
   isLoading: boolean;
 }
 
@@ -34,35 +34,38 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [attributes, setAttributes] = useState<Attribute[]>(INITIAL_ATTRIBUTES);
 
   useEffect(() => {
-    const storedName = localStorage.getItem('username');
-    if (storedName) setUserName(storedName);
+    // Force reset all progress by clearing localStorage and setting defaults
+    localStorage.removeItem('username');
+    localStorage.removeItem('userXP');
+    localStorage.removeItem('habits');
+    localStorage.removeItem('userAvatar'); // Clear avatar as part of "all progress"
 
-    const storedXP = localStorage.getItem('userXP');
-    if (storedXP) setUserXP(Number(storedXP));
-    
-    const storedHabits = localStorage.getItem('habits');
-    if (storedHabits) setHabits(JSON.parse(storedHabits));
-    
-    // Attributes are not stored in localStorage for now, use initial.
-    // If you want to persist attribute changes, add localStorage logic here.
-    setAttributes(INITIAL_ATTRIBUTES);
+    // Set state to initial defaults from app-config
+    setUserName(DEFAULT_USERNAME);
+    setUserXP(INITIAL_XP);
+    setHabits([]); // Reset habits to an empty array
+    setAttributes(INITIAL_ATTRIBUTES); // Reset attributes to initial values from config
+
     setIsLoading(false);
-  }, []);
+  }, []); // Empty dependency array ensures this runs once on mount, effectively resetting on load
 
   useEffect(() => {
     if (!isLoading) {
+      // This effect will now save the default/reset values after the initial reset
       localStorage.setItem('username', userName);
     }
   }, [userName, isLoading]);
 
   useEffect(() => {
     if (!isLoading) {
+      // This effect will now save the default/reset values
       localStorage.setItem('userXP', String(userXP));
     }
   }, [userXP, isLoading]);
 
   useEffect(() => {
     if (!isLoading) {
+      // This effect will now save the default/reset values
       localStorage.setItem('habits', JSON.stringify(habits));
     }
   }, [habits, isLoading]);
@@ -70,7 +73,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const setUserNameState = useCallback((name: string) => {
     setUserName(name);
-    // localStorage saving is handled by the useEffect above
   }, []);
 
   const addHabit = useCallback((name: string, category: string) => {
@@ -95,7 +97,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return {
             ...habit,
             completed: newCompletedStatus,
-            streak: newCompletedStatus ? habit.streak + 1 : Math.max(0, habit.streak -1) , // Basic streak logic
+            streak: newCompletedStatus ? habit.streak + 1 : Math.max(0, habit.streak -1) , 
           };
         }
         return habit;
@@ -106,16 +108,16 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
   
   const { currentRank, nextRank, xpTowardsNextRank, totalXPForNextRankLevel, rankProgressPercent } = React.useMemo(() => {
-    let currentRank: Rank = RANKS_DATA[0];
-    let nextRank: Rank | null = null;
+    let currentRankCalculated: Rank = RANKS_DATA[0];
+    let nextRankCalculated: Rank | null = null;
 
     for (let i = 0; i < RANKS_DATA.length; i++) {
       if (userXP >= RANKS_DATA[i].xpRequired) {
-        currentRank = RANKS_DATA[i];
+        currentRankCalculated = RANKS_DATA[i];
         if (i + 1 < RANKS_DATA.length) {
-          nextRank = RANKS_DATA[i + 1];
+          nextRankCalculated = RANKS_DATA[i + 1];
         } else {
-          nextRank = null; // Max rank
+          nextRankCalculated = null; 
         }
       } else {
         break; 
@@ -123,35 +125,33 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     
     let xpTowardsNext = 0;
-    let totalXPForLevel = 100; // Default if max rank or only one rank
+    let totalXPForLevel = 100; 
     let progressPercent = 0;
 
-    if (nextRank) {
-      xpTowardsNext = userXP - currentRank.xpRequired;
-      totalXPForLevel = nextRank.xpRequired - currentRank.xpRequired;
+    if (nextRankCalculated) {
+      xpTowardsNext = userXP - currentRankCalculated.xpRequired;
+      totalXPForLevel = nextRankCalculated.xpRequired - currentRankCalculated.xpRequired;
       progressPercent = totalXPForLevel > 0 ? (xpTowardsNext / totalXPForLevel) * 100 : 0;
-    } else if (currentRank.xpRequired > 0) { // Max rank but not the very first rank
-        xpTowardsNext = userXP - currentRank.xpRequired;
-        // Find previous rank to define the "level" span for 100%
-        const prevRankIndex = RANKS_DATA.findIndex(r => r.name === currentRank.name) -1;
+    } else if (currentRankCalculated.xpRequired > 0) { 
+        xpTowardsNext = userXP - currentRankCalculated.xpRequired;
+        const prevRankIndex = RANKS_DATA.findIndex(r => r.name === currentRankCalculated.name) -1;
         if (prevRankIndex >=0) {
-            totalXPForLevel = currentRank.xpRequired - RANKS_DATA[prevRankIndex].xpRequired;
+            totalXPForLevel = currentRankCalculated.xpRequired - RANKS_DATA[prevRankIndex].xpRequired;
             progressPercent = totalXPForLevel > 0 ? (xpTowardsNext / totalXPForLevel) * 100 : 100;
-             if (userXP >= currentRank.xpRequired) progressPercent = 100;
-        } else { // Only one rank defined or at the first rank and it's max
+             if (userXP >= currentRankCalculated.xpRequired) progressPercent = 100;
+        } else { 
             progressPercent = 100;
         }
-    } else { // At the very first rank and it's the only/max rank
+    } else { 
         progressPercent = 100;
     }
-     if (userXP >= currentRank.xpRequired && !nextRank) { // handles being exactly at max rank
+     if (userXP >= currentRankCalculated.xpRequired && !nextRankCalculated) { 
       progressPercent = 100;
     }
 
-
     return { 
-      currentRank, 
-      nextRank, 
+      currentRank: currentRankCalculated, 
+      nextRank: nextRankCalculated, 
       xpTowardsNextRank: xpTowardsNext,
       totalXPForNextRankLevel: totalXPForLevel,
       rankProgressPercent: Math.min(100, Math.max(0, progressPercent))
@@ -162,10 +162,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const completedHabits = habits.filter(h => h.completed).length;
 
   if (isLoading && typeof window !== 'undefined') {
-     // This basic loader avoids SSR/hydration issues with more complex loaders inside context during init
     return <div className="flex h-screen w-screen flex-col items-center justify-center bg-background space-y-4"><p className="text-xl text-foreground">Cargando Datos...</p></div>;
   }
-
 
   return (
     <DataContext.Provider value={{
