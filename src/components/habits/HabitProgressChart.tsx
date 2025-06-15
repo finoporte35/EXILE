@@ -16,39 +16,34 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import type { Habit } from '@/types'; // Use Habit from global types
-import { HABIT_CATEGORIES } from "@/lib/app-config"; // Use categories from config
+import type { Habit } from '@/types';
+import { HABIT_CATEGORIES, DEFAULT_HABIT_XP } from "@/lib/app-config";
 
 interface HabitProgressChartProps {
   habits: Habit[];
 }
 
-// Use the same categories as defined in app-config
 const developmentCategories = HABIT_CATEGORIES;
+const MIN_AXIS_DOMAIN_VALUE = 50; // Minimum value for the radial axis domain if max XP is very low
 
 export default function HabitProgressChart({ habits }: HabitProgressChartProps) {
   const chartData = developmentCategories.map(category => {
-    let completedXpInCategory = 0;
-    let totalPossibleXpInCategory = 0; // Max XP one could get if all habits in this cat were completed
+    let xpEarnedInCategory = 0;
+    let totalPossibleXpInCategory = 0;
 
     habits.forEach(h => {
       if (h.category === category) {
-        totalPossibleXpInCategory += h.xp; // Sum XP of all habits in this category
+        totalPossibleXpInCategory += h.xp;
         if (h.completed) {
-          completedXpInCategory += h.xp;
+          xpEarnedInCategory += h.xp;
         }
       }
     });
     
-    // Value for radar chart is percentage of XP obtained from completed habits in this category
-    // relative to total XP from all habits in this category.
-    const value = totalPossibleXpInCategory > 0 ? (completedXpInCategory / totalPossibleXpInCategory) * 100 : 0;
-    const fullMark = 100; // Radar chart shows percentage completion for the category
-
     return {
       category: category,
-      value: Math.min(value, fullMark), 
-      fullMark: fullMark,
+      xpEarned: xpEarnedInCategory, // This is the value we will plot
+      xpPossible: totalPossibleXpInCategory, // This will help define the axis scale
     };
   });
 
@@ -60,7 +55,11 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
     return config;
   }, {} as any);
 
-  if (habits.length === 0) { // Show empty state if no habits at all
+  // Determine the maximum value for the radial axis domain
+  const maxPossibleXpInAnyCategory = Math.max(...chartData.map(d => d.xpPossible), 0);
+  const radialAxisDomainMax = Math.max(maxPossibleXpInAnyCategory, MIN_AXIS_DOMAIN_VALUE);
+
+  if (habits.length === 0) {
     return (
       <Card className="flex flex-col items-center justify-center min-h-[300px] bg-card border-neutral-800 shadow-md">
         <CardHeader>
@@ -75,9 +74,8 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
     );
   }
   
-  // Show this state if there are habits but none yield data for the chart (e.g. all categories empty or all values 0)
-  const noChartData = chartData.every(d => d.value === 0);
-  if (noChartData) {
+  const noChartData = chartData.every(d => d.xpEarned === 0);
+  if (noChartData && habits.length > 0) { // Habits exist, but none completed to show data
     return (
       <Card className="flex flex-col items-center justify-center min-h-[300px] bg-card border-neutral-800 shadow-md">
         <CardHeader>
@@ -85,7 +83,7 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
         </CardHeader>
         <CardContent className="text-center">
           <TrendingUp className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <p className="text-foreground">No hay datos de progreso de hábitos completados.</p>
+          <p className="text-foreground">No hay XP ganado de hábitos completados.</p>
           <p className="text-sm text-muted-foreground">Completa algunos hábitos para ver el radar.</p>
         </CardContent>
       </Card>
@@ -98,7 +96,7 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
       <CardHeader className="items-center pb-0">
         <CardTitle className="text-primary text-xl font-semibold">Radar de Desarrollo por Hábitos</CardTitle>
         <CardDescription className="text-muted-foreground">
-          Progreso en áreas basado en hábitos completados.
+          XP absoluto ganado en cada categoría de hábitos.
         </CardDescription>
       </CardHeader>
       <CardContent className="pb-0">
@@ -109,7 +107,21 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
           <RadarChart data={chartData} margin={{ top: 20, right: 30, left: 30, bottom: 10 }}>
             <ChartTooltip
               cursor={false}
-              content={<ChartTooltipContent indicator="line" hideLabel={false} />}
+              content={<ChartTooltipContent 
+                indicator="line" 
+                hideLabel={false} 
+                nameKey="category"
+                formatter={(value, name) => {
+                  const item = chartData.find(d => d.category === name);
+                  return (
+                    <div className="flex flex-col">
+                      <span className="font-medium">{name}</span>
+                      <span>XP Ganado: {value}</span>
+                      {item && <span>XP Posible: {item.xpPossible}</span>}
+                    </div>
+                  );
+                }}
+              />}
             />
             <PolarGrid stroke="rgba(255, 255, 255, 0.05)" strokeWidth={1}/>
             <PolarAngleAxis 
@@ -119,14 +131,15 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
             />
             <PolarRadiusAxis
                 angle={30} 
-                domain={[0, 100]} // Domain is 0-100 for percentage
-                tickCount={5} 
-                tick={false}
-                axisLine={false}
-                tickLine={false} 
+                domain={[0, radialAxisDomainMax]}
+                tickCount={Math.max(2, Math.min(5, Math.ceil(radialAxisDomainMax / DEFAULT_HABIT_XP)))} // Dynamic tick count
+                tickFormatter={(value) => (value > 0 ? String(value) : '')} // Show ticks for non-zero values
+                axisLine={true}
+                tickLine={true}
+                stroke="rgba(255, 255, 255, 0.2)"
             />
             <Radar
-              dataKey="value"
+              dataKey="xpEarned" // Plotting the earned XP
               fill="transparent" 
               stroke="hsl(var(--primary))" 
               strokeWidth={2}
@@ -137,9 +150,10 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
       </CardContent>
       <CardFooter className="flex-col gap-2 text-sm pt-4">
         <div className="text-xs text-muted-foreground text-center">
-          El radar muestra el % de XP obtenido en cada categoría de hábitos.
+          El radar muestra el XP total ganado por completar hábitos en cada categoría. El eje se ajusta al XP máximo posible.
         </div>
       </CardFooter>
     </Card>
   )
 }
+
