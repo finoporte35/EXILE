@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { LogOut, User, Settings, SidebarOpenIcon } from 'lucide-react';
-import { useSidebar } from '@/components/ui/sidebar'; // Assuming SidebarTrigger is part of useSidebar or exported separately
+import { useSidebar } from '@/components/ui/sidebar'; 
 import Logo from '@/components/shared/Logo';
 import { useRouter } from 'next/navigation';
 
@@ -33,7 +33,6 @@ export function AppHeader() {
             <SidebarOpenIcon className="h-5 w-5" />
          </Button>
       )}
-      {!isMobile && <Logo size="small" />}
       
       <div className="ml-auto flex items-center gap-4">
         <DropdownMenu>
