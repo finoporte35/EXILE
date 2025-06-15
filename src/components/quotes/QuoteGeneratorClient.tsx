@@ -13,7 +13,6 @@ interface Quote {
   author: string;
 }
 
-// Updated list of quotes including the new ones
 const staticQuotes: Quote[] = [
   { id: 'q1', text: "Enamórate de Jesús. Él nunca romperá tu corazón.", author: "Desconocido" },
   { id: 'q2', text: "El dolor es temporal, pero la gloria es eterna.", author: "Desconocido"},
@@ -48,7 +47,7 @@ export default function QuoteGeneratorClient() {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [showNewUnlockMessage, setShowNewUnlockMessage] = useState(false);
-  const [animationKey, setAnimationKey] = useState(0); // For re-triggering animation
+  const [animationKey, setAnimationKey] = useState(0);
 
   useEffect(() => {
     setIsLoading(true);
@@ -68,12 +67,12 @@ export default function QuoteGeneratorClient() {
     const lastVisitDay = localStorage.getItem(LOCAL_STORAGE_KEY_LAST_VISIT_DAY);
 
     let newUnlockedCount = storedUnlocked;
-    let justUnlocked = false;
+    let justUnlockedToday = false;
 
     if (lastVisitDay !== today) { 
       if (staticQuotes.length > 0 && storedUnlocked < staticQuotes.length) {
         newUnlockedCount = storedUnlocked + 1;
-        justUnlocked = true;
+        justUnlockedToday = true; // A quote was unlocked today
       }
       localStorage.setItem(LOCAL_STORAGE_KEY_LAST_VISIT_DAY, today);
     }
@@ -87,9 +86,13 @@ export default function QuoteGeneratorClient() {
     }
     
     setUnlockedCount(newUnlockedCount);
-    setShowNewUnlockMessage(justUnlocked);
+    setShowNewUnlockMessage(justUnlockedToday);
 
     if (newUnlockedCount > 0) {
+      // Set current index to the newest unlocked quote if one was unlocked today,
+      // otherwise, default to the last viewed or first quote.
+      // For simplicity, let's stick to showing the newest unlocked if one was unlocked.
+      // Or perhaps more consistently, show the last unlocked quote.
       setCurrentIndex(newUnlockedCount - 1); 
     } else {
       setCurrentIndex(0); 
@@ -126,31 +129,31 @@ export default function QuoteGeneratorClient() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-full p-4 sm:p-6 lg:p-8">
-      <Card className="w-full max-w-2xl bg-card border-neutral-800 shadow-neon-red-card">
+      <Card className="w-full max-w-2xl bg-card border-neutral-800 shadow-neon-red-card flex flex-col min-h-[500px] sm:min-h-[550px]">
         <CardHeader className="text-center border-b border-neutral-700/50 pb-6 pt-8">
-          <Lightbulb className="mx-auto h-12 w-12 text-primary mb-3" />
-          <CardTitle className="text-3xl font-headline text-gradient-red">Chispa de Motivación</CardTitle>
-          <CardDescription className="text-sm text-muted-foreground mt-1">
+          <Lightbulb className="mx-auto h-16 w-16 sm:h-20 sm:w-20 text-primary mb-4" />
+          <CardTitle className="text-3xl sm:text-4xl font-headline text-gradient-red">Chispa de Motivación</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground mt-2 px-2">
             {cardDescriptionText}
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="py-10 px-6 text-center min-h-[250px] flex flex-col justify-center items-center overflow-hidden">
+        <CardContent className="py-10 px-6 text-center flex-grow flex flex-col justify-center items-center overflow-hidden">
           {isLoading ? (
             <div className="flex flex-col items-center text-center">
-              <Loader2 className="h-10 w-10 animate-spin text-primary"/>
-              <p className="mt-3 text-sm text-muted-foreground">Buscando inspiración...</p>
+              <Loader2 className="h-12 w-12 animate-spin text-primary"/>
+              <p className="mt-4 text-base text-muted-foreground">Buscando inspiración...</p>
             </div>
           ) : displayedQuote ? (
-            <div key={animationKey} className="animate-fade-in animate-scale-up-center space-y-6 w-full">
-              <blockquote className="text-2xl md:text-3xl font-medium text-foreground italic leading-snug md:leading-relaxed">
+            <div key={animationKey} className="animate-fade-in animate-scale-up-center space-y-8 w-full">
+              <blockquote className="text-2xl sm:text-3xl md:text-4xl font-medium text-foreground italic leading-relaxed md:leading-loose">
                 &ldquo;{displayedQuote.text}&rdquo;
               </blockquote>
-              <p className="text-base text-muted-foreground">- {displayedQuote.author}</p>
+              <p className="text-base sm:text-lg text-muted-foreground">- {displayedQuote.author}</p>
             </div>
           ) : (
-            <p className="text-muted-foreground text-lg">
-              {staticQuotes.length > 0 ? "No hay citas desbloqueadas para mostrar." : "No hay citas disponibles."}
+            <p className="text-muted-foreground text-xl">
+              {staticQuotes.length > 0 ? "Vuelve mañana para desbloquear tu primera cita." : "No hay citas disponibles."}
             </p>
           )}
         </CardContent>
@@ -159,7 +162,7 @@ export default function QuoteGeneratorClient() {
           <Button
             onClick={handlePreviousQuote}
             variant="outline"
-            className="w-full sm:w-auto border-neutral-700 hover:border-primary/70"
+            className="w-full sm:w-auto border-neutral-700 hover:border-primary/70 text-base py-2.5 px-5"
             disabled={currentIndex === 0 || unlockedCount === 0 || isLoading}
             aria-label="Cita anterior"
           >
@@ -173,7 +176,7 @@ export default function QuoteGeneratorClient() {
           <Button
             onClick={handleNextQuote}
             variant="outline"
-            className="w-full sm:w-auto border-neutral-700 hover:border-primary/70"
+            className="w-full sm:w-auto border-neutral-700 hover:border-primary/70 text-base py-2.5 px-5"
             disabled={currentIndex >= unlockedCount - 1 || unlockedCount === 0 || isLoading}
             aria-label="Siguiente cita"
           >
@@ -182,14 +185,14 @@ export default function QuoteGeneratorClient() {
         </CardFooter>
       </Card>
 
-      <div className="mt-6 text-center h-6">
+      <div className="mt-8 text-center h-6">
         {!isLoading && showNewUnlockMessage && unlockedCount <= staticQuotes.length && (
-          <p className="text-sm text-primary animate-fade-in">
+          <p className="text-base text-primary animate-fade-in">
             ¡Nueva cita desbloqueada hoy!
           </p>
         )}
         {!isLoading && unlockedCount === staticQuotes.length && staticQuotes.length > 0 && (
-            <p className="text-sm text-green-400 animate-fade-in">
+            <p className="text-base text-green-400 animate-fade-in">
             ¡Has desbloqueado todas las citas disponibles!
             </p>
         )}
@@ -197,3 +200,4 @@ export default function QuoteGeneratorClient() {
     </div>
   );
 }
+
