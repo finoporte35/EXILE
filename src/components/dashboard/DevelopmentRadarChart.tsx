@@ -48,7 +48,7 @@ export default function DevelopmentRadarChart({
 
   if (data.length === 0 || data.every(d => d.value === 0 && d.fullMark === 0)) {
     return (
-      <Card className="flex flex-col items-center justify-center min-h-[300px] bg-background border-transparent shadow-none">
+      <Card className="flex flex-col items-center justify-center min-h-[300px] bg-card border-neutral-800 shadow-md">
         <CardHeader>
           <CardTitle className="text-primary">{title}</CardTitle>
         </CardHeader>
@@ -62,7 +62,7 @@ export default function DevelopmentRadarChart({
   }
 
   return (
-    <Card className="bg-background border-transparent shadow-none h-full">
+    <Card className="bg-card border-neutral-800 shadow-md h-full">
       <CardHeader className="items-start pb-0">
         {title && (
             <div className="flex items-center gap-2">
@@ -82,18 +82,18 @@ export default function DevelopmentRadarChart({
               cursor={false}
               content={<ChartTooltipContent indicator="line" hideLabel={false} />}
             />
-            <PolarGrid stroke="hsl(var(--foreground))" strokeWidth={1}/>
+            <PolarGrid stroke="rgba(255, 255, 255, 0.1)" strokeWidth={1}/>
             <PolarAngleAxis
               dataKey="category"
-              tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }}
+              tick={{ fill: 'rgba(255, 255, 255, 0.6)', fontSize: 11 }}
               tickLine={false}
             />
             <PolarRadiusAxis
-                angle={90} 
+                angle={30} 
                 domain={[0, Math.max(...data.map(d => d.fullMark), 1)]} 
-                tickCount={5} 
-                tick={{ fill: 'hsl(var(--foreground))', fontSize: 10 }}
-                axisLine={{ stroke: "hsl(var(--foreground))", strokeWidth: 1 }}
+                tickCount={3} 
+                tick={{ fill: 'rgba(255, 255, 255, 0.5)', fontSize: 10 }}
+                axisLine={{ stroke: "rgba(255, 255, 255, 0.1)", strokeWidth: 1 }}
                 tickLine={false} 
             />
             <Radar

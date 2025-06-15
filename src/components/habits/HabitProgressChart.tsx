@@ -40,11 +40,11 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
       }
     });
     const averageXp = numberOfCompletedHabitsInCategory > 0 ? completedXpInCategory / numberOfCompletedHabitsInCategory : 0;
-    const fullMark = 100;
+    const fullMark = 100; // Assuming max XP for a category visual representation is 100
 
     return {
       category: category,
-      value: Math.min(averageXp, fullMark),
+      value: Math.min(averageXp, fullMark), // Cap value at fullMark
       fullMark: fullMark,
     };
   });
@@ -60,7 +60,7 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
 
   if (habits.length === 0 || habits.every(h => !h.completed)) {
     return (
-      <Card className="flex flex-col items-center justify-center min-h-[300px] bg-background border-transparent shadow-none">
+      <Card className="flex flex-col items-center justify-center min-h-[300px] bg-card border-neutral-800 shadow-md">
         <CardHeader>
           <CardTitle className="text-primary">Progreso de Hábitos</CardTitle>
         </CardHeader>
@@ -74,7 +74,7 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
   }
 
   return (
-    <Card className="bg-background border-transparent shadow-none">
+    <Card className="bg-card border-neutral-800 shadow-md">
       <CardHeader className="items-center pb-0">
         <CardTitle className="text-primary text-xl font-semibold">Radar de Desarrollo Personal</CardTitle>
         <CardDescription className="text-muted-foreground">
@@ -91,25 +91,25 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
               cursor={false}
               content={<ChartTooltipContent indicator="line" hideLabel={false} />}
             />
-            <PolarGrid stroke="hsl(var(--foreground))" strokeWidth={1}/>
+            <PolarGrid stroke="rgba(255, 255, 255, 0.1)" strokeWidth={1}/>
             <PolarAngleAxis 
               dataKey="category" 
-              tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }}
+              tick={{ fill: 'rgba(255, 255, 255, 0.6)', fontSize: 11 }}
               tickLine={false} 
             />
             <PolarRadiusAxis
                 angle={30} 
-                domain={[0, Math.max(...chartData.map(d => d.fullMark), 1)]}
-                tickCount={6} 
-                tick={{ fill: 'hsl(var(--foreground))', fontSize: 10 }}
-                axisLine={{ stroke: "hsl(var(--foreground))", strokeWidth: 1 }}
+                domain={[0, Math.max(...chartData.map(d => d.fullMark), 1)]} // Ensure domain covers fullMark
+                tickCount={3} 
+                tick={{ fill: 'rgba(255, 255, 255, 0.5)', fontSize: 10 }}
+                axisLine={{ stroke: "rgba(255, 255, 255, 0.1)", strokeWidth: 1 }}
                 tickLine={false} 
             />
             <Radar
               dataKey="value"
               fill="hsla(var(--primary), 0.4)" 
               stroke="hsl(var(--primary))" 
-              strokeWidth={2} // Increased for better visibility consistency
+              strokeWidth={2}
               dot={{ r: 3, fill: "hsl(var(--primary))", strokeWidth: 0 }}
             />
           </RadarChart>
