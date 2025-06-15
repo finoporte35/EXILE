@@ -91,14 +91,14 @@ export default function DevelopmentRadarChart({
             <PolarRadiusAxis
                 angle={30} 
                 domain={[0, Math.max(...data.map(d => d.fullMark), 1)]} 
-                tickCount={3} 
+                tickCount={5} 
                 tick={{ fill: 'rgba(255, 255, 255, 0.5)', fontSize: 10 }}
                 axisLine={{ stroke: "rgba(255, 255, 255, 0.1)", strokeWidth: 1 }}
                 tickLine={false} 
             />
             <Radar
               dataKey="value"
-              fill="hsla(var(--primary), 0.4)"
+              fill="hsla(var(--primary), 0.5)"
               stroke="hsl(var(--primary))" 
               strokeWidth={2}
               dot={{ r: 3, fill: "hsl(var(--primary))", strokeWidth: 0 }}
