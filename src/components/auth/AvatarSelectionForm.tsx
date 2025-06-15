@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ImageUp, Send, Loader2 } from 'lucide-react';
 import Logo from '@/components/shared/Logo';
@@ -56,7 +56,7 @@ export default function AvatarSelectionForm() {
     // Avatar is already saved to localStorage by handleAvatarChange if a new one was selected
     // If no new avatar, the placeholder or existing one from localStorage remains.
     // If no avatar was ever selected and user clicks continue, default placeholder won't be "saved" as userAvatar unless explicitly done.
-    // For simplicity, if avatarSrc is the placeholder, we can choose to not save it or save the placeholder.
+    // For simplicity, if avatarSrc is the default placeholder, we can choose to not save it or save the placeholder.
     // Let's assume if it's still the default placeholder, we don't force save it to 'userAvatar'.
     // It will just remain unset in localStorage for avatar, and profile page will show fallback.
 
