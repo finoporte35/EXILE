@@ -48,7 +48,7 @@ export default function DevelopmentRadarChart({
 
   if (data.length === 0 || data.every(d => d.value === 0 && d.fullMark === 0)) {
     return (
-      <Card className="flex flex-col items-center justify-center min-h-[300px] bg-card border-neutral-800 shadow-md">
+      <Card className="flex flex-col items-center justify-center min-h-[300px] bg-background border-transparent shadow-none">
         <CardHeader>
           <CardTitle className="text-primary">{title}</CardTitle>
         </CardHeader>
@@ -62,7 +62,7 @@ export default function DevelopmentRadarChart({
   }
 
   return (
-    <Card className="bg-card border-neutral-800 shadow-md h-full">
+    <Card className="bg-background border-transparent shadow-none h-full">
       <CardHeader className="items-start pb-0">
         {title && (
             <div className="flex items-center gap-2">

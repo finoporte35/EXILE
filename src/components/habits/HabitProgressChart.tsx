@@ -60,7 +60,7 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
 
   if (habits.length === 0 || habits.every(h => !h.completed)) {
     return (
-      <Card className="flex flex-col items-center justify-center min-h-[300px] bg-card border-neutral-800 shadow-lg">
+      <Card className="flex flex-col items-center justify-center min-h-[300px] bg-background border-transparent shadow-none">
         <CardHeader>
           <CardTitle className="text-primary">Progreso de Hábitos</CardTitle>
         </CardHeader>
@@ -74,7 +74,7 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
   }
 
   return (
-    <Card className="bg-card border-neutral-800 shadow-lg">
+    <Card className="bg-background border-transparent shadow-none">
       <CardHeader className="items-center pb-0">
         <CardTitle className="text-primary text-xl font-semibold">Radar de Desarrollo Personal</CardTitle>
         <CardDescription className="text-muted-foreground">
@@ -109,7 +109,7 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
               dataKey="value"
               fill="hsla(var(--primary), 0.4)" 
               stroke="hsl(var(--primary))" 
-              strokeWidth={1}
+              strokeWidth={2} // Increased for better visibility consistency
               dot={{ r: 3, fill: "hsl(var(--primary))", strokeWidth: 0 }}
             />
           </RadarChart>
