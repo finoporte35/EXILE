@@ -50,7 +50,7 @@ export default function DevelopmentRadarChart({
 
   if (data.length === 0 || data.every(d => d.value === 0 && d.fullMark === 0)) {
     return (
-      <Card className="flex flex-col items-center justify-center min-h-[300px] bg-card border-border shadow-md">
+      <Card className="flex flex-col items-center justify-center min-h-[300px] bg-background border-transparent shadow-none">
         <CardHeader>
           <CardTitle className="text-primary">{title}</CardTitle>
         </CardHeader>
@@ -65,7 +65,7 @@ export default function DevelopmentRadarChart({
 
 
   return (
-    <Card className="bg-card border-border shadow-md h-full">
+    <Card className="bg-background border-transparent shadow-none h-full">
       <CardHeader className="items-start pb-0">
         <div className="flex items-center gap-2">
           <ClipboardList className="h-5 w-5 text-primary" />
@@ -83,20 +83,24 @@ export default function DevelopmentRadarChart({
               cursor={false}
               content={<ChartTooltipContent indicator="line" />}
             />
-            <PolarGrid stroke="hsla(var(--foreground), 0.25)" />
-            <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={{ stroke: "hsla(var(--foreground), 0.25)" }} />
+            <PolarGrid stroke="hsla(var(--foreground), 0.05)" /> {/* Very faint grid lines */}
+            <PolarAngleAxis 
+              dataKey="category" 
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} 
+              tickLine={false} // Hide tick lines for category labels
+            />
             <PolarRadiusAxis 
                 angle={90} 
                 domain={[0, Math.max(...data.map(d => d.fullMark), 1)]} 
-                tickCount={4} 
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} 
-                axisLine={{ stroke: "hsla(var(--foreground), 0.25)" }}
-                tickLine={{ stroke: "hsla(var(--foreground), 0.25)" }}
+                tickCount={4} // Still useful for internal calculations by PolarGrid
+                tick={false} // Hide numeric labels on radius axis
+                axisLine={false} // Hide radial spokes
+                tickLine={false} // Hide tick lines for radius axis
             />
             <Radar
               dataKey="value"
-              fill="hsla(var(--primary), 0.5)"
-              stroke="hsl(var(--primary))"
+              fill="transparent" // No fill for the data polygon
+              stroke="hsl(var(--primary))" // Red outline
               strokeWidth={2}
               dot={{
                 r: 3,
