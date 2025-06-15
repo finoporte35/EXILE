@@ -4,11 +4,11 @@
 
 @layer base {
   :root {
-    --background: 0 0% 10%; /* Dark Gray for background */
-    --foreground: 0 0% 95%; /* Light Gray for text */
+    --background: 0 0% 0%; /* Dark Gray for background */
+    --foreground: 0 0% 98%; /* Light Gray for text */
 
-    --card: 0 0% 15%; /* Slightly darker card background */
-    --card-foreground: 0 0% 90%; /* Light gray for card text */
+    --card: 0 0% 0%; /* Slightly darker card background */
+    --card-foreground: 0 0% 0%; /* Light gray for card text */
 
     --popover: 0 0% 12%; /* Darker popover background */
     --popover-foreground: 0 0% 95%; /* Lighter text for popover */

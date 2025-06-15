@@ -18,16 +18,16 @@ const menuPrincipalItems = [
   { href: '/dashboard', label: 'Panel', icon: LayoutGrid },
   { href: '/profile', label: 'Perfil', icon: User },
   { href: '/ranks', label: 'Rangos', icon: TrendingUp },
-  { href: '/development', label: 'Desarrollo Personal', icon: ClipboardList }, // Assuming a new page or re-route
+  { href: '/development', label: 'Desarrollo Personal', icon: ClipboardList }, 
   { href: '/habits', label: 'Hábitos', icon: ListChecks },
-  { href: '/sleep', label: 'Sueño', icon: Moon }, // Assuming a new page or re-route
-  { href: '/goals', label: 'Metas', icon: Target }, // Assuming a new page or re-route
+  { href: '/sleep', label: 'Sueño', icon: Moon }, 
+  { href: '/goals', label: 'Metas', icon: Target }, 
   { href: '/quotes', label: 'Frases', icon: QuoteIcon },
 ];
 
 const sistemaItems = [
   { href: '/settings', label: 'Ajustes', icon: Settings },
-  { href: '/support', label: 'Ayuda y Soporte', icon: HelpCircle }, // Assuming a new page or re-route
+  { href: '/support', label: 'Ayuda y Soporte', icon: HelpCircle }, 
 ];
 
 export function AppSidebar() {
@@ -38,7 +38,7 @@ export function AppSidebar() {
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
     if (isMobile) {
-      setOpenMobile(false); // Close sidebar on mobile after action
+      setOpenMobile(false); 
     }
     router.push('/login');
   };
@@ -71,10 +71,10 @@ export function AppSidebar() {
                       isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
                       tooltip={{children: item.label, side: "right", align: "center"}}
                     >
-                      <a>
+                      <>
                         <item.icon className="h-5 w-5" />
                         <span className="truncate">{item.label}</span>
-                      </a>
+                      </>
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
@@ -95,10 +95,10 @@ export function AppSidebar() {
                       isActive={pathname === item.href}
                       tooltip={{children: item.label, side: "right", align: "center"}}
                     >
-                      <a>
+                      <>
                         <item.icon className="h-5 w-5" />
                         <span className="truncate">{item.label}</span>
-                      </a>
+                      </>
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
