@@ -29,30 +29,26 @@ export default function SignupForm() {
     e.preventDefault();
     setIsLoading(true);
 
-    if (password !== confirmPassword) {
-      toast({ variant: "destructive", title: "Error de configuración", description: "Las contraseñas no coinciden." });
-      setIsLoading(false);
-      return;
-    }
-    if (!username.trim()) {
-      toast({ variant: "destructive", title: "Error de configuración", description: "El nombre de usuario es requerido." });
-      setIsLoading(false);
-      return;
-    }
-    
-    // Removed artificial delay
-    // await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Save basic profile info to localStorage
-    localStorage.setItem('username', username);
-    localStorage.setItem('userXP', String(INITIAL_XP)); // Ensure userXP is initialized
-    localStorage.setItem('habits', JSON.stringify([])); // Ensure habits are initialized as empty
-
-    // Do NOT set isLoggedIn here. It will be set after avatar selection.
-    
-    toast({ title: "Datos Guardados", description: "Ahora, selecciona tu avatar para continuar." });
-    router.push('/signup/avatar'); // Redirect to avatar selection page
-    setIsLoading(false); // Ensure isLoading is reset
+    setTimeout(() => {
+      if (password !== confirmPassword) {
+        toast({ variant: "destructive", title: "Error de configuración", description: "Las contraseñas no coinciden." });
+        setIsLoading(false);
+        return;
+      }
+      if (!username.trim()) {
+        toast({ variant: "destructive", title: "Error de configuración", description: "El nombre de usuario es requerido." });
+        setIsLoading(false);
+        return;
+      }
+      
+      localStorage.setItem('username', username);
+      localStorage.setItem('userXP', String(INITIAL_XP)); 
+      localStorage.setItem('habits', JSON.stringify([])); 
+      
+      toast({ title: "Datos Guardados", description: "Ahora, selecciona tu avatar para continuar." });
+      router.push('/signup/avatar'); 
+      setIsLoading(false); 
+    }, 500); // Simular un pequeño retraso
   };
 
   return (
@@ -68,21 +64,21 @@ export default function SignupForm() {
             <Label htmlFor="username-signup">Nombre de Usuario</Label>
              <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input id="username-signup" type="text" placeholder="Nombre de tu Personaje" required value={username} onChange={(e) => setUsername(e.target.value)} className="pl-10" aria-label="Nombre de Usuario" />
+                <Input id="username-signup" type="text" placeholder="Nombre de tu Personaje" required value={username} onChange={(e) => setUsername(e.target.value)} className="pl-10" aria-label="Nombre de Usuario" disabled={isLoading}/>
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="email-signup">Correo Electrónico</Label>
              <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input id="email-signup" type="email" placeholder="tu@ejemplo.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" aria-label="Correo Electrónico" />
+                <Input id="email-signup" type="email" placeholder="tu@ejemplo.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" aria-label="Correo Electrónico" disabled={isLoading}/>
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="password-signup">Contraseña</Label>
             <div className="relative">
-              <Input id="password-signup" type={showPassword ? "text" : "password"} placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} className="pr-10" aria-label="Contraseña" />
-              <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}>
+              <Input id="password-signup" type={showPassword ? "text" : "password"} placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} className="pr-10" aria-label="Contraseña" disabled={isLoading}/>
+              <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} disabled={isLoading}>
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </Button>
             </div>
@@ -90,8 +86,8 @@ export default function SignupForm() {
           <div className="space-y-2">
             <Label htmlFor="confirm-password-signup">Confirmar Contraseña</Label>
             <div className="relative">
-              <Input id="confirm-password-signup" type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="pr-10" aria-label="Confirmar Contraseña"/>
-              <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowConfirmPassword(!showConfirmPassword)} aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}>
+              <Input id="confirm-password-signup" type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="pr-10" aria-label="Confirmar Contraseña" disabled={isLoading}/>
+              <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowConfirmPassword(!showConfirmPassword)} aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"} disabled={isLoading}>
                 {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </Button>
             </div>

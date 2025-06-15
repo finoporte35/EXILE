@@ -21,14 +21,15 @@ export default function VerifyAccessForm() {
     e.preventDefault();
     setIsLoading(true);
     
-    // Mock verification without artificial delay
-    if (invitationCode.toUpperCase() === "EXILE") {
-      toast({ title: "Acceso Verificado", description: "Ahora configura tu perfil para continuar." });
-      router.push('/signup'); // Redirect to signup/profile setup page
-    } else {
-      toast({ variant: "destructive", title: "Código Inválido", description: "El código de invitación no es correcto." });
-    }
-    setIsLoading(false);
+    setTimeout(() => {
+      if (invitationCode.toUpperCase() === "EXILE") {
+        toast({ title: "Acceso Verificado", description: "Ahora configura tu perfil para continuar." });
+        router.push('/signup'); 
+      } else {
+        toast({ variant: "destructive", title: "Código Inválido", description: "El código de invitación no es correcto." });
+      }
+      setIsLoading(false);
+    }, 500); // Simular un pequeño retraso para que el spinner sea visible
   };
 
   return (
@@ -55,6 +56,7 @@ export default function VerifyAccessForm() {
               onChange={(e) => setInvitationCode(e.target.value)}
               className="bg-background/50 border-neutral-700 focus:border-primary"
               aria-label="Código de Invitación"
+              disabled={isLoading}
             />
           </div>
           <Button type="submit" className="w-full bg-new-button-gradient text-primary-foreground hover:opacity-90 transition-opacity duration-300 text-base py-3 h-auto" disabled={isLoading}>

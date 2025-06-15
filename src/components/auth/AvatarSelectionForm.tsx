@@ -24,12 +24,11 @@ export default function AvatarSelectionForm() {
     if (storedUsername) {
       setUsername(storedUsername);
     }
-    // Check if an avatar was previously selected in this session (e.g., if user navigates back)
     const storedAvatar = localStorage.getItem('userAvatar');
     if (storedAvatar) {
         setAvatarSrc(storedAvatar);
     } else {
-        setAvatarSrc(`https://placehold.co/128x128.png`); // Default placeholder
+        setAvatarSrc(`https://placehold.co/128x128.png`); 
     }
   }, []);
 
@@ -40,7 +39,6 @@ export default function AvatarSelectionForm() {
       reader.onloadend = () => {
         const result = reader.result as string;
         setAvatarSrc(result);
-        // Optimistically update localStorage, or wait for "Continue"
         localStorage.setItem('userAvatar', result);
       };
       reader.readAsDataURL(file);
@@ -53,22 +51,13 @@ export default function AvatarSelectionForm() {
 
   const handleContinue = async () => {
     setIsLoading(true);
-    // Avatar is already saved to localStorage by handleAvatarChange if a new one was selected
-    // If no new avatar, the placeholder or existing one from localStorage remains.
-    // If no avatar was ever selected and user clicks continue, default placeholder won't be "saved" as userAvatar unless explicitly done.
-    // For simplicity, if avatarSrc is the default placeholder, we can choose to not save it or save the placeholder.
-    // Let's assume if it's still the default placeholder, we don't force save it to 'userAvatar'.
-    // It will just remain unset in localStorage for avatar, and profile page will show fallback.
-
-    // The crucial step: mark user as logged in
-    localStorage.setItem('isLoggedIn', 'true');
     
-    // Removed artificial delay
-    // await new Promise(resolve => setTimeout(resolve, 500)); 
-
-    toast({ title: "¡Perfil Completo!", description: `Bienvenido a EXILE, ${username}. ¡Tu aventura comienza ahora!` });
-    router.push('/dashboard');
-    setIsLoading(false); // Ensure isLoading is reset
+    setTimeout(() => {
+      localStorage.setItem('isLoggedIn', 'true');
+      toast({ title: "¡Perfil Completo!", description: `Bienvenido a EXILE, ${username}. ¡Tu aventura comienza ahora!` });
+      router.push('/dashboard');
+      setIsLoading(false); 
+    }, 500); // Simular un pequeño retraso
   };
 
   return (
@@ -80,7 +69,7 @@ export default function AvatarSelectionForm() {
       </CardHeader>
       <CardContent className="space-y-6 flex flex-col items-center">
         <Avatar className="h-32 w-32 mb-4 border-4 border-primary shadow-lg">
-          <AvatarImage src={avatarSrc || undefined} alt={username} data-ai-hint="user avatar abstract" />
+          <AvatarImage src={avatarSrc || undefined} alt={username} data-ai-hint="user avatar abstract"/>
           <AvatarFallback className="text-5xl bg-muted text-muted-foreground">
             {username ? username.charAt(0).toUpperCase() : "U"}
           </AvatarFallback>
