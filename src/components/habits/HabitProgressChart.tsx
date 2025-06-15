@@ -2,7 +2,7 @@
 "use client"
 
 import { TrendingUp } from "lucide-react"
-import { Label, Pie, PieChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, RadarChart } from "recharts"
+import { PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, RadarChart } from "recharts"
 
 import {
   Card,
@@ -30,18 +30,18 @@ const developmentCategories = [
 export default function HabitProgressChart({ habits }: HabitProgressChartProps) {
   const chartData = developmentCategories.map(category => {
     const categoryHabits = habits.filter(h => h.category === category && h.completed);
-    const value = categoryHabits.length; 
+    const value = categoryHabits.length;
     return {
       category: category,
       value: value,
-      fullMark: Math.max(habits.filter(h => h.category === category).length, 1), // Ensure fullMark is at least 1
+      fullMark: Math.max(habits.filter(h => h.category === category).length, 1),
     };
   });
-  
+
   const chartConfig = developmentCategories.reduce((config, category, index) => {
     config[category] = {
       label: category,
-      color: `hsl(var(--chart-${(index % 5) + 1}))`,
+      color: `hsl(var(--chart-${(index % 5) + 1}))`, // Not used if data polygon is transparent
     };
     return config;
   }, {} as any);
@@ -49,14 +49,14 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
 
   if (habits.length === 0) {
     return (
-      <Card className="flex flex-col items-center justify-center min-h-[300px] shadow-lg border-primary/10">
+      <Card className="flex flex-col items-center justify-center min-h-[300px] bg-white border-neutral-300 shadow-lg">
         <CardHeader>
-          <CardTitle className="text-gradient-red">Progreso de Hábitos</CardTitle>
+          <CardTitle className="text-neutral-800">Progreso de Hábitos</CardTitle>
         </CardHeader>
         <CardContent className="text-center">
-          <TrendingUp className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">Aún no hay datos de hábitos para mostrar.</p>
-          <p className="text-sm text-muted-foreground">Completa algunos hábitos para ver tu progreso aquí.</p>
+          <TrendingUp className="h-16 w-16 text-neutral-500 mx-auto mb-4" />
+          <p className="text-neutral-600">Aún no hay datos de hábitos para mostrar.</p>
+          <p className="text-sm text-neutral-500">Completa algunos hábitos para ver tu progreso aquí.</p>
         </CardContent>
       </Card>
     );
@@ -64,10 +64,10 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
 
 
   return (
-    <Card className="shadow-lg border-primary/10">
+    <Card className="bg-white border-neutral-300 shadow-lg">
       <CardHeader className="items-center pb-0">
-        <CardTitle className="text-primary text-xl font-semibold">Radar de Desarrollo Personal</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-neutral-800 text-xl font-semibold">Radar de Desarrollo Personal</CardTitle>
+        <CardDescription className="text-neutral-600">
           Visualización de tu progreso en diferentes áreas de desarrollo.
         </CardDescription>
       </CardHeader>
@@ -79,37 +79,38 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
           <RadarChart data={chartData} margin={{ top: 20, right: 30, left: 30, bottom: 10 }}>
             <ChartTooltip
               cursor={false}
-              content={<ChartTooltipContent indicator="line" />}
+              content={<ChartTooltipContent indicator="line" hideLabel={true} />}
             />
-            <PolarGrid stroke="hsla(var(--foreground), 0.25)" />
-            <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickLine={{ stroke: "hsla(var(--foreground), 0.25)" }} />
-            <PolarRadiusAxis 
-                angle={30} 
-                domain={[0, Math.max(...chartData.map(d => d.fullMark), 1)]} 
-                tickCount={4} 
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} 
-                axisLine={{ stroke: "hsla(var(--foreground), 0.25)" }}
-                tickLine={{ stroke: "hsla(var(--foreground), 0.25)" }} 
+            <PolarGrid stroke="#000000" strokeWidth={1} />
+            <PolarAngleAxis 
+              dataKey="category" 
+              tick={false} // Hide category labels
+              tickLine={false} // Hide lines pointing to categories
+            />
+            <PolarRadiusAxis
+                angle={30} // Starting angle (can be adjusted, 90 or 0 are common for symmetry)
+                domain={[0, Math.max(...chartData.map(d => d.fullMark), 1)]}
+                tickCount={5} // For 4 concentric grid shapes
+                tick={false} // Hide numeric scale labels
+                axisLine={{ stroke: "#000000", strokeWidth: 1 }} // Show radial spokes in black
+                tickLine={false} // Hide tick marks on spokes
             />
             <Radar
               dataKey="value"
-              fill="hsla(var(--primary), 0.5)"
-              stroke="hsl(var(--primary))"
-              strokeWidth={2}
-              dot={{
-                r: 4,
-                fill: "hsl(var(--primary))",
-                stroke: "hsl(var(--primary))"
-              }}
+              fill="transparent" // Make data polygon fill transparent
+              stroke="transparent" // Make data polygon outline transparent
+              strokeWidth={1}
+              dot={false} // Hide dots at data points
             />
           </RadarChart>
         </ChartContainer>
       </CardContent>
       <CardFooter className="flex-col gap-2 text-sm pt-4">
-        <div className="flex items-center gap-2 font-medium leading-none text-muted-foreground">
+        <div className="flex items-center gap-2 font-medium leading-none text-neutral-500">
           Completar hábitos incrementa tu puntuación en cada área.
         </div>
       </CardFooter>
     </Card>
   )
 }
+

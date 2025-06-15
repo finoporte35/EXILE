@@ -39,9 +39,12 @@ export default function DevelopmentRadarChart({
   footerText = "Completar acciones incrementa tu puntuación."
 }: DevelopmentRadarChartProps) {
 
+  // Chart config is not strictly necessary if we hide labels and tooltips for this style
+  // but keeping it doesn't hurt and might be useful for tooltips if re-enabled.
   const chartConfig = data.reduce((config, item, index) => {
     config[item.category] = {
       label: item.category,
+      // Color for data series, not used if data polygon is transparent
       color: `hsl(var(--chart-${(index % 5) + 1}))`,
     };
     return config;
@@ -50,14 +53,14 @@ export default function DevelopmentRadarChart({
 
   if (data.length === 0 || data.every(d => d.value === 0 && d.fullMark === 0)) {
     return (
-      <Card className="flex flex-col items-center justify-center min-h-[300px] bg-background border-transparent shadow-none">
+      <Card className="flex flex-col items-center justify-center min-h-[300px] bg-white border-neutral-300 shadow-md">
         <CardHeader>
-          <CardTitle className="text-primary">{title}</CardTitle>
+          <CardTitle className="text-neutral-800">{title}</CardTitle>
         </CardHeader>
         <CardContent className="text-center">
-          <TrendingUp className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">Aún no hay datos para mostrar.</p>
-          <p className="text-sm text-muted-foreground">Completa algunas acciones para ver tu progreso aquí.</p>
+          <TrendingUp className="h-16 w-16 text-neutral-500 mx-auto mb-4" />
+          <p className="text-neutral-600">Aún no hay datos para mostrar.</p>
+          <p className="text-sm text-neutral-500">Completa algunas acciones para ver tu progreso aquí.</p>
         </CardContent>
       </Card>
     );
@@ -65,13 +68,13 @@ export default function DevelopmentRadarChart({
 
 
   return (
-    <Card className="bg-background border-transparent shadow-none h-full">
+    <Card className="bg-white border-neutral-300 shadow-md h-full">
       <CardHeader className="items-start pb-0">
         <div className="flex items-center gap-2">
-          <ClipboardList className="h-5 w-5 text-primary" />
-          <CardTitle className="text-xl font-semibold text-primary">{title}</CardTitle>
+          <ClipboardList className="h-5 w-5 text-neutral-700" />
+          <CardTitle className="text-xl font-semibold text-neutral-800">{title}</CardTitle>
         </div>
-        {description && <CardDescription>{description}</CardDescription>}
+        {description && <CardDescription className="text-neutral-600">{description}</CardDescription>}
       </CardHeader>
       <CardContent className="pb-0">
         <ChartContainer
@@ -79,41 +82,38 @@ export default function DevelopmentRadarChart({
           className="mx-auto aspect-square max-h-[280px]"
         >
           <RadarChart data={data} margin={{ top: 20, right: 30, left: 30, bottom: 10 }}>
+            {/* Tooltip can be removed or kept; image doesn't show it */}
             <ChartTooltip
               cursor={false}
-              content={<ChartTooltipContent indicator="line" />}
+              content={<ChartTooltipContent indicator="line" hideLabel={true} />}
             />
-            <PolarGrid stroke="hsl(var(--muted-foreground))" /> 
+            <PolarGrid stroke="#000000" strokeWidth={1} />
             <PolarAngleAxis
               dataKey="category"
-              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-              tickLine={false}
+              tick={false} // Hide category labels
+              tickLine={false} // Hide lines pointing to categories
             />
             <PolarRadiusAxis
-                angle={90}
-                domain={[0, Math.max(...data.map(d => d.fullMark), 1)]}
-                tickCount={4}
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                axisLine={false}
-                tickLine={false}
+                angle={90} // Starting angle for the radial axis configuration
+                domain={[0, Math.max(...data.map(d => d.fullMark), 1)]} // Ensure domain starts at 0
+                tickCount={5} // Results in 4 concentric grid shapes (e.g., lines at 0, 25, 50, 75, 100)
+                tick={false} // Hide numeric scale labels
+                axisLine={{ stroke: "#000000", strokeWidth: 1 }} // Show radial spokes in black
+                tickLine={false} // Hide tick marks on spokes
             />
             <Radar
               dataKey="value"
-              fill="hsla(var(--primary), 0.3)"
-              stroke="hsl(var(--primary))"
-              strokeWidth={2}
-              dot={{
-                r: 3,
-                fill: "hsl(var(--primary))",
-                stroke: "hsl(var(--primary))"
-              }}
+              fill="transparent" // Make data polygon fill transparent
+              stroke="transparent" // Make data polygon outline transparent
+              strokeWidth={1}
+              dot={false} // Hide dots at data points
             />
           </RadarChart>
         </ChartContainer>
       </CardContent>
        {footerText && (
         <CardFooter className="flex-col gap-2 text-sm pt-2 pb-4">
-            <div className="text-xs text-muted-foreground text-center">
+            <div className="text-xs text-neutral-500 text-center">
             {footerText}
             </div>
         </CardFooter>
