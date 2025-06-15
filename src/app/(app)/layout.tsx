@@ -1,30 +1,33 @@
+
 "use client";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { Loader2 } from 'lucide-react';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // This check should only run on the client side.
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     if (!isLoggedIn) {
       router.replace('/login');
     } else {
-      setIsLoading(false); // Only stop loading if the user is logged in and stays on the page
+      setIsLoading(false); 
     }
-    // If the user is not logged in, router.replace will navigate away.
-    // We might still want to set isLoading to false in a more general sense
-    // if the component isn't immediately unmounted, but for this specific
-    // auth check, this logic should suffice to prevent content flash *if logged in*.
-    // If not logged in, the /login page will handle its own rendering.
   }, [router]);
   
   if (isLoading) {
-     return <div className="flex h-screen w-screen items-center justify-center bg-background"><p className="text-foreground">Cargando...</p></div>;
+     return (
+      <div className="flex h-screen w-screen flex-col items-center justify-center bg-background space-y-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-xl text-foreground">Cargando...</p>
+      </div>
+     );
   }
 
   return (
