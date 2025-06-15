@@ -1,15 +1,19 @@
+
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from 'next/link';
-import { Eye, EyeOff, Mail } from 'lucide-react';
+import { Eye, EyeOff, Mail, Loader2 } from 'lucide-react';
 import Logo from '@/components/shared/Logo';
 import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { MOCK_USER_ID } from '@/lib/app-config';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -19,20 +23,54 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Check if user is already "logged in" via localStorage on component mount
+  useEffect(() => {
+    if (localStorage.getItem('isLoggedIn') === 'true') {
+      router.replace('/dashboard');
+    }
+  }, [router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Mock login
-    setTimeout(() => {
-      if (email === "user@example.com" && password === "password123") {
-        localStorage.setItem('isLoggedIn', 'true');
-        toast({ title: "Inicio de sesión exitoso", description: "Bienvenido de nuevo a EXILE." });
-        router.push('/dashboard');
-      } else {
-        toast({ variant: "destructive", title: "Error de inicio de sesión", description: "Correo o contraseña incorrectos." });
+
+    if (!MOCK_USER_ID) {
+        toast({ variant: "destructive", title: "Error de Configuración", description: "ID de usuario no definido." });
         setIsLoading(false);
+        return;
+    }
+
+    try {
+      const userDocRef = doc(db, "users", MOCK_USER_ID);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        if (userData.email === email) {
+          // Email matches. Password check is omitted for this mock setup.
+          localStorage.setItem('isLoggedIn', 'true');
+          localStorage.setItem('username', userData.username); 
+          
+          // Avatar is already in localStorage from signup or profile page, no need to set it here unless fetching from Firestore
+          // const storedAvatar = localStorage.getItem('userAvatar');
+          // if (userData.avatarUrl && !storedAvatar) { // Example if avatar was in Firestore
+          //   localStorage.setItem('userAvatar', userData.avatarUrl);
+          // }
+
+          toast({ title: "Inicio de Sesión Exitoso", description: `Bienvenido de nuevo, ${userData.username}.` });
+          router.push('/dashboard');
+        } else {
+          toast({ variant: "destructive", title: "Error de Inicio de Sesión", description: "Credenciales incorrectas." });
+        }
+      } else {
+        toast({ variant: "destructive", title: "Perfil No Encontrado", description: "No se encontró un perfil. Por favor, configura uno." });
       }
-    }, 1000);
+    } catch (error) {
+      console.error("Error during login:", error);
+      toast({ variant: "destructive", title: "Error de Conexión", description: "No se pudo conectar con el servidor. Intenta de nuevo." });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -45,11 +83,11 @@ export default function LoginForm() {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="email">Correo Electrónico</Label>
+            <Label htmlFor="email-login">Correo Electrónico</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input 
-                id="email" 
+                id="email-login" 
                 type="email" 
                 placeholder="tu@ejemplo.com" 
                 required 
@@ -57,14 +95,15 @@ export default function LoginForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10"
                 aria-label="Correo Electrónico"
+                disabled={isLoading}
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
+            <Label htmlFor="password-login">Contraseña</Label>
             <div className="relative">
               <Input 
-                id="password" 
+                id="password-login" 
                 type={showPassword ? "text" : "password"} 
                 placeholder="••••••••" 
                 required 
@@ -72,6 +111,7 @@ export default function LoginForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="pr-10"
                 aria-label="Contraseña"
+                disabled={isLoading}
               />
               <Button 
                 type="button" 
@@ -80,24 +120,23 @@ export default function LoginForm() {
                 className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                disabled={isLoading}
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </Button>
             </div>
           </div>
           <Button type="submit" className="w-full bg-new-button-gradient text-primary-foreground hover:opacity-90 transition-opacity duration-300" disabled={isLoading}>
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
             {isLoading ? "Ingresando..." : "Ingresar"}
           </Button>
         </form>
       </CardContent>
       <CardFooter className="flex flex-col items-center space-y-2">
-        <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-          ¿Olvidaste tu contraseña?
-        </Link>
         <p className="text-sm text-muted-foreground">
-          ¿No tienes cuenta?{' '}
+          ¿No tienes perfil o quieres reconfigurarlo?{' '}
           <Link href="/signup" className="font-medium text-primary hover:underline">
-            Regístrate
+            Configurar Perfil
           </Link>
         </p>
       </CardFooter>

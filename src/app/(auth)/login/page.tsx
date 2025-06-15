@@ -1,5 +1,5 @@
-import VerifyAccessForm from '@/components/auth/VerifyAccessForm';
+import LoginForm from '@/components/auth/LoginForm';
 
 export default function LoginPage() {
-  return <VerifyAccessForm />;
+  return <LoginForm />;
 }
