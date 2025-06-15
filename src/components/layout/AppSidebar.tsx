@@ -71,9 +71,10 @@ export function AppSidebar() {
                       isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
                       tooltip={{children: item.label, side: "right", align: "center"}}
                     >
-                      {/* Removed React.Fragment wrapper */}
-                      <item.icon className="h-5 w-5" />
-                      <span className="truncate">{item.label}</span>
+                      <span>
+                        <item.icon className="h-5 w-5" />
+                        <span className="truncate">{item.label}</span>
+                      </span>
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
@@ -94,9 +95,10 @@ export function AppSidebar() {
                       isActive={pathname === item.href}
                       tooltip={{children: item.label, side: "right", align: "center"}}
                     >
-                      {/* Removed React.Fragment wrapper */}
-                      <item.icon className="h-5 w-5" />
-                      <span className="truncate">{item.label}</span>
+                      <span>
+                        <item.icon className="h-5 w-5" />
+                        <span className="truncate">{item.label}</span>
+                      </span>
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
