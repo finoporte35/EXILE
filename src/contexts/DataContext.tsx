@@ -2,9 +2,10 @@
 "use client";
 
 import type { Rank } from '@/components/ranks/RankItem';
-import { RANKS_DATA, INITIAL_ATTRIBUTES, DEFAULT_USERNAME, INITIAL_XP, HABIT_CATEGORY_XP_MAP, DEFAULT_HABIT_XP, INITIAL_GOALS, DEFAULT_GOAL_XP } from '@/lib/app-config';
-import type { Habit, Attribute, Goal } from '@/types';
+import { RANKS_DATA, INITIAL_ATTRIBUTES, DEFAULT_USERNAME, INITIAL_XP, HABIT_CATEGORY_XP_MAP, DEFAULT_HABIT_XP, INITIAL_GOALS, DEFAULT_GOAL_XP, INITIAL_SLEEP_LOGS } from '@/lib/app-config';
+import type { Habit, Attribute, Goal, SleepLog, SleepQuality } from '@/types';
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { differenceInMilliseconds, parse } from 'date-fns';
 
 interface DataContextState {
   userName: string;
@@ -12,6 +13,7 @@ interface DataContextState {
   habits: Habit[];
   attributes: Attribute[];
   goals: Goal[];
+  sleepLogs: SleepLog[];
   currentRank: Rank;
   nextRank: Rank | null;
   xpTowardsNextRank: number;
@@ -20,11 +22,14 @@ interface DataContextState {
   totalHabits: number;
   completedHabits: number;
   activeGoalsCount: number;
+  averageSleepLast7Days: string;
   addHabit: (name: string, category: string) => void;
   toggleHabit: (id: string) => void;
   addGoal: (goalData: Omit<Goal, 'id' | 'isCompleted' | 'createdAt'>) => void;
   toggleGoalCompletion: (id: string) => void;
   deleteGoal: (id: string) => void;
+  addSleepLog: (logData: { date: Date; timeToBed: string; timeWokeUp: string; quality: SleepQuality; notes?: string }) => void;
+  deleteSleepLog: (id: string) => void;
   setUserNameState: (name: string) => void; 
   isLoading: boolean;
 }
@@ -38,6 +43,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [habits, setHabits] = useState<Habit[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>(INITIAL_ATTRIBUTES);
   const [goals, setGoals] = useState<Goal[]>(INITIAL_GOALS);
+  const [sleepLogs, setSleepLogs] = useState<SleepLog[]>(INITIAL_SLEEP_LOGS);
 
   useEffect(() => {
     setIsLoading(true);
@@ -45,20 +51,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const storedUserXP = localStorage.getItem('userXP');
     const storedHabits = localStorage.getItem('habits');
     const storedGoals = localStorage.getItem('goals');
-    const storedAvatar = localStorage.getItem('userAvatar'); // To ensure avatar is reset if we clear everything
-
-    // Reset logic - if these keys don't exist, it implies a fresh start or data wipe.
-    // This part implements the "reset if no data" behavior
-    if (!storedUserName && !storedUserXP && !storedHabits && !storedGoals && !storedAvatar) {
+    const storedSleepLogs = localStorage.getItem('sleepLogs');
+    
+    if (!storedUserName && !storedUserXP && !storedHabits && !storedGoals && !storedSleepLogs) {
         localStorage.removeItem('username');
         localStorage.removeItem('userXP');
         localStorage.removeItem('habits');
         localStorage.removeItem('goals');
         localStorage.removeItem('userAvatar');
+        localStorage.removeItem('sleepLogs');
         setUserName(DEFAULT_USERNAME);
         setUserXP(INITIAL_XP);
         setHabits([]);
         setGoals(INITIAL_GOALS);
+        setSleepLogs(INITIAL_SLEEP_LOGS);
         setAttributes(INITIAL_ATTRIBUTES.map(attr => ({ ...attr, value: 0, currentLevel: "0/100", xpInArea: "0/1000" })));
     } else {
         setUserName(storedUserName || DEFAULT_USERNAME);
@@ -76,7 +82,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             console.error("Error parsing goals, resetting to empty.", e);
             setGoals(INITIAL_GOALS);
         }
-        setAttributes(INITIAL_ATTRIBUTES.map(attr => ({ ...attr, value: 0, currentLevel: "0/100", xpInArea: "0/1000" }))); // Ensure attributes start at 0
+         try {
+            setSleepLogs(storedSleepLogs ? JSON.parse(storedSleepLogs) : INITIAL_SLEEP_LOGS);
+        } catch (e) {
+            console.error("Error parsing sleep logs, resetting to empty.", e);
+            setSleepLogs(INITIAL_SLEEP_LOGS);
+        }
+        setAttributes(INITIAL_ATTRIBUTES.map(attr => ({ ...attr, value: 0, currentLevel: "0/100", xpInArea: "0/1000" })));
     }
     
     setIsLoading(false);
@@ -88,8 +100,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('userXP', String(userXP));
       localStorage.setItem('habits', JSON.stringify(habits));
       localStorage.setItem('goals', JSON.stringify(goals));
+      localStorage.setItem('sleepLogs', JSON.stringify(sleepLogs));
     }
-  }, [userName, userXP, habits, goals, isLoading]);
+  }, [userName, userXP, habits, goals, sleepLogs, isLoading]);
 
 
   const setUserNameState = useCallback((name: string) => {
@@ -134,7 +147,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isCompleted: false,
       createdAt: new Date().toISOString(),
     };
-    setGoals(prev => [newGoal, ...prev]);
+    setGoals(prev => [newGoal, ...prev].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
   }, []);
 
   const toggleGoalCompletion = useCallback((id: string) => {
@@ -154,13 +167,51 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   
   const deleteGoal = useCallback((id: string) => {
     setGoals(prevGoals => {
-      const goalToDelete = prevGoals.find(g => g.id === id);
-      if (goalToDelete && goalToDelete.isCompleted) {
-        // Optionally deduct XP if a completed goal is deleted
-        // setUserXP(currentXP => Math.max(0, currentXP - goalToDelete.xp));
-      }
       return prevGoals.filter(goal => goal.id !== id);
     });
+  }, []);
+
+  const addSleepLog = useCallback((logData: { date: Date; timeToBed: string; timeWokeUp: string; quality: SleepQuality; notes?: string }) => {
+    const { date, timeToBed, timeWokeUp, quality, notes } = logData;
+
+    const baseDate = new Date(date); // This is the day the sleep period *started*
+
+    // Parse time strings "HH:mm"
+    const [bedHours, bedMinutes] = timeToBed.split(':').map(Number);
+    const [wokeHours, wokeMinutes] = timeWokeUp.split(':').map(Number);
+
+    let bedDateTime = new Date(baseDate);
+    bedDateTime.setHours(bedHours, bedMinutes, 0, 0);
+
+    let wokeDateTime = new Date(baseDate); // Initially assume same day
+    wokeDateTime.setHours(wokeHours, wokeMinutes, 0, 0);
+
+    // If wokeDateTime is earlier than bedDateTime, it means user woke up the next day
+    if (wokeDateTime < bedDateTime) {
+      wokeDateTime.setDate(wokeDateTime.getDate() + 1);
+    }
+    
+    const durationMs = differenceInMilliseconds(wokeDateTime, bedDateTime);
+    const sleepDurationHours = Math.max(0, durationMs / (1000 * 60 * 60)); // in hours
+
+    const newLog: SleepLog = {
+      id: String(Date.now()),
+      date: baseDate.toISOString(),
+      timeToBed,
+      timeWokeUp,
+      sleepDurationHours: parseFloat(sleepDurationHours.toFixed(2)),
+      quality,
+      notes,
+      createdAt: new Date().toISOString(),
+    };
+    setSleepLogs(prev => [newLog, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime() || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    // Optionally add XP for logging sleep
+    // setUserXP(currentXP => currentXP + (DEFAULT_SLEEP_LOG_XP || 0));
+  }, []);
+
+  const deleteSleepLog = useCallback((id: string) => {
+    setSleepLogs(prev => prev.filter(log => log.id !== id));
+    // Optionally deduct XP if an Xp was awarded
   }, []);
   
   const { currentRank, nextRank, xpTowardsNextRank, totalXPForNextRankLevel, rankProgressPercent } = React.useMemo(() => {
@@ -219,6 +270,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [userXP]);
 
+  const averageSleepLast7Days = React.useMemo(() => {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const recentSleepLogs = sleepLogs.filter(log => new Date(log.date) >= sevenDaysAgo);
+    if (recentSleepLogs.length === 0) return "0 hrs";
+    
+    const totalSleepHours = recentSleepLogs.reduce((sum, log) => sum + log.sleepDurationHours, 0);
+    const average = totalSleepHours / recentSleepLogs.length;
+    return `${average.toFixed(1)} hrs`;
+  }, [sleepLogs]);
+
   const totalHabits = habits.length;
   const completedHabits = habits.filter(h => h.completed).length;
   const activeGoalsCount = goals.filter(g => !g.isCompleted).length;
@@ -226,7 +290,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   if (isLoading && typeof window !== 'undefined') {
      return (
       <div className="flex h-screen w-screen flex-col items-center justify-center bg-background space-y-4">
-        {/* Icono de carga Loader2 u otro SVG/Spinner aquí */}
         <p className="text-xl text-foreground">Cargando Datos...</p>
       </div>
      );
@@ -240,6 +303,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       habits,
       attributes,
       goals,
+      sleepLogs,
       currentRank,
       nextRank,
       xpTowardsNextRank,
@@ -248,11 +312,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       totalHabits,
       completedHabits,
       activeGoalsCount,
+      averageSleepLast7Days,
       addHabit,
       toggleHabit,
       addGoal,
       toggleGoalCompletion,
       deleteGoal,
+      addSleepLog,
+      deleteSleepLog,
       setUserNameState,
       isLoading
     }}>
@@ -268,3 +335,4 @@ export const useData = (): DataContextState => {
   }
   return context;
 };
+

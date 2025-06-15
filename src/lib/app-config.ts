@@ -1,6 +1,6 @@
 
 import type { Rank } from '@/components/ranks/RankItem';
-import type { Attribute, Goal } from '@/types';
+import type { Attribute, Goal, SleepLog } from '@/types';
 import { User, PersonStanding, Sparkles, Shield, Zap, Users, Brain, Crown, Atom, TrendingUp, Activity, GitFork, Lightbulb, BookOpen, ShieldCheck, Target } from 'lucide-react';
 
 export const DEFAULT_USERNAME = "Explorador";
@@ -43,3 +43,8 @@ export const DEFAULT_HABIT_XP = 5;
 
 export const INITIAL_GOALS: Goal[] = [];
 export const DEFAULT_GOAL_XP = 50;
+
+export const INITIAL_SLEEP_LOGS: SleepLog[] = [];
+// Define XP for logging sleep if desired, e.g.
+// export const DEFAULT_SLEEP_LOG_XP = 5; 
+

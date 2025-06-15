@@ -51,7 +51,7 @@ const KeyIndicatorItem: React.FC<KeyIndicatorProps> = ({ name, percentage }) => 
 const quickActions = [
   { label: "Registrar Hábitos Diarios", icon: ListPlus, href: "/habits" },
   { label: "Gestionar Metas", icon: Target, href: "/goals" },
-  { label: "Registrar Sueño", icon: BedDouble, href: "/sleep" }, // Sleep not yet implemented
+  { label: "Registrar Sueño", icon: BedDouble, href: "/sleep" },
 ];
 
 export default function DashboardPage() {
@@ -64,7 +64,8 @@ export default function DashboardPage() {
     totalHabits, 
     completedHabits,
     attributes,
-    activeGoalsCount
+    activeGoalsCount,
+    averageSleepLast7Days
   } = useData();
 
   const xpNeededForNextRankDisplay = nextRank ? `${(nextRank.xpRequired - userXP).toLocaleString()} XP para ${nextRank.name.split(" - ")[1]}` : "Rango Máximo Alcanzado";
@@ -102,7 +103,7 @@ export default function DashboardPage() {
         <StatCard title="Rango Actual" value={currentRank.name.split(" - ")[1] || currentRank.name} subtitle={xpNeededForNextRankDisplay} icon={History} />
         <StatCard title="Hábitos de Hoy" value={`${completedHabits}/${totalHabits}`} subtitle="Objetivos diarios" icon={CheckCircle2} />
         <StatCard title="Metas Activas" value={String(activeGoalsCount)} subtitle="Misiones en curso" icon={Target} />
-        <StatCard title="Prom. Sueño" value="0 hrs" subtitle="Últimos 7 días" icon={Moon} /> {/* Sleep not implemented */}
+        <StatCard title="Prom. Sueño" value={averageSleepLast7Days} subtitle="Últimos 7 días" icon={Moon} />
       </div>
 
       <div className="bg-card p-4 rounded-lg border border-neutral-800 shadow-md">
