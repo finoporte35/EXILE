@@ -121,9 +121,9 @@
 
 /* Neon Red Card Shadow */
 .shadow-neon-red-card {
-  box-shadow: 0 0 7px hsla(var(--primary), 0.9),
-              0 0 12px hsla(var(--primary), 0.6),
-              0 0 20px hsla(var(--primary), 0.4);
+  box-shadow: 0 0 10px hsla(var(--primary), 0.95), /* Brillo base un poco más intenso */
+              0 0 25px hsla(var(--primary), 0.70), /* Brillo medio más ancho y notable */
+              0 0 40px hsla(var(--primary), 0.50); /* Brillo exterior más tenue pero aún más ancho */
 }
 
 
