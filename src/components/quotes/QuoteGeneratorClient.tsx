@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Lightbulb, ChevronLeft, ChevronRight } from "lucide-react";
-// import { useToast } from '@/hooks/use-toast'; // Toast not used in this version
 
 // Static list of quotes
 const staticQuotes: { text: string; author: string }[] = [
@@ -32,10 +31,11 @@ export default function QuoteGeneratorClient() {
   const [unlockedCount, setUnlockedCount] = useState<number>(0);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
-  // const { toast } = useToast(); // Toast not used
+  const [showNewUnlockMessage, setShowNewUnlockMessage] = useState(false);
 
   useEffect(() => {
     setIsLoading(true);
+    setShowNewUnlockMessage(false);
     let storedUnlocked = 0;
     try {
       const storedValue = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -51,13 +51,12 @@ export default function QuoteGeneratorClient() {
     let newUnlockedCount = storedUnlocked;
     if (staticQuotes.length > 0) {
       if (storedUnlocked < staticQuotes.length) {
-        // Unlock one new quote if available
         newUnlockedCount = storedUnlocked + 1;
+        setShowNewUnlockMessage(true); // A new quote was unlocked in this session
       }
-      // Ensure newUnlockedCount doesn't exceed total quotes
       newUnlockedCount = Math.min(newUnlockedCount, staticQuotes.length);
     } else {
-      newUnlockedCount = 0; // No quotes to unlock
+      newUnlockedCount = 0; 
     }
 
     try {
@@ -69,10 +68,8 @@ export default function QuoteGeneratorClient() {
     setUnlockedCount(newUnlockedCount);
 
     if (newUnlockedCount > 0) {
-      // Display the latest unlocked quote initially
-      setCurrentIndex(newUnlockedCount - 1);
+      setCurrentIndex(newUnlockedCount - 1); // Display the latest unlocked quote
     } else {
-      // Handle case with no quotes or nothing unlocked (e.g. if staticQuotes is empty)
       setCurrentIndex(0); 
     }
     setIsLoading(false);
@@ -91,76 +88,88 @@ export default function QuoteGeneratorClient() {
     ? staticQuotes[currentIndex] 
     : null;
 
-  if (isLoading) {
-    return (
-      <Card className="w-full max-w-lg mx-auto shadow-xl border-primary/20">
-        <CardHeader className="text-center">
-          <Lightbulb className="mx-auto h-12 w-12 text-primary mb-2" />
-          <CardTitle className="font-headline text-2xl text-gradient-red">Chispa de Motivación</CardTitle>
-          <CardDescription>Una dosis de sabiduría para potenciar tu día.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center text-center min-h-[80px] justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary"/>
-          <p className="mt-2 text-sm text-muted-foreground">Cargando citas...</p>
-        </CardContent>
-      </Card>
-    );
+  let cardDescriptionText = "Cargando tu inspiración...";
+  if (!isLoading) {
+    if (unlockedCount === 0 && staticQuotes.length > 0) {
+        cardDescriptionText = "Visita esta sección para desbloquear tu primera cita.";
+    } else if (unlockedCount > 0) {
+        cardDescriptionText = `Tienes ${unlockedCount} de ${staticQuotes.length} citas desbloqueadas.`;
+    } else {
+        cardDescriptionText = "No hay citas disponibles en este momento.";
+    }
   }
 
+
   return (
-    <Card className="w-full max-w-lg mx-auto shadow-xl border-primary/20">
-      <CardHeader className="text-center">
-        <Lightbulb className="mx-auto h-12 w-12 text-primary mb-2" />
-        <CardTitle className="font-headline text-2xl text-gradient-red">Chispa de Motivación</CardTitle>
-        <CardDescription>Una dosis de sabiduría para potenciar tu día.</CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-4">
-        <div className="flex justify-between items-center">
-          <Button 
-            onClick={handlePreviousQuote} 
+    <div className="flex flex-col items-center justify-center min-h-full p-4 sm:p-6 lg:p-8">
+      <Card className="w-full max-w-2xl bg-card border-neutral-800 shadow-neon-red-card animate-fade-in">
+        <CardHeader className="text-center border-b border-neutral-700/50 pb-6 pt-8">
+          <Lightbulb className="mx-auto h-12 w-12 text-primary mb-3" />
+          <CardTitle className="text-3xl font-headline text-gradient-red">Chispa de Motivación</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground mt-1">
+            {cardDescriptionText}
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="py-10 px-6 text-center min-h-[250px] flex flex-col justify-center items-center">
+          {isLoading ? (
+            <div className="flex flex-col items-center text-center">
+              <Loader2 className="h-10 w-10 animate-spin text-primary"/>
+              <p className="mt-3 text-sm text-muted-foreground">Buscando inspiración...</p>
+            </div>
+          ) : displayedQuote ? (
+            <div className="animate-fade-in space-y-6">
+              <blockquote className="text-2xl md:text-3xl font-medium text-foreground italic leading-snug md:leading-relaxed">
+                &ldquo;{displayedQuote.text}&rdquo;
+              </blockquote>
+              <p className="text-base text-muted-foreground">- {displayedQuote.author}</p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-lg">
+              {staticQuotes.length > 0 ? "No hay citas desbloqueadas para mostrar." : "No hay citas disponibles."}
+            </p>
+          )}
+        </CardContent>
+
+        <CardFooter className="flex flex-col sm:flex-row justify-between items-center p-6 border-t border-neutral-700/50 gap-4">
+          <Button
+            onClick={handlePreviousQuote}
             variant="outline"
-            disabled={currentIndex === 0 || unlockedCount === 0}
+            className="w-full sm:w-auto border-neutral-700 hover:border-primary/70"
+            disabled={currentIndex === 0 || unlockedCount === 0 || isLoading}
             aria-label="Cita anterior"
           >
-            <ChevronLeft className="mr-1 h-5 w-5" /> Anterior
+            <ChevronLeft className="mr-2 h-5 w-5" /> Anterior
           </Button>
-          <p className="text-sm text-muted-foreground">
-            {unlockedCount > 0 ? `Cita ${currentIndex + 1} de ${unlockedCount}` : "0 de 0"}
+          
+          <p className="text-sm text-muted-foreground order-first sm:order-none">
+            {unlockedCount > 0 ? `Cita ${currentIndex + 1} / ${unlockedCount}` : "0 / 0"}
           </p>
-          <Button 
-            onClick={handleNextQuote} 
+          
+          <Button
+            onClick={handleNextQuote}
             variant="outline"
-            disabled={currentIndex >= unlockedCount - 1 || unlockedCount === 0}
+            className="w-full sm:w-auto border-neutral-700 hover:border-primary/70"
+            disabled={currentIndex >= unlockedCount - 1 || unlockedCount === 0 || isLoading}
             aria-label="Siguiente cita"
           >
-            Siguiente <ChevronRight className="ml-1 h-5 w-5" />
+            Siguiente <ChevronRight className="ml-2 h-5 w-5" />
           </Button>
-        </div>
-         {unlockedCount < staticQuotes.length && unlockedCount > 0 && (
-           <p className="text-xs text-center text-muted-foreground">
-             ¡Se desbloqueó una nueva cita para ti hoy! Total: {unlockedCount} de {staticQuotes.length}.
-           </p>
-         )}
-         {unlockedCount === staticQuotes.length && staticQuotes.length > 0 && (
-            <p className="text-xs text-center text-green-400">
-             ¡Has desbloqueado todas las citas disponibles!
-           </p>
-         )}
-      </CardContent>
-      
-      <CardFooter className="flex flex-col items-center text-center border-t pt-6 min-h-[120px] justify-center">
-        {displayedQuote ? (
-          <>
-            <p className="text-lg italic text-foreground leading-relaxed">&ldquo;{displayedQuote.text}&rdquo;</p>
-            <p className="mt-2 text-sm text-muted-foreground">- {displayedQuote.author}</p>
-          </>
-        ) : (
-          <p className="text-muted-foreground">
-            {staticQuotes.length > 0 ? "No hay más citas desbloqueadas por ahora o hubo un error." : "No hay citas disponibles en este momento."}
+        </CardFooter>
+      </Card>
+
+      <div className="mt-6 text-center h-6">
+        {!isLoading && showNewUnlockMessage && unlockedCount < staticQuotes.length && (
+          <p className="text-sm text-primary animate-fade-in">
+            ¡Se desbloqueó una nueva cita para ti hoy!
           </p>
         )}
-      </CardFooter>
-    </Card>
+        {!isLoading && unlockedCount === staticQuotes.length && staticQuotes.length > 0 && (
+            <p className="text-sm text-green-400 animate-fade-in">
+            ¡Has desbloqueado todas las citas disponibles!
+            </p>
+        )}
+      </div>
+    </div>
   );
 }
