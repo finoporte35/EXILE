@@ -68,11 +68,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
+      console.log("DataContext: Attempting to load data for user:", MOCK_USER_ID);
       if (!MOCK_USER_ID) {
-        console.error("User ID is not available. Cannot load data.");
+        console.error("DataContext: User ID is not available. Cannot load data.");
         setIsLoading(false);
-        // Potentially clear local auth state if it depends on user ID
-        localStorage.removeItem('isLoggedIn'); // Example: if auth state should reset
+        localStorage.removeItem('isLoggedIn');
         return;
       }
       
@@ -85,8 +85,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const userData = userDocSnap.data();
           setUserName(userData.username || DEFAULT_USERNAME);
           setUserXP(userData.xp || INITIAL_XP);
+          console.log("DataContext: User profile data loaded:", userData);
         } else {
-          // User document doesn't exist, create it with defaults
+          console.log("DataContext: No user profile found for", MOCK_USER_ID, ". Creating with defaults.");
           await setDoc(userDocRef, {
             username: DEFAULT_USERNAME,
             xp: INITIAL_XP,
@@ -102,6 +103,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const habitsSnapshot = await getDocs(habitsQuery);
         const loadedHabits = habitsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Habit));
         setHabits(loadedHabits);
+        console.log("DataContext: Habits loaded:", loadedHabits.length);
 
         // Load goals
         const goalsColRef = collection(db, "users", MOCK_USER_ID, "goals");
@@ -112,12 +114,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return {
             id: d.id,
             ...data,
-            // Convert Firestore Timestamps back to ISO strings for consistency with existing Goal type
             timeBound: (data.timeBound as Timestamp)?.toDate().toISOString(),
             createdAt: (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
           } as Goal;
         });
         setGoals(loadedGoals);
+        console.log("DataContext: Goals loaded:", loadedGoals.length);
         
         // Load sleep logs
         const sleepLogsColRef = collection(db, "users", MOCK_USER_ID, "sleepLogs");
@@ -133,24 +135,25 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             } as SleepLog;
         });
         setSleepLogs(loadedSleepLogs);
-
+        console.log("DataContext: Sleep logs loaded:", loadedSleepLogs.length);
+        console.log("DataContext: Successfully loaded all data for", MOCK_USER_ID);
 
       } catch (error) {
-        console.error("Error loading data from Firestore:", error);
-        // Fallback to defaults or handle error appropriately
+        console.error("DataContext: Error loading data from Firestore for", MOCK_USER_ID, error);
         setUserName(DEFAULT_USERNAME);
         setUserXP(INITIAL_XP);
         setHabits([]);
-        setGoals(INITIAL_GOALS); // Use app-config initial if needed
+        setGoals(INITIAL_GOALS);
         setSleepLogs(INITIAL_SLEEP_LOGS);
       } finally {
         setAttributes(INITIAL_ATTRIBUTES.map(attr => ({ ...attr, value: 0, currentLevel: "0/100", xpInArea: "0/1000" })));
         setIsLoading(false);
+        console.log("DataContext: Loading complete. isLoading set to false.");
       }
     };
 
     loadData();
-  }, []); // Runs once on mount
+  }, []);
 
 
   const setUserNameState = useCallback(async (name: string) => {
@@ -159,8 +162,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const userDocRef = doc(db, "users", MOCK_USER_ID);
       try {
         await updateDoc(userDocRef, { username: name });
+        console.log("DataContext: Username updated in Firestore for", MOCK_USER_ID);
       } catch (error) {
-        console.error("Error updating username in Firestore:", error);
+        console.error("DataContext: Error updating username in Firestore for", MOCK_USER_ID, error);
       }
     }
   }, []);
@@ -171,8 +175,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const userDocRef = doc(db, "users", MOCK_USER_ID);
           try {
               await updateDoc(userDocRef, { xp: newXP });
+              console.log("DataContext: User XP updated in Firestore for", MOCK_USER_ID, "to", newXP);
           } catch (error) {
-              console.error("Error updating user XP in Firestore:", error);
+              console.error("DataContext: Error updating user XP in Firestore for", MOCK_USER_ID, error);
           }
       }
   }, []);
@@ -187,52 +192,49 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       completed: false,
       xp: habitXP,
       streak: 0,
-      createdAt: serverTimestamp() // Use server timestamp
+      createdAt: serverTimestamp()
     };
     try {
       const habitsColRef = collection(db, "users", MOCK_USER_ID, "habits");
       const docRef = await addDoc(habitsColRef, newHabitData);
-      // Add to local state with the new ID and resolved timestamp (or fetch again for perfect sync)
       setHabits(prev => [{ id: docRef.id, ...newHabitData, createdAt: new Date().toISOString() } as Habit, ...prev]);
+      console.log("DataContext: Habit added to Firestore for", MOCK_USER_ID, "ID:", docRef.id);
     } catch (error) {
-      console.error("Error adding habit to Firestore:", error);
+      console.error("DataContext: Error adding habit to Firestore for", MOCK_USER_ID, error);
     }
   }, []);
 
   const toggleHabit = useCallback(async (id: string) => {
     if (!MOCK_USER_ID) return;
     let xpChange = 0;
-    let updatedHabit: Habit | undefined;
+    let updatedHabitData: Partial<Habit> = {};
 
     setHabits(prevHabits =>
       prevHabits.map(habit => {
         if (habit.id === id) {
           const newCompletedStatus = !habit.completed;
           xpChange = newCompletedStatus ? habit.xp : -habit.xp;
-          updatedHabit = {
-            ...habit,
+          updatedHabitData = {
             completed: newCompletedStatus,
             streak: newCompletedStatus ? habit.streak + 1 : Math.max(0, habit.streak - 1),
           };
-          return updatedHabit;
+          return { ...habit, ...updatedHabitData };
         }
         return habit;
       })
     );
 
-    if (updatedHabit) {
+    if (Object.keys(updatedHabitData).length > 0) {
       const habitDocRef = doc(db, "users", MOCK_USER_ID, "habits", id);
       try {
-        await updateDoc(habitDocRef, {
-          completed: updatedHabit.completed,
-          streak: updatedHabit.streak
-        });
+        await updateDoc(habitDocRef, updatedHabitData);
         const newTotalXP = Math.max(0, userXP + xpChange);
-        updateUserXP(newTotalXP);
+        await updateUserXP(newTotalXP); // Ensure updateUserXP is awaited
+        console.log("DataContext: Habit toggled in Firestore for", MOCK_USER_ID, "ID:", id);
       } catch (error) {
-        console.error("Error toggling habit in Firestore:", error);
-        // Revert local state if Firestore update fails (optional, for consistency)
-        setHabits(prev => prev.map(h => h.id === id ? {...h, completed: !updatedHabit!.completed, streak: updatedHabit!.completed ? updatedHabit!.streak -1 : updatedHabit!.streak +1 } : h));
+        console.error("DataContext: Error toggling habit in Firestore for", MOCK_USER_ID, "ID:", id, error);
+        // Revert local state if Firestore update fails
+        setHabits(prev => prev.map(h => h.id === id ? {...h, completed: !updatedHabitData.completed, streak: updatedHabitData.completed ? (updatedHabitData.streak! -1) : (updatedHabitData.streak! + 1) } : h));
       }
     }
   }, [userXP, updateUserXP]);
@@ -241,7 +243,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!MOCK_USER_ID) return;
     const newGoalFirestoreData = {
       ...goalData,
-      timeBound: Timestamp.fromDate(new Date(goalData.timeBound)), // Convert ISO string to Timestamp
+      timeBound: Timestamp.fromDate(new Date(goalData.timeBound)),
       isCompleted: false,
       createdAt: serverTimestamp()
     };
@@ -250,12 +252,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const docRef = await addDoc(goalsColRef, newGoalFirestoreData);
       setGoals(prev => [{ 
         id: docRef.id, 
-        ...goalData, // original data for local state
+        ...goalData, 
         isCompleted: false, 
-        createdAt: new Date().toISOString() // use local date for immediate UI
+        createdAt: new Date().toISOString() 
       }, ...prev].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      console.log("DataContext: Goal added to Firestore for", MOCK_USER_ID, "ID:", docRef.id);
     } catch (error) {
-      console.error("Error adding goal to Firestore:", error);
+      console.error("DataContext: Error adding goal to Firestore for", MOCK_USER_ID, error);
     }
   }, []);
 
@@ -263,11 +266,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!MOCK_USER_ID) return;
     let xpChange = 0;
     let newCompletedStatus = false;
+    let goalXP = 0;
 
     setGoals(prevGoals =>
       prevGoals.map(goal => {
         if (goal.id === id) {
           newCompletedStatus = !goal.isCompleted;
+          goalXP = goal.xp; // Store goal's XP
           xpChange = newCompletedStatus ? goal.xp : -goal.xp;
           return { ...goal, isCompleted: newCompletedStatus };
         }
@@ -279,22 +284,25 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       await updateDoc(goalDocRef, { isCompleted: newCompletedStatus });
       const newTotalXP = Math.max(0, userXP + xpChange);
-      updateUserXP(newTotalXP);
+      await updateUserXP(newTotalXP); // Ensure updateUserXP is awaited
+      console.log("DataContext: Goal completion toggled in Firestore for", MOCK_USER_ID, "ID:", id);
     } catch (error) {
-      console.error("Error toggling goal completion in Firestore:", error);
-       setGoals(prevGoals => prevGoals.map(g => g.id === id ? {...g, isCompleted: !newCompletedStatus} : g));
+      console.error("DataContext: Error toggling goal completion in Firestore for", MOCK_USER_ID, "ID:", id, error);
+      setGoals(prevGoals => prevGoals.map(g => g.id === id ? {...g, isCompleted: !newCompletedStatus} : g));
     }
   }, [userXP, updateUserXP]);
 
   const deleteGoal = useCallback(async (id: string) => {
     if (!MOCK_USER_ID) return;
+    // Find the goal to see if it was completed to adjust XP if needed (optional, current logic does not deduct XP on delete)
+    // const goalToDelete = goals.find(goal => goal.id === id);
     setGoals(prevGoals => prevGoals.filter(goal => goal.id !== id));
     const goalDocRef = doc(db, "users", MOCK_USER_ID, "goals", id);
     try {
       await deleteDoc(goalDocRef);
+      console.log("DataContext: Goal deleted from Firestore for", MOCK_USER_ID, "ID:", id);
     } catch (error) {
-      console.error("Error deleting goal from Firestore:", error);
-      // Optionally re-add to local state if delete fails
+      console.error("DataContext: Error deleting goal from Firestore for", MOCK_USER_ID, "ID:", id, error);
     }
   }, []);
 
@@ -316,7 +324,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const sleepDurationHours = Math.max(0, durationMs / (1000 * 60 * 60));
 
     const newLogFirestoreData = {
-      date: Timestamp.fromDate(baseDate), // Store as Timestamp
+      date: Timestamp.fromDate(baseDate),
       timeToBed,
       timeWokeUp,
       sleepDurationHours: parseFloat(sleepDurationHours.toFixed(2)),
@@ -330,13 +338,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const docRef = await addDoc(sleepLogsColRef, newLogFirestoreData);
       setSleepLogs(prev => [{ 
           id: docRef.id, 
-          ...logData, // original data for local state
+          ...logData,
           date: baseDate.toISOString(), 
           sleepDurationHours: parseFloat(sleepDurationHours.toFixed(2)),
           createdAt: new Date().toISOString() 
       }, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime() || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      console.log("DataContext: Sleep log added to Firestore for", MOCK_USER_ID, "ID:", docRef.id);
     } catch (error) {
-      console.error("Error adding sleep log to Firestore:", error);
+      console.error("DataContext: Error adding sleep log to Firestore for", MOCK_USER_ID, error);
     }
   }, []);
 
@@ -346,8 +355,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const sleepLogDocRef = doc(db, "users", MOCK_USER_ID, "sleepLogs", id);
     try {
       await deleteDoc(sleepLogDocRef);
+      console.log("DataContext: Sleep log deleted from Firestore for", MOCK_USER_ID, "ID:", id);
     } catch (error) {
-      console.error("Error deleting sleep log from Firestore:", error);
+      console.error("DataContext: Error deleting sleep log from Firestore for", MOCK_USER_ID, "ID:", id, error);
     }
   }, []);
 
@@ -473,3 +483,6 @@ export const useData = (): DataContextState => {
   }
   return context;
 };
+
+
+    
