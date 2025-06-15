@@ -8,16 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from 'next/link';
-import { Eye, EyeOff, Mail, User, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff, Mail, User, AlertTriangle, Loader2 } from 'lucide-react';
 import Logo from '@/components/shared/Logo';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-// import { useData } from '@/contexts/DataContext'; // Not needed if just setting localStorage
+import { INITIAL_XP } from '@/lib/app-config';
 
 export default function SignupForm() {
   const router = useRouter();
   const { toast } = useToast();
-  // const { setUserNameState } = useData(); // To update context directly, but localStorage should be enough
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,22 +40,18 @@ export default function SignupForm() {
       return;
     }
     
+    // Simulate API call or processing
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    localStorage.setItem('isLoggedIn', 'true'); 
-    localStorage.setItem('username', username); 
-    // setUserNameState(username); // Optionally call context update function if available and needed for immediate effect without re-render trigger
-    
-    // Initialize userXP and habits if they don't exist, DataContext will handle defaults if not set
-    if (!localStorage.getItem('userXP')) {
-      localStorage.setItem('userXP', '0');
-    }
-    if (!localStorage.getItem('habits')) {
-      localStorage.setItem('habits', JSON.stringify([]));
-    }
+    // Save basic profile info to localStorage
+    localStorage.setItem('username', username);
+    localStorage.setItem('userXP', String(INITIAL_XP)); // Ensure userXP is initialized
+    localStorage.setItem('habits', JSON.stringify([])); // Ensure habits are initialized as empty
 
-    toast({ title: "Perfil Configurado", description: "Bienvenido a EXILE. Tu aventura comienza ahora." });
-    router.push('/dashboard');
+    // Do NOT set isLoggedIn here. It will be set after avatar selection.
+    
+    toast({ title: "Datos Guardados", description: "Ahora, selecciona tu avatar para continuar." });
+    router.push('/signup/avatar'); // Redirect to avatar selection page
   };
 
   return (
@@ -102,22 +97,23 @@ export default function SignupForm() {
           </div>
           
           <Button type="submit" className="w-full bg-new-button-gradient text-primary-foreground hover:opacity-90 transition-opacity duration-300" disabled={isLoading}>
-            {isLoading ? "Guardando perfil..." : "Guardar Perfil y Entrar"}
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {isLoading ? "Guardando..." : "Siguiente: Elegir Avatar"}
           </Button>
         </form>
         <Alert variant="default" className="bg-muted/30 border-primary/20">
             <AlertTriangle className="h-4 w-4 text-primary" />
             <AlertTitle className="text-sm font-semibold text-primary">Aviso Importante</AlertTitle>
             <AlertDescription className="text-xs text-muted-foreground">
-                Tus datos (nombre, correo, XP, hábitos) se guardan localmente en tu navegador. EXILE no almacena tu información en la nube. Puedes configurar tu avatar en la sección de Perfil. Considera realizar copias de seguridad de tu progreso.
+                Tus datos (nombre, correo, XP, hábitos) se guardan localmente en tu navegador. EXILE no almacena tu información en la nube. Puedes configurar tu avatar en la sección de Perfil más tarde. Considera realizar copias de seguridad de tu progreso.
             </AlertDescription>
         </Alert>
       </CardContent>
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">
-          ¿Problemas? Contacta al{' '}
+          ¿Ya tienes cuenta?{' '}
           <Link href="/login" className="font-medium text-primary hover:underline">
-            Soporte
+            Ingresa
           </Link>
         </p>
       </CardFooter>
