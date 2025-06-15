@@ -99,12 +99,9 @@
   }
 }
 
-/* Custom gradient text utility - Dark on Left, Red on Right + Neon Shadow */
+/* Custom gradient text utility - Now solid red with neon shadow */
 .text-gradient-red {
-  background: linear-gradient(to right, hsl(var(--secondary)), hsl(var(--primary)));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: hsl(var(--primary));
   text-shadow: 0 0 5px hsla(var(--primary), 0.7),
                0 0 10px hsla(var(--primary), 0.5),
                0 0 15px hsla(var(--primary), 0.3);
