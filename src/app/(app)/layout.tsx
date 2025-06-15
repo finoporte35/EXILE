@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 function AppContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const { isLoading: isDataCtxLoading, dataLoadingError } = useData(); // Get DataContext loading and error states
+  const { isLoading: isDataCtxLoading, dataLoadingError } = useData(); 
 
   useEffect(() => {
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
@@ -23,7 +23,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
     }
   }, [router]);
   
-  // Show main loading spinner if either auth check or data context is loading
   if (isAuthLoading || isDataCtxLoading) {
      return (
       <div className="flex h-screen w-screen flex-col items-center justify-center bg-background space-y-4">
@@ -35,7 +34,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
      );
   }
 
-  // If data loading finished but there was an error
   if (dataLoadingError) {
     return (
       <div className="flex h-screen w-screen flex-col items-center justify-center bg-background space-y-6 p-4 text-center">
@@ -63,7 +61,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If auth check and data loading are complete and no errors
   return (
     <SidebarProvider defaultOpen={true}>
         <AppSidebar />
@@ -78,7 +75,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  // DataProvider now wraps the AppContent which consumes its context
   return (
     <DataProvider>
       <AppContent>{children}</AppContent>
