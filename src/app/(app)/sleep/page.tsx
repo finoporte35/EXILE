@@ -1,3 +1,4 @@
+"use client";
 
 import SleepLogManager from '@/components/sleep/SleepLogManager';
 import { BedDouble } from 'lucide-react';

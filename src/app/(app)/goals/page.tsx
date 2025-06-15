@@ -1,3 +1,4 @@
+"use client";
 
 import GoalManager from '@/components/goals/GoalManager';
 import { Target } from 'lucide-react';
