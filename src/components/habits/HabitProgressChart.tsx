@@ -91,23 +91,23 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
               cursor={false}
               content={<ChartTooltipContent indicator="line" hideLabel={false} />}
             />
-            <PolarGrid stroke="rgba(255, 255, 255, 0.1)" strokeWidth={1}/>
+            <PolarGrid stroke="rgba(255, 255, 255, 0.05)" strokeWidth={1}/>
             <PolarAngleAxis 
               dataKey="category" 
-              tick={{ fill: 'rgba(255, 255, 255, 0.6)', fontSize: 11 }}
+              tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 11 }}
               tickLine={false} 
             />
             <PolarRadiusAxis
                 angle={30} 
                 domain={[0, Math.max(...chartData.map(d => d.fullMark), 1)]} // Ensure domain covers fullMark
                 tickCount={5} 
-                tick={{ fill: 'rgba(255, 255, 255, 0.5)', fontSize: 10 }}
-                axisLine={{ stroke: "rgba(255, 255, 255, 0.1)", strokeWidth: 1 }}
+                tick={false}
+                axisLine={false}
                 tickLine={false} 
             />
             <Radar
               dataKey="value"
-              fill="hsla(var(--primary), 0.5)" 
+              fill="transparent" 
               stroke="hsl(var(--primary))" 
               strokeWidth={2}
               dot={{ r: 3, fill: "hsl(var(--primary))", strokeWidth: 0 }}

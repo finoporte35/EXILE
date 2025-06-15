@@ -82,10 +82,10 @@ export default function DevelopmentRadarChart({
               cursor={false}
               content={<ChartTooltipContent indicator="line" hideLabel={false} />}
             />
-            <PolarGrid stroke="rgba(255, 255, 255, 0.03)" strokeWidth={1}/>
+            <PolarGrid stroke="rgba(255, 255, 255, 0.05)" strokeWidth={1}/>
             <PolarAngleAxis
               dataKey="category"
-              tick={{ fill: 'rgba(255, 255, 255, 0.6)', fontSize: 11 }}
+              tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 11 }}
               tickLine={false}
             />
             <PolarRadiusAxis
@@ -98,7 +98,7 @@ export default function DevelopmentRadarChart({
             />
             <Radar
               dataKey="value"
-              fill="hsla(var(--primary), 0.5)"
+              fill="transparent"
               stroke="hsl(var(--primary))" 
               strokeWidth={2}
               dot={{ r: 3, fill: "hsl(var(--primary))", strokeWidth: 0 }}
