@@ -2,7 +2,7 @@
 "use client";
 
 import type { Rank } from '@/components/ranks/RankItem';
-import { RANKS_DATA, INITIAL_ATTRIBUTES, DEFAULT_USERNAME, INITIAL_XP, HABIT_CATEGORY_XP_MAP, DEFAULT_HABIT_XP, INITIAL_GOALS, DEFAULT_GOAL_XP, INITIAL_SLEEP_LOGS } from '@/lib/app-config';
+import { RANKS_DATA, INITIAL_ATTRIBUTES, DEFAULT_USERNAME, INITIAL_XP, HABIT_CATEGORY_XP_MAP, DEFAULT_HABIT_XP, INITIAL_GOALS, DEFAULT_GOAL_XP, INITIAL_SLEEP_LOGS, MOCK_USER_ID } from '@/lib/app-config';
 import type { Habit, Attribute, Goal, SleepLog, SleepQuality } from '@/types';
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { differenceInMilliseconds, parse, isValid, parseISO as dateFnsParseISO } from 'date-fns';
@@ -23,8 +23,6 @@ import {
   orderBy
 } from 'firebase/firestore';
 
-
-const MOCK_USER_ID = "default-exile-user";
 
 interface DataContextState {
   userName: string;
@@ -87,16 +85,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const userData = userDocSnap.data();
           setUserName(userData.username || DEFAULT_USERNAME);
           setUserXP(userData.xp || INITIAL_XP);
+          // setEmail(userData.email || ""); // If we decide to manage email state in context
           console.log("DataContext: User profile data loaded:", userData);
         } else {
           console.log("DataContext: No user profile found for", MOCK_USER_ID, ". Creating with defaults.");
           await setDoc(userDocRef, {
             username: DEFAULT_USERNAME,
+            email: "", // Add default email field
             xp: INITIAL_XP,
             createdAt: serverTimestamp()
           });
           setUserName(DEFAULT_USERNAME);
           setUserXP(INITIAL_XP);
+          // setEmail("");
         }
 
         const habitsColRef = collection(db, "users", MOCK_USER_ID, "habits");
@@ -107,8 +108,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             return { 
                 id: d.id, 
                 ...data, 
-                lastCompletedDate: data.lastCompletedDate || undefined, // Ensure field is handled
-                createdAt: (data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date()).toISOString() 
+                lastCompletedDate: data.lastCompletedDate || undefined,
+                createdAt: (data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt || Date.now())).toISOString() 
             } as Habit;
         });
         setHabits(loadedHabits);
@@ -123,7 +124,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             id: d.id,
             ...data,
             timeBound: (data.timeBound instanceof Timestamp ? data.timeBound.toDate() : new Date(data.timeBound)).toISOString(),
-            createdAt: (data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date()).toISOString(),
+            createdAt: (data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt || Date.now())).toISOString(),
           } as Goal;
         });
         setGoals(loadedGoals);
@@ -138,7 +139,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 id: s.id,
                 ...data,
                 date: (data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date)).toISOString(),
-                createdAt: (data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date()).toISOString(),
+                createdAt: (data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt || Date.now())).toISOString(),
             } as SleepLog;
         });
         setSleepLogs(loadedSleepLogs);
@@ -149,6 +150,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch (error: any) {
         console.error("DataContext: Error loading data from Firestore for", MOCK_USER_ID, error);
         setDataLoadingError(error); 
+        // Fallback to defaults or previously loaded state if preferred
         setUserName(prev => prev || DEFAULT_USERNAME);
         setUserXP(prev => prev || INITIAL_XP);
         setHabits(prev => prev.length > 0 ? prev : []);
@@ -169,7 +171,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (MOCK_USER_ID) {
       const userDocRef = doc(db, "users", MOCK_USER_ID);
       try {
-        await updateDoc(userDocRef, { username: name });
+        await updateDoc(userDocRef, { username: name, updatedAt: serverTimestamp() });
         console.log("DataContext: Username updated in Firestore for", MOCK_USER_ID);
       } catch (error) {
         console.error("DataContext: Error updating username in Firestore for", MOCK_USER_ID, error);
@@ -181,7 +183,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (MOCK_USER_ID) {
           const userDocRef = doc(db, "users", MOCK_USER_ID);
           try {
-              await updateDoc(userDocRef, { xp: newXP });
+              await updateDoc(userDocRef, { xp: newXP, updatedAt: serverTimestamp() });
               console.log("DataContext: User XP updated in Firestore for", MOCK_USER_ID, "to", newXP);
           } catch (error) {
               console.error("DataContext: Error updating user XP in Firestore for", MOCK_USER_ID, error);
@@ -202,7 +204,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       completed: false,
       xp: habitXP,
       streak: 0,
-      lastCompletedDate: undefined, // Initialize new field
+      lastCompletedDate: undefined, 
       createdAt: serverTimestamp() 
     };
     try {
@@ -224,7 +226,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       console.error("DataContext: Error adding habit to Firestore for", MOCK_USER_ID, error);
     }
-  }, [MOCK_USER_ID]);
+  }, []);
 
   const toggleHabit = useCallback(async (id: string) => {
     if (!MOCK_USER_ID) {
@@ -233,7 +235,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     
     const originalHabits = [...habits];
-    const originalXP = userXP;
+    const originalUserXP = userXP;
     const habitToToggle = originalHabits.find(h => h.id === id);
 
     if (!habitToToggle) {
@@ -243,24 +245,25 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const newCompletedStatus = !habitToToggle.completed;
     let xpChange = newCompletedStatus ? habitToToggle.xp : -habitToToggle.xp;
-    let newTotalXP = Math.max(0, userXP + xpChange);
+    const newTotalUserXP = Math.max(0, originalUserXP + xpChange);
 
     let newStreak = habitToToggle.streak;
-    let newLastCompletedDate = habitToToggle.lastCompletedDate;
+    let newLastCompletedDate: string | undefined = habitToToggle.lastCompletedDate;
     const todayDateString = new Date().toISOString().split('T')[0];
 
-    if (newCompletedStatus) { // Marking as complete
+    if (newCompletedStatus) { 
         if (habitToToggle.lastCompletedDate !== todayDateString) {
             newStreak = habitToToggle.streak + 1;
             newLastCompletedDate = todayDateString;
         }
-    } else { // Marking as incomplete
+    } else { 
         if (habitToToggle.lastCompletedDate === todayDateString) {
-            // If it was completed today and is now being unchecked, revert today's streak increment.
             newStreak = Math.max(0, habitToToggle.streak - 1);
-            newLastCompletedDate = undefined; // Or set to yesterday if more complex logic is needed
+            // To properly revert, find the completion date before today if it exists.
+            // This simple revert just removes today's completion.
+            // For a more complex scenario, one might search for the actual previous completion.
+            newLastCompletedDate = undefined; // Or find previous date if streak > 0
         }
-        // If unchecking a habit completed on a previous day, streak and lastCompletedDate remain.
     }
     
     const updatedHabitClientData: Partial<Habit> = {
@@ -269,35 +272,35 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         lastCompletedDate: newLastCompletedDate,
     };
 
-    const updatedHabitFirestoreData: any = { ...updatedHabitClientData };
-    if (updatedHabitFirestoreData.lastCompletedDate === undefined) {
-        updatedHabitFirestoreData.lastCompletedDate = null; // Firestore prefers null for removal
-    }
-
-
     const newHabitsState = habits.map(h => 
         h.id === id ? { ...h, ...updatedHabitClientData } : h
     );
     
     setHabits(newHabitsState);
-    setUserXP(newTotalXP);
+    setUserXP(newTotalUserXP);
 
     const habitDocRef = doc(db, "users", MOCK_USER_ID, "habits", id);
     const userDocRef = doc(db, "users", MOCK_USER_ID);
     const batch = writeBatch(db);
 
-    batch.update(habitDocRef, updatedHabitFirestoreData);
-    batch.update(userDocRef, { xp: newTotalXP });
+    const firestoreHabitUpdateData: any = { 
+        completed: newCompletedStatus,
+        streak: newStreak,
+        lastCompletedDate: newLastCompletedDate || null, // Use null for Firestore to remove field
+    };
+
+    batch.update(habitDocRef, firestoreHabitUpdateData);
+    batch.update(userDocRef, { xp: newTotalUserXP });
         
     try {
         await batch.commit();
         console.log("DataContext: Habit toggled & XP updated in Firestore. ID:", id, "New streak:", newStreak, "Last completed:", newLastCompletedDate);
     } catch (error) {
         console.error("DataContext: Error toggling habit/updating XP in Firestore. Reverting. ID:", id, error);
-        setHabits(originalHabits);
-        setUserXP(originalXP);
+        setHabits(originalHabits); // Revert optimistic update
+        setUserXP(originalUserXP); // Revert optimistic update
     }
-  }, [userXP, habits, MOCK_USER_ID]);
+  }, [userXP, habits]);
 
 
   const addGoal = useCallback(async (goalData: Omit<Goal, 'id' | 'isCompleted' | 'createdAt'>) => {
@@ -325,7 +328,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       console.error("DataContext: Error adding goal to Firestore for", MOCK_USER_ID, error);
     }
-  }, [MOCK_USER_ID]);
+  }, []);
 
   const toggleGoalCompletion = useCallback(async (id: string) => {
     if (!MOCK_USER_ID) {
@@ -334,7 +337,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     
     const originalGoals = [...goals];
-    const originalXP = userXP;
+    const originalUserXP = userXP; // Capture original XP
     const goalToToggle = originalGoals.find(g => g.id === id);
 
     if (!goalToToggle) {
@@ -344,31 +347,31 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const newCompletedStatus = !goalToToggle.isCompleted;
     let xpChange = newCompletedStatus ? goalToToggle.xp : -goalToToggle.xp;
-    let newTotalXP = Math.max(0, userXP + xpChange);
+    const newTotalUserXP = Math.max(0, originalUserXP + xpChange); // Calculate new total XP
     
+    // Optimistic UI update
     const newGoalsState = goals.map(goal => 
         goal.id === id ? { ...goal, isCompleted: newCompletedStatus } : goal
     );
-    
     setGoals(newGoalsState);
-    setUserXP(newTotalXP);
+    setUserXP(newTotalUserXP); // Optimistically update userXP
     
     const goalDocRef = doc(db, "users", MOCK_USER_ID, "goals", id);
     const userDocRef = doc(db, "users", MOCK_USER_ID);
     const batch = writeBatch(db);
 
     batch.update(goalDocRef, { isCompleted: newCompletedStatus });
-    batch.update(userDocRef, { xp: newTotalXP });
+    batch.update(userDocRef, { xp: newTotalUserXP }); // Update XP in Firestore
     
     try {
         await batch.commit();
         console.log("DataContext: Goal completion toggled & XP updated in Firestore. Goal ID:", id);
     } catch (error) {
         console.error("DataContext: Error toggling goal completion/updating XP. Reverting. Goal ID:", id, error);
-        setGoals(originalGoals);
-        setUserXP(originalXP);
+        setGoals(originalGoals); // Revert optimistic UI update for goals
+        setUserXP(originalUserXP); // Revert optimistic UI update for XP
     }
-  }, [userXP, goals, MOCK_USER_ID]);
+  }, [userXP, goals]);
 
   const deleteGoal = useCallback(async (id: string) => {
     if (!MOCK_USER_ID) {
@@ -386,7 +389,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error("DataContext: Error deleting goal from Firestore. Reverting. ID:", id, error);
       setGoals(originalGoals); 
     }
-  }, [goals, MOCK_USER_ID]);
+  }, [goals]);
 
   const addSleepLog = useCallback(async (logData: { date: Date; timeToBed: string; timeWokeUp: string; quality: SleepQuality; notes?: string }) => {
     if (!MOCK_USER_ID) {
@@ -447,7 +450,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       console.error("DataContext: Error adding sleep log to Firestore for", MOCK_USER_ID, error);
     }
-  }, [MOCK_USER_ID]);
+  }, []);
 
   const deleteSleepLog = useCallback(async (id: string) => {
     if (!MOCK_USER_ID) {
@@ -464,7 +467,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error("DataContext: Error deleting sleep log from Firestore. Reverting. ID:", id, error);
       setSleepLogs(originalLogs);
     }
-  }, [sleepLogs, MOCK_USER_ID]);
+  }, [sleepLogs]);
 
   const { currentRank, nextRank, xpTowardsNextRank, totalXPForNextRankLevel, rankProgressPercent } = React.useMemo(() => {
     let currentRankCalculated: Rank = RANKS_DATA[0];
@@ -493,30 +496,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const nextRankXpRequirement = nextRankCalculated.xpRequired;
       xpTowardsNext = Math.max(0, userXP - currentRankXpRequirement);
       totalXPForLevel = Math.max(1, nextRankXpRequirement - currentRankXpRequirement); 
-      progressPercent = (xpTowardsNext / totalXPForLevel) * 100;
-    } else { 
-      if (RANKS_DATA.length === 1) {
-        totalXPForLevel = currentRankXpRequirement > 0 ? currentRankXpRequirement : 100; 
-        xpTowardsNext = userXP;
-      } else { 
-         const currentRankIndex = RANKS_DATA.findIndex(r => r.name === currentRankCalculated.name);
-         if (currentRankIndex > 0) { 
-            const previousRankXp = RANKS_DATA[currentRankIndex - 1].xpRequired;
+      progressPercent = totalXPForLevel > 0 ? (xpTowardsNext / totalXPForLevel) * 100 : (totalXPForLevel === 0 ? 100 : 0);
+    } else { // Max rank achieved or only one rank exists
+        const currentRankIndex = RANKS_DATA.findIndex(r => r.name === currentRankCalculated.name);
+        if (currentRankIndex > 0) { // Not the first rank, so there was a previous one
+            const previousRankXp = RANKS_DATA[currentRankIndex -1].xpRequired;
             totalXPForLevel = Math.max(1, currentRankXpRequirement - previousRankXp);
             xpTowardsNext = Math.max(0, userXP - previousRankXp);
-         } else { 
-            totalXPForLevel = currentRankXpRequirement > 0 ? currentRankXpRequirement : 100;
-            xpTowardsNext = userXP;
-         }
-      }
-      progressPercent = totalXPForLevel > 0 ? (xpTowardsNext / totalXPForLevel) * 100 : 0;
-      if (userXP >= currentRankXpRequirement && totalXPForLevel > 0) { 
-        progressPercent = 100;
-        xpTowardsNext = totalXPForLevel; 
-      } else if (totalXPForLevel === 0 && userXP >= currentRankXpRequirement) {
-        progressPercent = 100;
-        xpTowardsNext = 0; // Or totalXPForLevel if it should be full
-      }
+        } else { // This is the first and only rank, or first rank and max rank
+             totalXPForLevel = currentRankXpRequirement > 0 ? currentRankXpRequirement : 1; // Avoid division by zero if xpRequired is 0
+             xpTowardsNext = userXP;
+        }
+        // If userXP meets or exceeds the requirement for the current (max) rank, progress is 100% of this level.
+        progressPercent = (userXP >= currentRankXpRequirement && totalXPForLevel > 0) ? 100 : ((xpTowardsNext / totalXPForLevel) * 100);
+        if (userXP >= currentRankXpRequirement) {
+            xpTowardsNext = totalXPForLevel; // Show level as full
+        }
     }
     
     return {

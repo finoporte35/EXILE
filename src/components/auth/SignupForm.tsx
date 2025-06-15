@@ -12,7 +12,18 @@ import { Eye, EyeOff, Mail, User, AlertTriangle, Loader2 } from 'lucide-react';
 import Logo from '@/components/shared/Logo';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { INITIAL_XP } from '@/lib/app-config';
+import { INITIAL_XP, MOCK_USER_ID } from '@/lib/app-config';
+import { db } from '@/lib/firebase';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  setDoc,
+  getDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
 
 export default function SignupForm() {
   const router = useRouter();
@@ -29,26 +40,81 @@ export default function SignupForm() {
     e.preventDefault();
     setIsLoading(true);
 
-    setTimeout(() => {
-      if (password !== confirmPassword) {
-        toast({ variant: "destructive", title: "Error de configuración", description: "Las contraseñas no coinciden." });
+    if (password !== confirmPassword) {
+      toast({ variant: "destructive", title: "Error de configuración", description: "Las contraseñas no coinciden." });
+      setIsLoading(false);
+      return;
+    }
+    if (!username.trim()) {
+      toast({ variant: "destructive", title: "Error de configuración", description: "El nombre de usuario es requerido." });
+      setIsLoading(false);
+      return;
+    }
+    if (!email.trim()) {
+        toast({ variant: "destructive", title: "Error de configuración", description: "El correo electrónico es requerido." });
         setIsLoading(false);
         return;
+    }
+
+    try {
+      // Check username uniqueness (excluding MOCK_USER_ID itself)
+      const usersRef = collection(db, "users");
+      const qUsername = query(usersRef, where("username", "==", username));
+      const usernameSnapshot = await getDocs(qUsername);
+      for (const userDoc of usernameSnapshot.docs) {
+        if (userDoc.id !== MOCK_USER_ID) {
+          toast({ variant: "destructive", title: "Conflicto de Datos", description: "Este nombre de usuario ya está en uso por otro perfil." });
+          setIsLoading(false);
+          return;
+        }
       }
-      if (!username.trim()) {
-        toast({ variant: "destructive", title: "Error de configuración", description: "El nombre de usuario es requerido." });
-        setIsLoading(false);
-        return;
+
+      // Check email uniqueness (excluding MOCK_USER_ID itself)
+      const qEmail = query(usersRef, where("email", "==", email));
+      const emailSnapshot = await getDocs(qEmail);
+      for (const userDoc of emailSnapshot.docs) {
+        if (userDoc.id !== MOCK_USER_ID) {
+          toast({ variant: "destructive", title: "Conflicto de Datos", description: "Este correo electrónico ya está registrado en otro perfil." });
+          setIsLoading(false);
+          return;
+        }
       }
+
+      // Proceed to create/update MOCK_USER_ID document
+      const userDocRef = doc(db, "users", MOCK_USER_ID);
+      const userDocSnap = await getDoc(userDocRef);
+
+      let currentXP = INITIAL_XP;
+      if (userDocSnap.exists()) {
+        currentXP = userDocSnap.data().xp || INITIAL_XP;
+      }
+
+      const userDataToSave = {
+        username: username,
+        email: email,
+        xp: currentXP,
+        updatedAt: serverTimestamp(),
+      };
+
+      if (!userDocSnap.exists()) {
+        (userDataToSave as any).createdAt = serverTimestamp();
+      }
+
+      await setDoc(userDocRef, userDataToSave, { merge: true });
       
       localStorage.setItem('username', username);
-      localStorage.setItem('userXP', String(INITIAL_XP)); 
+      localStorage.setItem('userXP', String(currentXP)); 
       localStorage.setItem('habits', JSON.stringify([])); 
       
-      toast({ title: "Datos Guardados", description: "Ahora, selecciona tu avatar para continuar." });
+      toast({ title: "Perfil Configurado", description: "Ahora, selecciona tu avatar para continuar." });
       router.push('/signup/avatar'); 
-      setIsLoading(false); 
-    }, 500); // Simular un pequeño retraso
+
+    } catch (error) {
+      console.error("Error during signup:", error);
+      toast({ variant: "destructive", title: "Error Inesperado", description: "No se pudo completar la configuración. Intenta de nuevo." });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -102,7 +168,7 @@ export default function SignupForm() {
             <AlertTriangle className="h-4 w-4 text-primary" />
             <AlertTitle className="text-sm font-semibold text-primary">Aviso Importante</AlertTitle>
             <AlertDescription className="text-xs text-muted-foreground">
-                Tus datos (nombre, correo, XP, hábitos) se guardan localmente en tu navegador. EXILE no almacena tu información en la nube. Puedes configurar tu avatar en la sección de Perfil más tarde. Considera realizar copias de seguridad de tu progreso.
+                Tus datos (nombre, correo, XP, hábitos) se guardan en Firebase y localmente en tu navegador. Considera realizar copias de seguridad de tu progreso desde la sección de Ajustes.
             </AlertDescription>
         </Alert>
       </CardContent>
