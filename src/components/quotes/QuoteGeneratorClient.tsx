@@ -96,7 +96,7 @@ export default function QuoteGeneratorClient() {
       <Card className="w-full max-w-lg mx-auto shadow-xl border-primary/20">
         <CardHeader className="text-center">
           <Lightbulb className="mx-auto h-12 w-12 text-primary mb-2" />
-          <CardTitle className="font-headline text-2xl text-gradient-red">Fuente de Inspiración</CardTitle>
+          <CardTitle className="font-headline text-2xl text-gradient-red">Chispa de Motivación</CardTitle>
           <CardDescription>Una dosis de sabiduría para potenciar tu día.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center text-center min-h-[80px] justify-center">
@@ -111,7 +111,7 @@ export default function QuoteGeneratorClient() {
     <Card className="w-full max-w-lg mx-auto shadow-xl border-primary/20">
       <CardHeader className="text-center">
         <Lightbulb className="mx-auto h-12 w-12 text-primary mb-2" />
-        <CardTitle className="font-headline text-2xl text-gradient-red">Fuente de Inspiración</CardTitle>
+        <CardTitle className="font-headline text-2xl text-gradient-red">Chispa de Motivación</CardTitle>
         <CardDescription>Una dosis de sabiduría para potenciar tu día.</CardDescription>
       </CardHeader>
       
