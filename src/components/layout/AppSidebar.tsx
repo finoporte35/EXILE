@@ -65,16 +65,16 @@ export function AppSidebar() {
             <SidebarMenu>
               {menuPrincipalItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <Link href={item.href} legacyBehavior passHref>
+                  <Link href={item.href}>
                     <SidebarMenuButton
                       asChild
                       isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
                       tooltip={{children: item.label, side: "right", align: "center"}}
                     >
-                      <a>
+                      <>
                         <item.icon className="h-5 w-5" />
                         <span className="truncate">{item.label}</span>
-                      </a>
+                      </>
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
@@ -89,16 +89,16 @@ export function AppSidebar() {
             <SidebarMenu>
               {sistemaItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <Link href={item.href} legacyBehavior passHref>
+                  <Link href={item.href}>
                     <SidebarMenuButton
                       asChild
                       isActive={pathname === item.href}
                       tooltip={{children: item.label, side: "right", align: "center"}}
                     >
-                      <a>
+                      <>
                         <item.icon className="h-5 w-5" />
                         <span className="truncate">{item.label}</span>
-                      </a>
+                      </>
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
