@@ -47,36 +47,38 @@ export default function QuoteGeneratorClient() {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [showNewUnlockMessage, setShowNewUnlockMessage] = useState(false);
-  const [animationKey, setAnimationKey] = useState(0);
+  const [animationKey, setAnimationKey] = useState(0); // Key to re-trigger animation
 
   useEffect(() => {
     setIsLoading(true);
-    setShowNewUnlockMessage(false);
+    setShowNewUnlockMessage(false); // Reset message on load
     
     let storedUnlocked = 0;
     try {
       const storedValue = localStorage.getItem(LOCAL_STORAGE_KEY_UNLOCKED_COUNT);
       storedUnlocked = storedValue ? parseInt(storedValue, 10) : 0;
-      if (isNaN(storedUnlocked) || storedUnlocked < 0) storedUnlocked = 0;
+      if (isNaN(storedUnlocked) || storedUnlocked < 0) storedUnlocked = 0; // Handle potential NaN or negative
     } catch (error) {
       console.error("Error reading unlocked quotes from localStorage:", error);
-      storedUnlocked = 0;
+      storedUnlocked = 0; // Fallback to 0 on error
     }
 
-    const today = new Date().toLocaleDateString();
+    const today = new Date().toLocaleDateString(); // Get just the date part
     const lastVisitDay = localStorage.getItem(LOCAL_STORAGE_KEY_LAST_VISIT_DAY);
 
     let newUnlockedCount = storedUnlocked;
     let justUnlockedToday = false;
 
-    if (lastVisitDay !== today) { 
+    if (lastVisitDay !== today) { // Only unlock if it's a new day
       if (staticQuotes.length > 0 && storedUnlocked < staticQuotes.length) {
         newUnlockedCount = storedUnlocked + 1;
         justUnlockedToday = true; // A quote was unlocked today
       }
+      // Update last visit day regardless of whether a quote was unlocked, to prevent multiple unlocks on same day
       localStorage.setItem(LOCAL_STORAGE_KEY_LAST_VISIT_DAY, today);
     }
     
+    // Ensure newUnlockedCount does not exceed the total number of quotes
     newUnlockedCount = Math.min(newUnlockedCount, staticQuotes.length);
 
     try {
@@ -86,54 +88,59 @@ export default function QuoteGeneratorClient() {
     }
     
     setUnlockedCount(newUnlockedCount);
-    setShowNewUnlockMessage(justUnlockedToday);
+    setShowNewUnlockMessage(justUnlockedToday); // Show message if a quote was unlocked this session
 
+    // Set current index to the newest unlocked quote if one was unlocked today,
+    // otherwise, default to the last viewed or first quote.
+    // For simplicity, let's stick to showing the newest unlocked if one was unlocked.
+    // Or perhaps more consistently, show the last unlocked quote.
     if (newUnlockedCount > 0) {
-      // Set current index to the newest unlocked quote if one was unlocked today,
-      // otherwise, default to the last viewed or first quote.
-      // For simplicity, let's stick to showing the newest unlocked if one was unlocked.
-      // Or perhaps more consistently, show the last unlocked quote.
       setCurrentIndex(newUnlockedCount - 1); 
     } else {
+      // If no quotes unlocked (e.g., first ever visit and no quotes today), default to 0
+      // This might mean no quote is displayed if newUnlockedCount is 0.
       setCurrentIndex(0); 
     }
-    setAnimationKey(prev => prev + 1); 
+    setAnimationKey(prev => prev + 1); // Trigger animation for the initial quote
     setIsLoading(false);
-  }, []);
+  }, []); // Empty dependency array to run only on mount
 
 
   const handlePreviousQuote = () => {
     setCurrentIndex((prev) => Math.max(0, prev - 1));
-    setAnimationKey(prev => prev + 1);
+    setAnimationKey(prev => prev + 1); // Re-trigger animation
   };
 
   const handleNextQuote = () => {
     setCurrentIndex((prev) => Math.min(unlockedCount - 1, prev + 1));
-    setAnimationKey(prev => prev + 1);
+    setAnimationKey(prev => prev + 1); // Re-trigger animation
   };
 
+  // The quote to be displayed, or null if none are unlocked or available at currentIndex
   const displayedQuote = (unlockedCount > 0 && staticQuotes.length > 0 && currentIndex < unlockedCount) 
     ? staticQuotes[currentIndex] 
     : null;
 
-  let cardDescriptionText = "Cargando tu inspiración...";
+  let cardDescriptionText = "Cargando tu inspiración diaria...";
   if (!isLoading) {
     if (unlockedCount === 0 && staticQuotes.length > 0) {
         cardDescriptionText = "Visita esta sección cada día para desbloquear una nueva cita.";
     } else if (unlockedCount > 0) {
-        cardDescriptionText = `Tienes ${unlockedCount} de ${staticQuotes.length} citas desbloqueadas.`;
-    } else {
+        cardDescriptionText = `Tienes ${unlockedCount} de ${staticQuotes.length} citas desbloqueadas. Sigue adelante.`;
+    } else { // staticQuotes.length === 0
         cardDescriptionText = "No hay citas disponibles en este momento.";
     }
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-full p-4 sm:p-6 lg:p-8">
-      <Card className="w-full max-w-2xl bg-card border-neutral-800 shadow-neon-red-card flex flex-col min-h-[500px] sm:min-h-[550px]">
+    <div className="flex flex-col items-center justify-center min-h-full p-4 sm:p-6 lg:p-8 bg-background">
+      <Card className="w-full max-w-2xl bg-card border-neutral-800 shadow-neon-red-card flex flex-col min-h-[500px] sm:min-h-[550px] justify-between">
         <CardHeader className="text-center border-b border-neutral-700/50 pb-6 pt-8">
-          <Lightbulb className="mx-auto h-16 w-16 sm:h-20 sm:w-20 text-primary mb-4" />
-          <CardTitle className="text-3xl sm:text-4xl font-headline text-gradient-red">Chispa de Motivación</CardTitle>
-          <CardDescription className="text-sm text-muted-foreground mt-2 px-2">
+          <div className="flex flex-col items-center">
+            <Lightbulb className="h-12 w-12 sm:h-16 sm:w-16 text-primary mb-3" />
+            <CardTitle className="text-3xl sm:text-4xl font-headline text-gradient-red">Chispa de Motivación</CardTitle>
+          </div>
+          <CardDescription className="text-sm text-muted-foreground mt-3 px-2">
             {cardDescriptionText}
           </CardDescription>
         </CardHeader>
@@ -142,18 +149,18 @@ export default function QuoteGeneratorClient() {
           {isLoading ? (
             <div className="flex flex-col items-center text-center">
               <Loader2 className="h-12 w-12 animate-spin text-primary"/>
-              <p className="mt-4 text-base text-muted-foreground">Buscando inspiración...</p>
+              <p className="mt-4 text-base text-muted-foreground">Buscando una luz...</p>
             </div>
           ) : displayedQuote ? (
-            <div key={animationKey} className="animate-fade-in animate-scale-up-center space-y-8 w-full">
-              <blockquote className="text-2xl sm:text-3xl md:text-4xl font-medium text-foreground italic leading-relaxed md:leading-loose">
+            <div key={animationKey} className="animate-fade-in animate-scale-up-center space-y-6 w-full">
+              <blockquote className="text-2xl sm:text-3xl font-medium text-foreground leading-relaxed">
                 &ldquo;{displayedQuote.text}&rdquo;
               </blockquote>
-              <p className="text-base sm:text-lg text-muted-foreground">- {displayedQuote.author}</p>
+              <p className="text-base sm:text-lg text-muted-foreground/80">- {displayedQuote.author}</p>
             </div>
           ) : (
             <p className="text-muted-foreground text-xl">
-              {staticQuotes.length > 0 ? "Vuelve mañana para desbloquear tu primera cita." : "No hay citas disponibles."}
+              {staticQuotes.length > 0 ? "Vuelve mañana para encender tu próxima chispa." : "El manantial de citas está seco por ahora."}
             </p>
           )}
         </CardContent>
@@ -188,12 +195,12 @@ export default function QuoteGeneratorClient() {
       <div className="mt-8 text-center h-6">
         {!isLoading && showNewUnlockMessage && unlockedCount <= staticQuotes.length && (
           <p className="text-base text-primary animate-fade-in">
-            ¡Nueva cita desbloqueada hoy!
+            ¡Nueva chispa desbloqueada hoy!
           </p>
         )}
         {!isLoading && unlockedCount === staticQuotes.length && staticQuotes.length > 0 && (
             <p className="text-base text-green-400 animate-fade-in">
-            ¡Has desbloqueado todas las citas disponibles!
+            ¡Has encendido todas las chispas disponibles!
             </p>
         )}
       </div>
@@ -201,3 +208,5 @@ export default function QuoteGeneratorClient() {
   );
 }
 
+
+    
