@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -18,7 +19,7 @@ const SplashScreen = () => {
       } else {
         router.replace('/login');
       }
-    }, 2500); // Splash screen duration
+    }, 1000); // Splash screen duration reduced to 1 second
 
     return () => clearTimeout(timer);
   }, [router]);

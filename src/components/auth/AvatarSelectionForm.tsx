@@ -63,10 +63,12 @@ export default function AvatarSelectionForm() {
     // The crucial step: mark user as logged in
     localStorage.setItem('isLoggedIn', 'true');
     
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate processing
+    // Removed artificial delay
+    // await new Promise(resolve => setTimeout(resolve, 500)); 
 
     toast({ title: "¡Perfil Completo!", description: `Bienvenido a EXILE, ${username}. ¡Tu aventura comienza ahora!` });
     router.push('/dashboard');
+    setIsLoading(false); // Ensure isLoading is reset
   };
 
   return (

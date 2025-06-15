@@ -40,8 +40,8 @@ export default function SignupForm() {
       return;
     }
     
-    // Simulate API call or processing
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Removed artificial delay
+    // await new Promise(resolve => setTimeout(resolve, 500));
 
     // Save basic profile info to localStorage
     localStorage.setItem('username', username);
@@ -52,6 +52,7 @@ export default function SignupForm() {
     
     toast({ title: "Datos Guardados", description: "Ahora, selecciona tu avatar para continuar." });
     router.push('/signup/avatar'); // Redirect to avatar selection page
+    setIsLoading(false); // Ensure isLoading is reset
   };
 
   return (

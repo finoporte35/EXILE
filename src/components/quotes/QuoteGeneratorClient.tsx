@@ -43,10 +43,7 @@ export default function QuoteGeneratorClient() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleShowNewQuote = () => {
-    setIsLoading(true);
-    setDisplayedQuote(null);
-
+  const fetchNewQuote = () => {
     const unlockedQuotes = allQuotes.filter(q => q.unlocked);
 
     if (unlockedQuotes.length === 0) {
@@ -54,19 +51,23 @@ export default function QuoteGeneratorClient() {
       setIsLoading(false);
       return;
     }
+    const randomIndex = Math.floor(Math.random() * unlockedQuotes.length);
+    const randomQuote = unlockedQuotes[randomIndex];
+    setDisplayedQuote({ text: randomQuote.text, author: randomQuote.author });
+    setIsLoading(false);
+  }
 
-    // Simulate a small delay for UX, like an API call
-    setTimeout(() => {
-      const randomIndex = Math.floor(Math.random() * unlockedQuotes.length);
-      const randomQuote = unlockedQuotes[randomIndex];
-      setDisplayedQuote({ text: randomQuote.text, author: randomQuote.author });
-      setIsLoading(false);
-    }, 300);
+  const handleShowNewQuote = () => {
+    setIsLoading(true);
+    setDisplayedQuote(null);
+    // Removed artificial delay, fetching quote directly or with minimal for UX if needed
+    fetchNewQuote();
   };
   
   // Show a quote on initial load
   useEffect(() => {
-    handleShowNewQuote();
+    setIsLoading(true);
+    fetchNewQuote();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -107,4 +108,3 @@ export default function QuoteGeneratorClient() {
     </Card>
   );
 }
-

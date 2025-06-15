@@ -21,17 +21,14 @@ export default function VerifyAccessForm() {
     e.preventDefault();
     setIsLoading(true);
     
-    // Mock verification
-    setTimeout(() => {
-      if (invitationCode.toUpperCase() === "EXILE") {
-        // localStorage.setItem('isLoggedIn', 'true'); // Removed: Will be set after profile setup
-        toast({ title: "Acceso Verificado", description: "Ahora configura tu perfil para continuar." });
-        router.push('/signup'); // Redirect to signup/profile setup page
-      } else {
-        toast({ variant: "destructive", title: "Código Inválido", description: "El código de invitación no es correcto." });
-        setIsLoading(false);
-      }
-    }, 1000);
+    // Mock verification without artificial delay
+    if (invitationCode.toUpperCase() === "EXILE") {
+      toast({ title: "Acceso Verificado", description: "Ahora configura tu perfil para continuar." });
+      router.push('/signup'); // Redirect to signup/profile setup page
+    } else {
+      toast({ variant: "destructive", title: "Código Inválido", description: "El código de invitación no es correcto." });
+    }
+    setIsLoading(false);
   };
 
   return (
