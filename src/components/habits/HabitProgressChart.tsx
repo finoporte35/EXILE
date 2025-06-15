@@ -51,7 +51,7 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
 
   if (habits.length === 0) {
     return (
-      <Card className="flex flex-col items-center justify-center min-h-[300px]">
+      <Card className="flex flex-col items-center justify-center min-h-[300px] shadow-lg border-primary/10">
         <CardHeader>
           <CardTitle className="text-gradient-red">Progreso de Hábitos</CardTitle>
         </CardHeader>
@@ -66,7 +66,7 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
 
 
   return (
-    <Card className="shadow-lg_ border-primary/10_">
+    <Card className="shadow-lg border-primary/10">
       <CardHeader className="items-center pb-0">
         <CardTitle className="text-gradient-red">Radar de Desarrollo Personal</CardTitle>
         <CardDescription>

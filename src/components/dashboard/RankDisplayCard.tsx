@@ -20,7 +20,7 @@ export default function RankDisplayCard() {
   }, [xpPercentage]);
 
   return (
-    <Card className="shadow-lg_ border-primary/10_">
+    <Card className="shadow-lg border-primary/10">
       <CardHeader>
         <CardTitle className="font-headline text-xl text-gradient-red">Tu Rango Actual</CardTitle>
       </CardHeader>

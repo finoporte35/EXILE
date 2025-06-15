@@ -42,7 +42,7 @@ export default function UserStatsCard() {
   ];
 
   return (
-    <Card className="shadow-lg_ border-primary/10_">
+    <Card className="shadow-lg border-primary/10">
       <CardHeader>
         <CardTitle className="font-headline text-xl text-gradient-red">Estadísticas de Personaje</CardTitle>
         <CardDescription>Tu progreso actual en EXILE.</CardDescription>
