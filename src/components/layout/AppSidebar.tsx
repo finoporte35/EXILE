@@ -45,18 +45,9 @@ export function AppSidebar() {
   
   return (
     <Sidebar collapsible={open ? "icon" : "offcanvas"} variant="sidebar" side="left">
-        <SidebarHeader className="flex items-center justify-between p-4">
+        <SidebarHeader className="flex items-center justify-start p-4"> {/* Changed justify-between to justify-start */}
           <Logo size="medium" className={cn(open ? "block" : "hidden group-data-[collapsible=icon]:hidden", "ml-1")}/>
-           <div className={cn(open ? "block" : "hidden group-data-[collapsible=icon]:hidden")}>
-            <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="Toggle sidebar">
-              <GitFork className="h-5 w-5" />
-            </Button>
-          </div>
-           <div className={cn(!open ? "block" : "hidden", "group-data-[collapsible=icon]:block")}>
-             <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="Toggle sidebar">
-                <BarChartHorizontalBig className="h-5 w-5" />
-             </Button>
-           </div>
+           {/* Removed toggle buttons that were here */}
         </SidebarHeader>
         
         <SidebarContent className="flex-1">
