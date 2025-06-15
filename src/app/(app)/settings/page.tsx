@@ -1,9 +1,10 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Bell, Palette, ShieldLock, UserCircle, Save } from 'lucide-react';
+import { Bell, Palette, Shield, UserCircle, Save } from 'lucide-react';
 
 export default function SettingsPage() {
   return (
@@ -75,7 +76,7 @@ export default function SettingsPage() {
 
       <Card className="shadow-lg border-primary/10">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl"><ShieldLock className="h-5 w-5 text-primary"/> Seguridad y Privacidad</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-xl"><Shield className="h-5 w-5 text-primary"/> Seguridad y Privacidad</CardTitle>
           <CardDescription>Gestiona la seguridad de tu cuenta y tus datos.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
