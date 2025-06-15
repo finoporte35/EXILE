@@ -48,29 +48,29 @@ export default function DevelopmentRadarChart({
 
   if (data.length === 0 || data.every(d => d.value === 0 && d.fullMark === 0)) {
     return (
-      <Card className="flex flex-col items-center justify-center min-h-[300px] bg-white border-neutral-300 shadow-md">
+      <Card className="flex flex-col items-center justify-center min-h-[300px] bg-card border-neutral-800 shadow-md">
         <CardHeader>
-          <CardTitle className="text-neutral-800">{title}</CardTitle>
+          <CardTitle className="text-primary">{title}</CardTitle>
         </CardHeader>
         <CardContent className="text-center">
-          <TrendingUp className="h-16 w-16 text-neutral-500 mx-auto mb-4" />
-          <p className="text-neutral-600">Aún no hay datos para mostrar.</p>
-          <p className="text-sm text-neutral-500">Completa algunas acciones para ver tu progreso aquí.</p>
+          <TrendingUp className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <p className="text-foreground">Aún no hay datos para mostrar.</p>
+          <p className="text-sm text-muted-foreground">Completa algunas acciones para ver tu progreso aquí.</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-white border-neutral-300 shadow-md h-full">
+    <Card className="bg-card border-neutral-800 shadow-md h-full">
       <CardHeader className="items-start pb-0">
         {title && (
             <div className="flex items-center gap-2">
-            <ClipboardList className="h-5 w-5 text-neutral-700" />
-            <CardTitle className="text-xl font-semibold text-neutral-800">{title}</CardTitle>
+            <ClipboardList className="h-5 w-5 text-primary" />
+            <CardTitle className="text-xl font-semibold text-primary">{title}</CardTitle>
             </div>
         )}
-        {description && <CardDescription className="text-neutral-600">{description}</CardDescription>}
+        {description && <CardDescription className="text-muted-foreground">{description}</CardDescription>}
       </CardHeader>
       <CardContent className="pb-0">
         <ChartContainer
@@ -80,35 +80,35 @@ export default function DevelopmentRadarChart({
           <RadarChart data={data} margin={{ top: 20, right: 30, left: 30, bottom: 10 }}>
             <ChartTooltip
               cursor={false}
-              content={<ChartTooltipContent indicator="line" hideLabel={true} />}
+              content={<ChartTooltipContent indicator="line" hideLabel={false} />}
             />
-            <PolarGrid stroke="#d1d5db" strokeWidth={1}/>
+            <PolarGrid stroke="hsla(var(--muted-foreground), 0.5)" strokeWidth={1}/>
             <PolarAngleAxis
               dataKey="category"
-              tick={false}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
               tickLine={false}
             />
             <PolarRadiusAxis
                 angle={90} 
                 domain={[0, Math.max(...data.map(d => d.fullMark), 1)]} 
-                tickCount={6} 
-                tick={false}
-                axisLine={{ stroke: "#d1d5db", strokeWidth: 1 }}
+                tickCount={5} 
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                axisLine={{ stroke: "hsla(var(--muted-foreground), 0.5)", strokeWidth: 1 }}
                 tickLine={false} 
             />
             <Radar
               dataKey="value"
-              fill="hsla(var(--primary), 0.3)"
+              fill="hsla(var(--primary), 0.4)"
               stroke="hsl(var(--primary))" 
-              strokeWidth={1}
-              dot={false}
+              strokeWidth={2}
+              dot={{ r: 3, fill: "hsl(var(--primary))", strokeWidth: 0 }}
             />
           </RadarChart>
         </ChartContainer>
       </CardContent>
        {footerText && (
         <CardFooter className="flex-col gap-2 text-sm pt-2 pb-4">
-            <div className="text-xs text-neutral-500 text-center">
+            <div className="text-xs text-muted-foreground text-center">
             {footerText}
             </div>
         </CardFooter>
