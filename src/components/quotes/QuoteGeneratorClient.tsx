@@ -23,17 +23,15 @@ const staticQuotes: { text: string; author: string }[] = [
 
 export default function QuoteGeneratorClient() {
   const [displayedQuote, setDisplayedQuote] = useState<{ text: string; author: string } | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // Aunque no hay llamada a API, mantenemos para UX
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const fetchStaticQuote = () => {
     setIsLoading(true);
-    // Simula un pequeño retraso para la UX, opcional
-    setTimeout(() => {
-      const randomIndex = Math.floor(Math.random() * staticQuotes.length);
-      setDisplayedQuote(staticQuotes[randomIndex]);
-      setIsLoading(false);
-    }, 300); // Pequeño retraso simulado
+    // Carga la cita directamente sin simular retraso
+    const randomIndex = Math.floor(Math.random() * staticQuotes.length);
+    setDisplayedQuote(staticQuotes[randomIndex]);
+    setIsLoading(false);
   };
   
   useEffect(() => {
@@ -56,11 +54,11 @@ export default function QuoteGeneratorClient() {
       <CardContent className="space-y-4">
         <Button onClick={handleGenerateNewQuote} className="w-full bg-new-button-gradient text-primary-foreground hover:opacity-90 transition-opacity" disabled={isLoading}>
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-            {isLoading ? 'Generando...' : 'Nueva Cita'}
+            {isLoading ? 'Cargando...' : 'Nueva Cita'}
         </Button>
       </CardContent>
       
-      {isLoading && (
+      {isLoading && !displayedQuote && ( // Muestra loader solo si está cargando y no hay cita (carga inicial)
          <CardFooter className="flex flex-col items-center text-center border-t pt-6 min-h-[120px] justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary"/>
             <p className="mt-2 text-sm text-muted-foreground">Buscando inspiración...</p>
@@ -74,7 +72,7 @@ export default function QuoteGeneratorClient() {
         </CardFooter>
       )}
       
-      {!isLoading && !displayedQuote && ( // Estado inicial antes de la primera carga
+      {!isLoading && !displayedQuote && ( // Estado si algo fallara y no hubiera cita (aunque es improbable con lista estática)
          <CardFooter className="flex flex-col items-center text-center border-t pt-6 min-h-[120px] justify-center">
             <p className="text-muted-foreground">Haz clic en "Nueva Cita" para obtener inspiración.</p>
          </CardFooter>
