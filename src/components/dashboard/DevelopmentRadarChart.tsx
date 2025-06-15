@@ -83,15 +83,15 @@ export default function DevelopmentRadarChart({
               cursor={false}
               content={<ChartTooltipContent indicator="line" />}
             />
-            <PolarGrid stroke="hsla(var(--muted-foreground), 0.4)" />
-            <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={{ stroke: "hsla(var(--muted-foreground), 0.4)" }} />
+            <PolarGrid stroke="hsla(var(--foreground), 0.25)" />
+            <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={{ stroke: "hsla(var(--foreground), 0.25)" }} />
             <PolarRadiusAxis 
                 angle={90} 
                 domain={[0, Math.max(...data.map(d => d.fullMark), 1)]} 
                 tickCount={4} 
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} 
-                axisLine={{ stroke: "hsla(var(--muted-foreground), 0.4)" }}
-                tickLine={{ stroke: "hsla(var(--muted-foreground), 0.4)" }}
+                axisLine={{ stroke: "hsla(var(--foreground), 0.25)" }}
+                tickLine={{ stroke: "hsla(var(--foreground), 0.25)" }}
             />
             <Radar
               dataKey="value"

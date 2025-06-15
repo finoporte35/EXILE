@@ -66,7 +66,7 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
   return (
     <Card className="shadow-lg border-primary/10">
       <CardHeader className="items-center pb-0">
-        <CardTitle className="text-gradient-red">Radar de Desarrollo Personal</CardTitle>
+        <CardTitle className="text-primary text-xl font-semibold">Radar de Desarrollo Personal</CardTitle>
         <CardDescription>
           Visualización de tu progreso en diferentes áreas de desarrollo.
         </CardDescription>
@@ -81,15 +81,15 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
               cursor={false}
               content={<ChartTooltipContent indicator="line" />}
             />
-            <PolarGrid stroke="hsla(var(--muted-foreground), 0.4)" />
-            <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickLine={{ stroke: "hsla(var(--muted-foreground), 0.4)" }} />
+            <PolarGrid stroke="hsla(var(--foreground), 0.25)" />
+            <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickLine={{ stroke: "hsla(var(--foreground), 0.25)" }} />
             <PolarRadiusAxis 
                 angle={30} 
                 domain={[0, Math.max(...chartData.map(d => d.fullMark), 1)]} 
                 tickCount={4} 
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} 
-                axisLine={{ stroke: "hsla(var(--muted-foreground), 0.4)" }}
-                tickLine={{ stroke: "hsla(var(--muted-foreground), 0.4)" }} 
+                axisLine={{ stroke: "hsla(var(--foreground), 0.25)" }}
+                tickLine={{ stroke: "hsla(var(--foreground), 0.25)" }} 
             />
             <Radar
               dataKey="value"
