@@ -1,31 +1,74 @@
+
 import RankItem, { type Rank } from '@/components/ranks/RankItem';
-import { Award, ShieldCheck, Star, Gem, Crown, Zap, TrendingUp, Medal } from 'lucide-react';
+import { User, PersonStanding, Sparkles, Crown, Atom, HelpCircle } from 'lucide-react';
+
+// XP del usuario actual. Esto determinará qué rango es 'isCurrent' y 'isNext'.
+// Con 50 XP: NPC (0 XP) será actual, Hombre (100 XP) será el siguiente.
+const currentUserXP = 50; 
 
 const ranks: Rank[] = [
-  { name: "Neófito", xpRequired: 0, description: "El inicio de tu viaje. Cada leyenda comienza aquí.", icon: Award, percentage: 50, isCurrent: true },
-  { name: "Aprendiz", xpRequired: 1000, description: "Has demostrado dedicación. Sigue aprendiendo y creciendo.", icon: Star, percentage: 35, isNext: true },
-  { name: "Adepto", xpRequired: 5000, description: "Tus habilidades son notables. La maestría está a tu alcance.", icon: Gem, percentage: 20 },
-  { name: "Experto", xpRequired: 15000, description: "Dominas tus hábitos y buscas la excelencia continua.", icon: Medal, percentage: 10 },
-  { name: "Maestro", xpRequired: 50000, description: "Has alcanzado un alto nivel de desarrollo personal.", icon: Crown, percentage: 5 },
-  { name: "Leyenda", xpRequired: 100000, description: "Tu disciplina es una inspiración. Eres una leyenda en EXILE.", icon: Zap, percentage: 1 },
+  { 
+    name: "NPC", 
+    xpRequired: 0, 
+    description: "Iniciando el camino, el potencial es ilimitado.", 
+    icon: User, 
+    percentage: 60 
+  },
+  { 
+    name: "Hombre", 
+    xpRequired: 100, 
+    description: "Has trascendido la existencia básica. Sigue forjando tu voluntad.", 
+    icon: PersonStanding, 
+    percentage: 25 
+  },
+  { 
+    name: "SemiDios", 
+    xpRequired: 1000, 
+    description: "Un poder notable fluye en ti. Los mortales te admiran.", 
+    icon: Sparkles, 
+    percentage: 10 
+  },
+  { 
+    name: "Dios", 
+    xpRequired: 5000, 
+    description: "Has alcanzado la divinidad. Tu influencia es innegable.", 
+    icon: Crown, 
+    percentage: 4 
+  },
+  { 
+    name: "Un Ser", 
+    xpRequired: 20000, 
+    description: "Trasciendes la comprensión. Eres una fuerza de la naturaleza.", 
+    icon: Atom, 
+    percentage: 0.9 
+  },
+  { 
+    name: "?????" , 
+    xpRequired: 100000, 
+    description: "Un misterio insondable. Tu existencia es una leyenda susurrada.", 
+    icon: HelpCircle, 
+    percentage: 0.1 
+  },
 ];
 
-// TODO: Fetch user's current XP and determine current/next rank dynamically
-const currentUserXP = 0; // Example, fetch this from user data
 
-const ranksWithStatus = ranks.map((rank, index) => {
+const ranksWithStatus = ranks.map((rank, index, arr) => {
   let isCurrent = false;
   let isNext = false;
 
   if (currentUserXP >= rank.xpRequired) {
-    if (index === ranks.length - 1 || currentUserXP < ranks[index+1].xpRequired) {
+    // Es candidato a ser actual si el XP del usuario es mayor o igual al requerido
+    if (index === arr.length - 1 || currentUserXP < arr[index+1].xpRequired) {
+      // Es el último rango, o el XP del usuario es menor que el del siguiente rango
       isCurrent = true;
     }
   }
+  
   if (!isCurrent) {
-    // Find first rank that user hasn't achieved yet
-    const nextRankIndex = ranks.findIndex(r => currentUserXP < r.xpRequired);
-    if (nextRankIndex === index) {
+    // Si no es actual, podría ser el siguiente
+    // El primer rango cuyo XP requerido sea mayor que el del usuario es el "siguiente"
+    const nextRankCandidateIndex = arr.findIndex(r => currentUserXP < r.xpRequired);
+    if (nextRankCandidateIndex === index) {
       isNext = true;
     }
   }
@@ -57,3 +100,4 @@ export default function RanksPage() {
     </div>
   );
 }
+
