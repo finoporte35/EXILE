@@ -5,6 +5,7 @@ import type { Goal } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button"; // Added import
 import { Target, Scaling, ListChecks, Focus, CalendarClock, Star, Trash2, Info, AlertTriangle } from "lucide-react";
 import { useData } from '@/contexts/DataContext';
 import { useToast } from '@/hooks/use-toast';
