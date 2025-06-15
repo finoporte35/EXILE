@@ -22,7 +22,7 @@ export default function SignupForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -32,18 +32,17 @@ export default function SignupForm() {
       return;
     }
 
-    // Mock signup
-    setTimeout(() => {
-      // Mock referral code check (e.g., "EXILE2080")
-      if (referralCode === "EXILE2080" || referralCode === "") { // Allow empty for now
-        localStorage.setItem('isLoggedIn', 'true'); // Auto-login after signup
-        toast({ title: "Registro exitoso", description: "Bienvenido a EXILE. Tu aventura comienza ahora." });
-        router.push('/dashboard');
-      } else {
-        toast({ variant: "destructive", title: "Error de registro", description: "Código de referido inválido." });
-        setIsLoading(false);
-      }
-    }, 1500);
+    // Simulate an API call delay for a better UX in prototype
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Simplified mock signup: Always succeeds if passwords match.
+    // Referral code is ignored for this prototype version.
+    // In a real app, replace this with your actual authentication logic.
+    localStorage.setItem('isLoggedIn', 'true'); 
+    toast({ title: "Registro exitoso", description: "Bienvenido a EXILE. Tu aventura comienza ahora." });
+    router.push('/dashboard');
+    // No need to explicitly set setIsLoading(false) if navigating away,
+    // as the component will unmount.
   };
 
   return (

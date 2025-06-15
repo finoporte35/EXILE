@@ -7,19 +7,19 @@
     --background: 0 0% 0%; /* Pure Black */
     --foreground: 0 0% 98%; /* White/Light gray */
 
-    --card: 0 0% 5%; /* Darker card background */
+    --card: 0 0% 3%; /* Even Darker card background */
     --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 4%; /* Darker popover background */
+    --popover: 0 0% 2%; /* Even Darker popover background */
     --popover-foreground: 0 0% 98%;
 
     --primary: 0 84.2% 60.2%; /* Bright Red */
     --primary-foreground: 0 0% 100%; /* White */
 
-    --secondary: 0 0% 10%; /* Dark Gray - for black part of gradient */
+    --secondary: 0 0% 2%; /* Very Dark Gray / Almost Black - for gradient end */
     --secondary-foreground: 0 0% 100%; /* White */
 
-    --muted: 0 0% 8%; /* Darker muted background */
+    --muted: 0 0% 6%; /* Darker muted background */
     --muted-foreground: 0 0% 60%; /* Lighter muted text */
 
     --accent: 0 84.2% 60.2%; /* Bright Red, same as primary for accents */
@@ -28,8 +28,8 @@
     --destructive: 0 70% 50%; /* Darker, less saturated red for destructive actions */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 10%; /* Darker border */
-    --input: 0 0% 10%; /* Darker input background */
+    --border: 0 0% 8%; /* Darker border */
+    --input: 0 0% 8%; /* Darker input background */
     --ring: 0 84.2% 60.2%; /* Bright Red for focus rings */
     
     --radius: 0.5rem;
@@ -41,35 +41,36 @@
     --chart-5: 0 0% 30%; /* dark gray */
 
     /* Sidebar specific colors for dark theme */
-    --sidebar-background: 0 0% 3%; /* Very dark for sidebar */
+    --sidebar-background: 0 0% 2%; /* Very dark for sidebar */
     --sidebar-foreground: 0 0% 85%; 
     --sidebar-primary: 0 84.2% 60.2%; /* Red */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 12%; /* Darker accent for hover states */
+    --sidebar-accent: 0 0% 10%; /* Darker accent for hover states */
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 10%;
+    --sidebar-border: 0 0% 8%;
     --sidebar-ring: 0 84.2% 60.2%; /* Red */
   }
 
   .dark {
+    /* Ensure .dark variables match the :root for consistency in a dark-only theme */
     --background: 0 0% 0%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 5%;
+    --card: 0 0% 3%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 4%;
+    --popover: 0 0% 2%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 84.2% 60.2%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 10%; 
+    --secondary: 0 0% 2%; 
     --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 8%;
+    --muted: 0 0% 6%;
     --muted-foreground: 0 0% 60%;
     --accent: 0 84.2% 60.2%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 10%;
-    --input: 0 0% 10%;
+    --border: 0 0% 8%;
+    --input: 0 0% 8%;
     --ring: 0 84.2% 60.2%;
     
     --chart-1: 0 84.2% 60.2%;
@@ -78,13 +79,13 @@
     --chart-4: 0 0% 50%;
     --chart-5: 0 0% 30%;
 
-    --sidebar-background: 0 0% 3%;
+    --sidebar-background: 0 0% 2%;
     --sidebar-foreground: 0 0% 85%;
     --sidebar-primary: 0 84.2% 60.2%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent: 0 0% 10%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 10%;
+    --sidebar-border: 0 0% 8%;
     --sidebar-ring: 0 84.2% 60.2%;
   }
 }
