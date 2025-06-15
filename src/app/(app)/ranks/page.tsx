@@ -1,11 +1,9 @@
 
 import RankItem, { type Rank } from '@/components/ranks/RankItem';
-import { User, PersonStanding, Sparkles, Shield, Zap, Users, Brain, Crown, Atom } from 'lucide-react';
+import { User, PersonStanding, Sparkles, Shield, Zap, Users, Brain, Crown, Atom, HelpCircle } from 'lucide-react';
 
-// XP del usuario actual. Leidan Elias - Level 4 - Héroe, 83 points to level up.
-// Level 4 Héroe: 1,500 XP. Level 5 Superheroe: 5,000 XP.
-// XP to next level = 5000 - currentUserXP = 83 => currentUserXP = 5000 - 83 = 4917
-const currentUserXP = 4917; 
+// XP del usuario actual.
+const currentUserXP = 0; 
 
 const ranks: Rank[] = [
   { 

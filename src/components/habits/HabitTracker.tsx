@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -24,15 +25,19 @@ export interface Habit {
   category: string; // e.g., Salud Física, Desarrollo Mental, Productividad, etc.
 }
 
-const initialHabits: Habit[] = [
-  { id: '1', name: 'Meditación Matutina (10 min)', completed: false, xp: 10, streak: 3, category: 'Bienestar Emocional' },
-  { id: '2', name: 'Ejercicio Físico (30 min)', completed: false, xp: 20, streak: 5, category: 'Salud Física' },
-  { id: '3', name: 'Leer un capítulo de un libro', completed: false, xp: 15, streak: 2, category: 'Desarrollo Mental' },
-  { id: '4', name: 'Planificar el día', completed: false, xp: 5, streak: 10, category: 'Productividad' },
-  { id: '5', name: 'Beber 2L de agua', completed: true, xp: 5, streak: 1, category: 'Salud Física' },
-];
+const initialHabits: Habit[] = []; // No initial habits
 
 const categories = ["Todos", "Salud Física", "Desarrollo Mental", "Productividad", "Bienestar Emocional", "Relaciones Sociales", "Crecimiento Espiritual"];
+
+const categoryXpMap: Record<string, number> = {
+  'Salud Física': 20,
+  'Desarrollo Mental': 15,
+  'Productividad': 10,
+  'Bienestar Emocional': 15,
+  'Relaciones Sociales': 10,
+  'Crecimiento Espiritual': 20,
+};
+const defaultXpForNewHabit = 5; // Default XP if category not in map or for "Todos" (though "Todos" isn't selectable for new habit)
 
 export default function HabitTracker() {
   const [habits, setHabits] = useState<Habit[]>(initialHabits);
@@ -50,16 +55,19 @@ export default function HabitTracker() {
 
   const addHabit = () => {
     if (newHabitName.trim() === '') return;
+    const assignedXp = categoryXpMap[newHabitCategory] || defaultXpForNewHabit;
     const newHabit: Habit = {
       id: String(Date.now()),
       name: newHabitName,
       completed: false,
-      xp: 10, // Default XP
+      xp: assignedXp,
       streak: 0,
       category: newHabitCategory,
     };
     setHabits([newHabit, ...habits]);
     setNewHabitName('');
+    // Optionally reset newHabitCategory to default if desired:
+    // setNewHabitCategory(categories[1]); 
   };
 
   const totalXP = useMemo(() => habits.reduce((sum, habit) => sum + (habit.completed ? habit.xp : 0), 0), [habits]);
@@ -149,7 +157,7 @@ export default function HabitTracker() {
         </div>
       ) : (
         <p className="text-center text-muted-foreground py-8">
-          No hay hábitos en esta categoría. ¡Añade algunos para empezar!
+          No hay hábitos en esta categoría o aún no has añadido ninguno. ¡Añade algunos para empezar!
         </p>
       )}
       
