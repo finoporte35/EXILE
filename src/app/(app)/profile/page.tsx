@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ImageUp, TrendingUp, Zap, ShieldCheck, Target, BookOpen, Activity } from 'lucide-react';
+import { ImageUp, TrendingUp, Zap, ShieldCheck, Target, BookOpen, Activity, GitFork, Lightbulb } from 'lucide-react';
 
 const userProfile = {
   name: "Usuario Desconocido",
@@ -16,12 +16,14 @@ const userProfile = {
 };
 
 const stats = [
-  { name: "Motivación", value: 70, Icon: TrendingUp, indicatorClass: "bg-gradient-to-r from-red-500 via-red-600 to-red-700" },
-  { name: "Energía", value: 60, Icon: Zap, indicatorClass: "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600" },
-  { name: "Disciplina", value: 80, Icon: ShieldCheck, indicatorClass: "bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700" },
-  { name: "Enfoque", value: 75, Icon: Target, indicatorClass: "bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700" },
-  { name: "Conocimiento", value: 65, Icon: BookOpen, indicatorClass: "bg-gradient-to-r from-teal-500 via-teal-600 to-teal-700" },
-  { name: "Resiliencia", value: 85, Icon: Activity, indicatorClass: "bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700" },
+  { name: "Motivación", value: 75, Icon: TrendingUp, indicatorClass: "bg-gradient-to-r from-red-500 via-red-600 to-red-700" },
+  { name: "Energía", value: 65, Icon: Zap, indicatorClass: "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600" },
+  { name: "Disciplina", value: 85, Icon: ShieldCheck, indicatorClass: "bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700" },
+  { name: "Enfoque", value: 50, Icon: Target, indicatorClass: "bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700" },
+  { name: "Resiliencia", value: 70, Icon: Activity, indicatorClass: "bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700" },
+  { name: "Conocimiento", value: 60, Icon: BookOpen, indicatorClass: "bg-gradient-to-r from-teal-500 via-teal-600 to-teal-700" },
+  { name: "Adaptabilidad", value: 80, Icon: GitFork, indicatorClass: "bg-gradient-to-r from-green-400 via-green-500 to-green-600" },
+  { name: "Estrategia", value: 40, Icon: Lightbulb, indicatorClass: "bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600" },
 ];
 
 
@@ -62,7 +64,7 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-x-4 gap-y-6 mb-8">
+          <div className="grid grid-cols-4 gap-x-3 gap-y-6 mb-8"> {/* Changed to grid-cols-4 and adjusted gap-x */}
             {stats.map((stat) => (
               <StatItem key={stat.name} name={stat.name} value={stat.value} Icon={stat.Icon} indicatorClass={stat.indicatorClass} />
             ))}
