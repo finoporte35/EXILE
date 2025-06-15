@@ -1,9 +1,12 @@
 
+"use client";
+
+import { useState, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ImageUp, TrendingUp, Zap, ShieldCheck } from 'lucide-react';
+import { ImageUp, TrendingUp, Zap, ShieldCheck, GitFork, Lightbulb } from 'lucide-react';
 
 const userProfile = {
   name: "Usuario Desconocido",
@@ -15,7 +18,7 @@ const userProfile = {
   rankProgressText: "100 XP para Hombre",
 };
 
-// Reduced to essential stats
+// Reduced to essential stats for a cleaner look
 const stats = [
   { name: "Motivación", value: 75, Icon: TrendingUp, indicatorClass: "bg-primary" },
   { name: "Energía", value: 65, Icon: Zap, indicatorClass: "bg-[hsl(var(--chart-2))]" },
@@ -40,6 +43,24 @@ const StatItem: React.FC<StatItemProps> = ({ name, value, Icon, indicatorClass }
 
 
 export default function ProfilePage() {
+  const [avatarSrc, setAvatarSrc] = useState("https://placehold.co/100x100.png");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarSrc(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <div className="space-y-8 flex flex-col items-center min-h-full py-8 px-4">
       <h1 className="text-4xl font-headline font-bold text-gradient-red text-center">Perfil</h1>
@@ -48,7 +69,7 @@ export default function ProfilePage() {
         <CardContent className="p-0">
           <div className="flex flex-col items-center mb-6">
             <Avatar className="h-24 w-24 mb-3 border-2 border-primary">
-              <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="user avatar abstract" />
+              <AvatarImage src={avatarSrc} alt="User Avatar" data-ai-hint="user avatar abstract" />
               <AvatarFallback className="text-4xl bg-primary text-primary-foreground">{userProfile.avatarFallback}</AvatarFallback>
             </Avatar>
             <h2 className="text-xl font-semibold text-foreground">{userProfile.name}</h2>
@@ -83,8 +104,19 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
+      <input 
+        type="file"
+        accept="image/*"
+        onChange={handleAvatarChange}
+        ref={fileInputRef}
+        style={{ display: 'none' }} 
+        aria-hidden="true"
+      />
       <div className="text-center mt-6">
-        <Button className="bg-new-button-gradient text-primary-foreground hover:opacity-90">
+        <Button 
+          onClick={handleButtonClick}
+          className="bg-new-button-gradient text-primary-foreground hover:opacity-90"
+        >
           <ImageUp className="mr-2 h-4 w-4" /> Cambiar Avatar
         </Button>
       </div>
