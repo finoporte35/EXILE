@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ImageUp, TrendingUp, Activity, User, Sparkles, Minus, ChevronsUp, Brain, Zap, ShieldCheck, Target, BookOpen } from 'lucide-react'; // Added missing icons for consistency with development page
+import { ImageUp, TrendingUp, Activity, User, Sparkles, Minus, ChevronsUp, Brain, Zap, ShieldCheck, Target, BookOpen, Droplets, Bone, Smile } from 'lucide-react';
 
 const userProfile = {
   name: "Usuario Desconocido",
@@ -15,15 +15,13 @@ const userProfile = {
   rankProgressText: "100 XP para Hombre",
 };
 
-// Stats structure matches the Development Page attributes for potential future linking
-// Using icons that make sense for these specific profile stats.
 const stats = [
-  { name: "Motivación", value: 0, Icon: TrendingUp, indicatorClass: "bg-gradient-to-r from-red-500 to-red-700" },
-  { name: "Energía", value: 0, Icon: Zap, indicatorClass: "bg-gradient-to-r from-yellow-400 to-yellow-600" },
-  { name: "Disciplina", value: 0, Icon: ShieldCheck, indicatorClass: "bg-gradient-to-r from-blue-500 to-blue-700" },
-  { name: "Enfoque", value: 0, Icon: Target, indicatorClass: "bg-gradient-to-r from-purple-500 to-purple-700" },
-  { name: "Conocimiento", value: 0, Icon: BookOpen, indicatorClass: "bg-gradient-to-r from-green-500 to-green-700" },
-  { name: "Resiliencia", value: 0, Icon: Activity, indicatorClass: "bg-gradient-to-r from-indigo-500 to-indigo-700" },
+  { name: "Overall", value: 38, Icon: TrendingUp, indicatorClass: "bg-gradient-to-r from-red-600 to-red-800" },
+  { name: "Potential", value: 91, Icon: Sparkles, indicatorClass: "bg-gradient-to-r from-green-400 to-green-600" },
+  { name: "Masculinity", value: 42, Icon: User, indicatorClass: "bg-gradient-to-r from-red-600 to-red-800" },
+  { name: "Skin quality", value: 57, Icon: Droplets, indicatorClass: "bg-gradient-to-r from-orange-400 to-orange-600" },
+  { name: "Jawline", value: 31, Icon: Bone, indicatorClass: "bg-gradient-to-r from-red-600 to-red-800" },
+  { name: "Cheekbones", value: 33, Icon: Smile, indicatorClass: "bg-gradient-to-r from-red-600 to-red-800" },
 ];
 
 
@@ -38,7 +36,7 @@ const StatItem: React.FC<StatItemProps> = ({ name, value, Icon, indicatorClass }
   <div className="text-center">
     <p className="text-xs text-muted-foreground mb-1">{name}</p>
     <p className="text-4xl font-bold text-foreground mb-1">{value}</p>
-    <Progress value={value} className="h-1 bg-muted" indicatorClassName={indicatorClass} />
+    <Progress value={value} className="h-2 bg-muted" indicatorClassName={indicatorClass} />
   </div>
 );
 
@@ -87,7 +85,7 @@ export default function ProfilePage() {
       </Card>
 
       <div className="text-center mt-6">
-        <Button className="bg-main-gradient text-primary-foreground hover:opacity-90">
+        <Button className="bg-new-button-gradient text-primary-foreground hover:opacity-90">
           <ImageUp className="mr-2 h-4 w-4" /> Cambiar Avatar
         </Button>
       </div>

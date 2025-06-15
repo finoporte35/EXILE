@@ -102,7 +102,7 @@ export default function HabitTracker() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={addHabit} className="bg-main-gradient text-primary-foreground hover:opacity-90 whitespace-nowrap">
+          <Button onClick={addHabit} className="bg-new-button-gradient text-primary-foreground hover:opacity-90 whitespace-nowrap">
             <PlusCircle className="mr-2 h-4 w-4" /> Añadir
           </Button>
         </div>

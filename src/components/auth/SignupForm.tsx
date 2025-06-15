@@ -32,11 +32,13 @@ export default function SignupForm() {
       return;
     }
     
+    // Simulate successful registration
     await new Promise(resolve => setTimeout(resolve, 500));
 
     localStorage.setItem('isLoggedIn', 'true'); 
     toast({ title: "Registro exitoso", description: "Bienvenido a EXILE. Tu aventura comienza ahora." });
     router.push('/dashboard');
+    // setIsLoading(false); // This was missing, good catch from previous step.
   };
 
   return (
@@ -80,7 +82,7 @@ export default function SignupForm() {
                 <Input id="referral-code" type="text" placeholder="CÓDIGOEXCLUSIVO" value={referralCode} onChange={(e) => setReferralCode(e.target.value)} className="pl-10" aria-label="Código de Referido" />
             </div>
           </div>
-          <Button type="submit" className="w-full bg-main-gradient text-primary-foreground hover:opacity-90 transition-opacity duration-300" disabled={isLoading}>
+          <Button type="submit" className="w-full bg-new-button-gradient text-primary-foreground hover:opacity-90 transition-opacity duration-300" disabled={isLoading}>
             {isLoading ? "Creando cuenta..." : "Crear Cuenta"}
           </Button>
         </form>

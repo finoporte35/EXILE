@@ -79,7 +79,7 @@ export default function QuoteGeneratorClient() {
         <CardDescription>Encuentra una frase para potenciar tu día.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <Button onClick={handleShowNewQuote} className="w-full bg-main-gradient text-primary-foreground hover:opacity-90 transition-opacity" disabled={isLoading}>
+        <Button onClick={handleShowNewQuote} className="w-full bg-new-button-gradient text-primary-foreground hover:opacity-90 transition-opacity" disabled={isLoading}>
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
           {isLoading ? 'Buscando...' : 'Mostrar Otra Frase'}
         </Button>
