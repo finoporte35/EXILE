@@ -13,7 +13,7 @@ interface Quote {
   author: string;
 }
 
-// New list of quotes provided by the user
+// Updated list of quotes including the new ones
 const staticQuotes: Quote[] = [
   { id: 'q1', text: "Enamórate de Jesús. Él nunca romperá tu corazón.", author: "Desconocido" },
   { id: 'q2', text: "El dolor es temporal, pero la gloria es eterna.", author: "Desconocido"},
@@ -35,6 +35,8 @@ const staticQuotes: Quote[] = [
   { id: 'q18', text: "Fallas, fallas, fallas hasta que triunfas...", author: "Desconocido"},
   { id: 'q19', text: "Trabaja en silencio y deja que tu éxito haga el ruido.", author: "Desconocido"},
   { id: 'q20', text: "La vida cambia por completo cuando entiendes que tu futuro depende de las decisiones y sacrificios que tomes ahora.", author: "Desconocido"},
+  { id: 'q21', text: "Sé que me miran y se preguntan cómo fue. Tal vez sea porque subí de nivel. Porque ahora el barco ya lo nivelé", author: "Desconocido"},
+  { id: 'q22', text: "Todos quieren ser parte del éxito pero nadie del proceso", author: "Desconocido"},
 ];
 
 const LOCAL_STORAGE_KEY_UNLOCKED_COUNT = 'exileUnlockedQuoteCount';
@@ -68,7 +70,7 @@ export default function QuoteGeneratorClient() {
     let newUnlockedCount = storedUnlocked;
     let justUnlocked = false;
 
-    if (lastVisitDay !== today) { // Only unlock if it's a new day or first visit
+    if (lastVisitDay !== today) { 
       if (staticQuotes.length > 0 && storedUnlocked < staticQuotes.length) {
         newUnlockedCount = storedUnlocked + 1;
         justUnlocked = true;
@@ -88,11 +90,11 @@ export default function QuoteGeneratorClient() {
     setShowNewUnlockMessage(justUnlocked);
 
     if (newUnlockedCount > 0) {
-      setCurrentIndex(newUnlockedCount - 1); // Display the latest unlocked quote
+      setCurrentIndex(newUnlockedCount - 1); 
     } else {
       setCurrentIndex(0); 
     }
-    setAnimationKey(prev => prev + 1); // Trigger initial animation
+    setAnimationKey(prev => prev + 1); 
     setIsLoading(false);
   }, []);
 
