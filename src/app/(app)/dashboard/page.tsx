@@ -114,7 +114,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6"> {/* Adjusted grid to take full width if only one item */}
         <Card className="bg-card border-neutral-800 shadow-md">
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -131,33 +131,6 @@ export default function DashboardPage() {
                 </Link>
               </Button>
             ))}
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-neutral-800 shadow-md">
-          <CardHeader>
-             <div className="flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-primary" />
-              <CardTitle className="text-xl font-semibold text-primary">Enlace Motivacional</CardTitle>
-            </div>
-            <CardDescription>Accede a tu dosis diaria de inspiración.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/quotes">
-              <div className="relative aspect-video w-full overflow-hidden rounded-lg group cursor-pointer">
-                <Image 
-                  src="https://placehold.co/600x338.png" 
-                  alt="Enlace Motivacional" 
-                  fill
-                  style={{objectFit: "cover"}}
-                  data-ai-hint="dark inspirational"
-                  className="transition-transform duration-300 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-4">
-                  <p className="text-lg font-semibold text-center text-white">"La disciplina te lleva donde la motivación no puede."</p>
-                </div>
-              </div>
-            </Link>
           </CardContent>
         </Card>
       </div>
