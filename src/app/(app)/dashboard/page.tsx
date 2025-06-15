@@ -1,5 +1,6 @@
 
 "use client";
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -74,9 +75,17 @@ export default function DashboardPage() {
     fullMark: 100,
   }));
 
-  const motivacionAttr = attributes.find(attr => attr.name.toLowerCase() === "motivación")?.value || 0;
-  const energiaAttr = attributes.find(attr => attr.name.toLowerCase() === "energía")?.value || 0;
-  const disciplinaAttr = attributes.find(attr => attr.name.toLowerCase() === "disciplina")?.value || 0;
+  const attributeValues = useMemo(() => {
+    const values: Record<string, number> = {};
+    attributes.forEach(attr => {
+      values[attr.name.toLowerCase()] = attr.value;
+    });
+    return values;
+  }, [attributes]);
+
+  const motivacionAttr = attributeValues["motivación"] || 0;
+  const energiaAttr = attributeValues["energía"] || 0;
+  const disciplinaAttr = attributeValues["disciplina"] || 0;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 bg-background text-foreground min-h-full">
