@@ -16,21 +16,21 @@ const userProfile = {
 };
 
 const stats = [
-  { name: "Motivación", value: 75, Icon: TrendingUp, indicatorClass: "bg-gradient-to-r from-red-500 via-red-600 to-red-700" },
-  { name: "Energía", value: 65, Icon: Zap, indicatorClass: "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600" },
-  { name: "Disciplina", value: 85, Icon: ShieldCheck, indicatorClass: "bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700" },
-  { name: "Enfoque", value: 50, Icon: Target, indicatorClass: "bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700" },
-  { name: "Resiliencia", value: 70, Icon: Activity, indicatorClass: "bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700" },
-  { name: "Conocimiento", value: 60, Icon: BookOpen, indicatorClass: "bg-gradient-to-r from-teal-500 via-teal-600 to-teal-700" },
-  { name: "Adaptabilidad", value: 80, Icon: GitFork, indicatorClass: "bg-gradient-to-r from-green-400 via-green-500 to-green-600" },
-  { name: "Estrategia", value: 40, Icon: Lightbulb, indicatorClass: "bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600" },
+  { name: "Motivación", value: 75, Icon: TrendingUp, indicatorClass: "bg-primary" },
+  { name: "Energía", value: 65, Icon: Zap, indicatorClass: "bg-primary" },
+  { name: "Disciplina", value: 85, Icon: ShieldCheck, indicatorClass: "bg-primary" },
+  { name: "Enfoque", value: 50, Icon: Target, indicatorClass: "bg-primary" },
+  { name: "Resiliencia", value: 70, Icon: Activity, indicatorClass: "bg-primary" },
+  { name: "Conocimiento", value: 60, Icon: BookOpen, indicatorClass: "bg-primary" },
+  { name: "Adaptabilidad", value: 80, Icon: GitFork, indicatorClass: "bg-primary" },
+  { name: "Estrategia", value: 40, Icon: Lightbulb, indicatorClass: "bg-primary" },
 ];
 
 
 interface StatItemProps {
   name: string;
   value: number;
-  Icon: React.ElementType;
+  Icon: React.ElementType; // Icon is in props but not rendered in this specific StatItem
   indicatorClass: string;
 }
 
@@ -48,7 +48,7 @@ export default function ProfilePage() {
     <div className="space-y-8 flex flex-col items-center min-h-full py-8 px-4">
       <h1 className="text-4xl font-headline font-bold text-gradient-red text-center">Perfil</h1>
 
-      <Card className="w-full max-w-md bg-card shadow-xl p-6 sm:p-8 relative border-neutral-800">
+      <Card className="w-full max-w-md bg-card shadow-lg p-6 sm:p-8 relative border-neutral-800">
         <CardContent className="p-0">
           <div className="flex flex-col items-center mb-6">
             <Avatar className="h-24 w-24 mb-3 border-2 border-primary">
@@ -64,7 +64,7 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <div className="grid grid-cols-4 gap-x-3 gap-y-6 mb-8"> {/* Changed to grid-cols-4 and adjusted gap-x */}
+          <div className="grid grid-cols-4 gap-x-3 gap-y-6 mb-8">
             {stats.map((stat) => (
               <StatItem key={stat.name} name={stat.name} value={stat.value} Icon={stat.Icon} indicatorClass={stat.indicatorClass} />
             ))}
