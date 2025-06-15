@@ -1,54 +1,76 @@
 
 import RankItem, { type Rank } from '@/components/ranks/RankItem';
-import { User, PersonStanding, Sparkles, Crown, Atom, HelpCircle } from 'lucide-react';
+import { User, PersonStanding, Sparkles, Shield, Zap, Users, Brain, Crown, Atom } from 'lucide-react';
 
-// XP del usuario actual. Esto determinará qué rango es 'isCurrent' y 'isNext'.
-// Con 50 XP: NPC (0 XP) será actual, Hombre (100 XP) será el siguiente.
-const currentUserXP = 50; 
+// XP del usuario actual. Leidan Elias - Level 4 - Héroe, 83 points to level up.
+// Level 4 Héroe: 1,500 XP. Level 5 Superheroe: 5,000 XP.
+// XP to next level = 5000 - currentUserXP = 83 => currentUserXP = 5000 - 83 = 4917
+const currentUserXP = 4917; 
 
 const ranks: Rank[] = [
   { 
-    name: "NPC", 
+    name: "Level 1 - NPC", 
     xpRequired: 0, 
-    description: "Iniciando el camino, el potencial es ilimitado.", 
+    description: "El inicio de tu jornada.", 
     icon: User, 
-    percentage: 60 
+    percentage: 86 
   },
   { 
-    name: "Hombre", 
+    name: "Level 2 - Hombre", 
     xpRequired: 100, 
-    description: "Has trascendido la existencia básica. Sigue forjando tu voluntad.", 
+    description: "Desbloquea Chat con miembros.", 
     icon: PersonStanding, 
-    percentage: 25 
+    percentage: 6 
   },
   { 
-    name: "SemiDios", 
-    xpRequired: 1000, 
-    description: "Un poder notable fluye en ti. Los mortales te admiran.", 
+    name: "Level 3 - Hombre de alto valor", 
+    xpRequired: 500, 
+    description: "Demuestras valor y potencial.", 
     icon: Sparkles, 
-    percentage: 10 
+    percentage: 3 
   },
   { 
-    name: "Dios", 
+    name: "Level 4 - Héroe", 
+    xpRequired: 1500, 
+    description: "Tus hazañas comienzan a ser reconocidas.", 
+    icon: Shield, 
+    percentage: 1 
+  },
+  { 
+    name: "Level 5 - Superheroe", 
     xpRequired: 5000, 
-    description: "Has alcanzado la divinidad. Tu influencia es innegable.", 
-    icon: Crown, 
-    percentage: 4 
+    description: "Un poder extraordinario reside en ti.", 
+    icon: Zap, 
+    percentage: 1 
   },
   { 
-    name: "Un Ser", 
-    xpRequired: 20000, 
-    description: "Trasciendes la comprensión. Eres una fuerza de la naturaleza.", 
-    icon: Atom, 
-    percentage: 0.9 
+    name: "Level 6 - Lider", 
+    xpRequired: 15000, 
+    description: "Guías a otros con tu ejemplo.", 
+    icon: Users, 
+    percentage: 1 
   },
-  { 
-    name: "?????" , 
-    xpRequired: 100000, 
-    description: "Un misterio insondable. Tu existencia es una leyenda susurrada.", 
-    icon: HelpCircle, 
-    percentage: 0.1 
+  {
+    name: "Level 7 - Líder experto",
+    xpRequired: 30000,
+    description: "Tu sabiduría y liderazgo son incomparables.",
+    icon: Brain,
+    percentage: 1
   },
+  {
+    name: "Level 8 - Rey",
+    xpRequired: 60000,
+    description: "Gobiernas tu dominio con autoridad.",
+    icon: Crown,
+    percentage: 1
+  },
+  {
+    name: "Level 9 - Dios Griego",
+    xpRequired: 100000,
+    description: "Has trascendido a un plano divino.",
+    icon: Atom,
+    percentage: 0
+  }
 ];
 
 
@@ -57,16 +79,12 @@ const ranksWithStatus = ranks.map((rank, index, arr) => {
   let isNext = false;
 
   if (currentUserXP >= rank.xpRequired) {
-    // Es candidato a ser actual si el XP del usuario es mayor o igual al requerido
     if (index === arr.length - 1 || currentUserXP < arr[index+1].xpRequired) {
-      // Es el último rango, o el XP del usuario es menor que el del siguiente rango
       isCurrent = true;
     }
   }
   
   if (!isCurrent) {
-    // Si no es actual, podría ser el siguiente
-    // El primer rango cuyo XP requerido sea mayor que el del usuario es el "siguiente"
     const nextRankCandidateIndex = arr.findIndex(r => currentUserXP < r.xpRequired);
     if (nextRankCandidateIndex === index) {
       isNext = true;
@@ -100,4 +118,3 @@ export default function RanksPage() {
     </div>
   );
 }
-
