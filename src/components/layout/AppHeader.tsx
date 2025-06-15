@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -15,16 +16,46 @@ import { LogOut, User, Settings, SidebarOpenIcon } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar'; 
 import Logo from '@/components/shared/Logo';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react'; // Added useEffect, useState
+import { useData } from '@/contexts/DataContext'; // Added useData
 
+const PLACEHOLDER_AVATAR_PREFIX = 'https://placehold.co/';
 
 export function AppHeader() {
   const { toggleSidebar, isMobile } = useSidebar();
   const router = useRouter();
+  const [headerAvatarUrl, setHeaderAvatarUrl] = useState<string | null>(null);
+  const { userName, isLoading: isUserDataLoading } = useData();
+
+  useEffect(() => {
+    const updateAvatar = () => {
+      const storedAvatar = localStorage.getItem('userAvatar');
+      if (storedAvatar && !storedAvatar.startsWith(PLACEHOLDER_AVATAR_PREFIX)) {
+        setHeaderAvatarUrl(storedAvatar);
+      } else {
+        setHeaderAvatarUrl(null);
+      }
+    };
+    updateAvatar();
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'userAvatar') {
+        updateAvatar();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('userAvatar'); // Clear avatar on logout
     router.push('/login');
   };
+
+  const headerUserInitial = isUserDataLoading ? 'U' : (userName ? userName.charAt(0).toUpperCase() : 'U');
   
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-md sm:px-6">
@@ -39,8 +70,8 @@ export function AppHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar className="h-8 w-8">
-                <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="user avatar" />
-                <AvatarFallback>U</AvatarFallback>
+                <AvatarImage src={headerAvatarUrl || undefined} alt="User Avatar" data-ai-hint="user avatar" />
+                <AvatarFallback>{headerUserInitial}</AvatarFallback>
               </Avatar>
               <span className="sr-only">Toggle user menu</span>
             </Button>

@@ -11,10 +11,13 @@ import Logo from '@/components/shared/Logo';
 import { useToast } from '@/hooks/use-toast';
 import { DEFAULT_USERNAME } from '@/lib/app-config';
 
+const PLACEHOLDER_AVATAR_PREFIX = 'https://placehold.co/';
+
 export default function AvatarSelectionForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
+  const [isAvatarSetByUser, setIsAvatarSetByUser] = useState(false);
   const [username, setUsername] = useState<string>(DEFAULT_USERNAME);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,10 +28,12 @@ export default function AvatarSelectionForm() {
       setUsername(storedUsername);
     }
     const storedAvatar = localStorage.getItem('userAvatar');
-    if (storedAvatar) {
-        setAvatarSrc(storedAvatar);
+    if (storedAvatar && !storedAvatar.startsWith(PLACEHOLDER_AVATAR_PREFIX)) {
+      setAvatarSrc(storedAvatar);
+      setIsAvatarSetByUser(true);
     } else {
-        setAvatarSrc(`https://placehold.co/128x128.png`); 
+      setAvatarSrc(null); // Ensure fallback is shown if only placeholder or no avatar
+      setIsAvatarSetByUser(false);
     }
   }, []);
 
@@ -40,6 +45,7 @@ export default function AvatarSelectionForm() {
         const result = reader.result as string;
         setAvatarSrc(result);
         localStorage.setItem('userAvatar', result);
+        setIsAvatarSetByUser(true);
       };
       reader.readAsDataURL(file);
     }
@@ -50,6 +56,15 @@ export default function AvatarSelectionForm() {
   };
 
   const handleContinue = async () => {
+    if (!isAvatarSetByUser) {
+      toast({
+        variant: "destructive",
+        title: "Avatar Requerido",
+        description: "Por favor, sube una imagen para tu avatar antes de continuar.",
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     setTimeout(() => {
@@ -57,7 +72,7 @@ export default function AvatarSelectionForm() {
       toast({ title: "¡Perfil Completo!", description: `Bienvenido a EXILE, ${username}. ¡Tu aventura comienza ahora!` });
       router.push('/dashboard');
       setIsLoading(false); 
-    }, 500); // Simular un pequeño retraso
+    }, 500); 
   };
 
   return (
@@ -88,7 +103,11 @@ export default function AvatarSelectionForm() {
           <ImageUp className="mr-2 h-4 w-4" /> Subir Imagen
         </Button>
 
-        <Button onClick={handleContinue} className="w-full max-w-xs bg-new-button-gradient text-primary-foreground hover:opacity-90" disabled={isLoading}>
+        <Button 
+          onClick={handleContinue} 
+          className="w-full max-w-xs bg-new-button-gradient text-primary-foreground hover:opacity-90" 
+          disabled={isLoading || !isAvatarSetByUser}
+        >
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
           {isLoading ? "Finalizando..." : "Continuar a EXILE"}
         </Button>

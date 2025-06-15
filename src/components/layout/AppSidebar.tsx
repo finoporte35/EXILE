@@ -12,8 +12,9 @@ import {
   Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, useSidebar, SidebarSeparator, SidebarGroup, SidebarGroupLabel
 } from "@/components/ui/sidebar";
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useData } from '@/contexts/DataContext'; // Import useData
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'; // Added AvatarImage
+import { useData } from '@/contexts/DataContext'; 
+import { useEffect, useState } from 'react'; // Added useEffect, useState
 
 const menuPrincipalItems = [
   { href: '/dashboard', label: 'Panel', icon: LayoutGrid },
@@ -31,18 +32,46 @@ const sistemaItems = [
   { href: '/support', label: 'Ayuda y Soporte', icon: HelpCircle }, 
 ];
 
+const PLACEHOLDER_AVATAR_PREFIX = 'https://placehold.co/';
+
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { open, isMobile, setOpenMobile } = useSidebar();
-  const { userName, currentRank, isLoading } = useData(); // Get data from context
+  const { userName, currentRank, isLoading } = useData(); 
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const updateAvatar = () => {
+      const storedAvatar = localStorage.getItem('userAvatar');
+      if (storedAvatar && !storedAvatar.startsWith(PLACEHOLDER_AVATAR_PREFIX)) {
+        setAvatarUrl(storedAvatar);
+      } else {
+        setAvatarUrl(null); // Use fallback if placeholder or no avatar
+      }
+    };
+
+    updateAvatar(); // Initial load
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'userAvatar') {
+        updateAvatar();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('username');
     localStorage.removeItem('userXP');
     localStorage.removeItem('habits');
-    // Potentially clear other localStorage items if DataContext saves more
+    localStorage.removeItem('userAvatar'); // Clear avatar on logout
+    
     if (isMobile) {
       setOpenMobile(false); 
     }
@@ -109,8 +138,9 @@ export function AppSidebar() {
         <SidebarFooter className="p-3 border-t border-sidebar-border mt-auto">
           <div className={cn("flex items-center gap-3", open ? "flex-row" : "flex-col group-data-[collapsible=icon]:flex-col")}>
             <Avatar className={cn("h-10 w-10 bg-primary flex-shrink-0", open ? "" : "group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8")}>
+              <AvatarImage src={avatarUrl || undefined} alt={sidebarUserName} data-ai-hint="user avatar" />
               <AvatarFallback className="text-primary-foreground text-lg">
-                {sidebarUserName.charAt(0).toUpperCase()}
+                {sidebarUserName ? sidebarUserName.charAt(0).toUpperCase() : "U"}
               </AvatarFallback>
             </Avatar>
             <div className={cn("flex-grow overflow-hidden", open ? "block" : "hidden group-data-[collapsible=icon]:hidden")}>
