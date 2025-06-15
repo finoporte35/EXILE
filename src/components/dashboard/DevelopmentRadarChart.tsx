@@ -84,7 +84,7 @@ export default function DevelopmentRadarChart({
               cursor={false}
               content={<ChartTooltipContent indicator="line" />}
             />
-            <PolarGrid className="fill-muted-foreground/10 stroke-border/50" />
+            <PolarGrid className="fill-card stroke-muted-foreground/30" />
             <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
             <PolarRadiusAxis 
                 angle={90} // Start axis at top for typical radar
@@ -123,3 +123,4 @@ export default function DevelopmentRadarChart({
 // Assuming lucide-react is globally available or imported in ChartContainer related files.
 // If not, add:
 import { ClipboardList } from "lucide-react";
+

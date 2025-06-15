@@ -1,3 +1,4 @@
+
 "use client"
 
 import { TrendingUp } from "lucide-react"
@@ -83,8 +84,8 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
               cursor={false}
               content={<ChartTooltipContent indicator="line" />}
             />
-            <PolarGrid className="fill-muted-foreground/20 stroke-border" />
-            <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }} />
+            <PolarGrid className="fill-card stroke-muted-foreground/30" />
+            <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
             <PolarRadiusAxis angle={30} domain={[0, Math.max(...chartData.map(d => d.fullMark), 1)]} tickCount={4} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
             <Radar
               dataKey="value"
@@ -109,3 +110,4 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
     </Card>
   )
 }
+
