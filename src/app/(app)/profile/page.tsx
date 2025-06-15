@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ImageUp, TrendingUp, Zap, ShieldCheck, Target, BookOpen, Activity, GitFork, Lightbulb } from 'lucide-react';
+import { ImageUp, TrendingUp, Zap, ShieldCheck } from 'lucide-react';
 
 const userProfile = {
   name: "Usuario Desconocido",
@@ -15,22 +15,18 @@ const userProfile = {
   rankProgressText: "100 XP para Hombre",
 };
 
+// Reduced to essential stats
 const stats = [
   { name: "Motivación", value: 75, Icon: TrendingUp, indicatorClass: "bg-primary" },
-  { name: "Energía", value: 65, Icon: Zap, indicatorClass: "bg-primary" },
-  { name: "Disciplina", value: 85, Icon: ShieldCheck, indicatorClass: "bg-primary" },
-  { name: "Enfoque", value: 50, Icon: Target, indicatorClass: "bg-primary" },
-  { name: "Resiliencia", value: 70, Icon: Activity, indicatorClass: "bg-primary" },
-  { name: "Conocimiento", value: 60, Icon: BookOpen, indicatorClass: "bg-primary" },
-  { name: "Adaptabilidad", value: 80, Icon: GitFork, indicatorClass: "bg-primary" },
-  { name: "Estrategia", value: 40, Icon: Lightbulb, indicatorClass: "bg-primary" },
+  { name: "Energía", value: 65, Icon: Zap, indicatorClass: "bg-[hsl(var(--chart-2))]" },
+  { name: "Disciplina", value: 85, Icon: ShieldCheck, indicatorClass: "bg-destructive" },
 ];
 
 
 interface StatItemProps {
   name: string;
   value: number;
-  Icon: React.ElementType; // Icon is in props but not rendered in this specific StatItem
+  Icon: React.ElementType; 
   indicatorClass: string;
 }
 
@@ -64,7 +60,7 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <div className="grid grid-cols-4 gap-x-3 gap-y-6 mb-8">
+          <div className="grid grid-cols-3 gap-x-4 gap-y-6 mb-8">
             {stats.map((stat) => (
               <StatItem key={stat.name} name={stat.name} value={stat.value} Icon={stat.Icon} indicatorClass={stat.indicatorClass} />
             ))}
