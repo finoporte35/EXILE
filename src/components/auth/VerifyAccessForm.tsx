@@ -35,7 +35,7 @@ export default function VerifyAccessForm() {
   };
 
   return (
-    <Card className="w-full max-w-md shadow-2xl border-primary/30 bg-card">
+    <Card className="w-full max-w-md border-primary/30 bg-card shadow-neon-red-card">
       <CardHeader className="text-center items-center pt-8">
         <div className="p-3 bg-primary/10 rounded-full mb-4 inline-block border border-primary/30">
           <KeyRound className="h-10 w-10 text-primary" />
