@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ImageUp, TrendingUp, Activity, User, Sparkles, Minus, ChevronsUp, Brain, Zap, ShieldCheck, Target, BookOpen, Droplets, Bone, Smile } from 'lucide-react';
+import { ImageUp, TrendingUp, Zap, ShieldCheck, Target, BookOpen, Activity } from 'lucide-react';
 
 const userProfile = {
   name: "Usuario Desconocido",
@@ -16,12 +16,12 @@ const userProfile = {
 };
 
 const stats = [
-  { name: "Overall", value: 38, Icon: TrendingUp, indicatorClass: "bg-gradient-to-r from-red-600 to-red-800" },
-  { name: "Potential", value: 91, Icon: Sparkles, indicatorClass: "bg-gradient-to-r from-green-400 to-green-600" },
-  { name: "Masculinity", value: 42, Icon: User, indicatorClass: "bg-gradient-to-r from-red-600 to-red-800" },
-  { name: "Skin quality", value: 57, Icon: Droplets, indicatorClass: "bg-gradient-to-r from-orange-400 to-orange-600" },
-  { name: "Jawline", value: 31, Icon: Bone, indicatorClass: "bg-gradient-to-r from-red-600 to-red-800" },
-  { name: "Cheekbones", value: 33, Icon: Smile, indicatorClass: "bg-gradient-to-r from-red-600 to-red-800" },
+  { name: "Motivación", value: 70, Icon: TrendingUp, indicatorClass: "bg-gradient-to-r from-red-500 via-red-600 to-red-700" },
+  { name: "Energía", value: 60, Icon: Zap, indicatorClass: "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600" },
+  { name: "Disciplina", value: 80, Icon: ShieldCheck, indicatorClass: "bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700" },
+  { name: "Enfoque", value: 75, Icon: Target, indicatorClass: "bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700" },
+  { name: "Conocimiento", value: 65, Icon: BookOpen, indicatorClass: "bg-gradient-to-r from-teal-500 via-teal-600 to-teal-700" },
+  { name: "Resiliencia", value: 85, Icon: Activity, indicatorClass: "bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700" },
 ];
 
 
@@ -50,6 +50,7 @@ export default function ProfilePage() {
         <CardContent className="p-0">
           <div className="flex flex-col items-center mb-6">
             <Avatar className="h-24 w-24 mb-3 border-2 border-primary">
+              <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="user avatar abstract" />
               <AvatarFallback className="text-4xl bg-primary text-primary-foreground">{userProfile.avatarFallback}</AvatarFallback>
             </Avatar>
             <h2 className="text-xl font-semibold text-foreground">{userProfile.name}</h2>
