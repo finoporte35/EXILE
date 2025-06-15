@@ -73,10 +73,10 @@ export default function DashboardPage() {
     fullMark: 100,
   }));
 
-  // Find specific attributes for KeyIndicatorItems
-  const motivacionAttr = attributes.find(attr => attr.name === "Motivación")?.value || 0;
-  const energiaAttr = attributes.find(attr => attr.name === "Energía")?.value || 0;
-  const disciplinaAttr = attributes.find(attr => attr.name === "Disciplina")?.value || 0;
+  // Find specific attributes for KeyIndicatorItems from DataContext
+  const motivacionAttr = attributes.find(attr => attr.name.toLowerCase() === "motivación")?.value || 0;
+  const energiaAttr = attributes.find(attr => attr.name.toLowerCase() === "energía")?.value || 0;
+  const disciplinaAttr = attributes.find(attr => attr.name.toLowerCase() === "disciplina")?.value || 0;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 bg-background text-foreground min-h-full">
