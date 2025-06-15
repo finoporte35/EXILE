@@ -4,89 +4,89 @@
 
 @layer base {
   :root {
-    --background: 0 0% 0%; /* Pure Black */
-    --foreground: 0 0% 98%; /* White/Light gray */
+    --background: 0 0% 10%; /* Dark Gray for background */
+    --foreground: 0 0% 95%; /* Light Gray for text */
 
-    --card: 0 0% 3%; /* Even Darker card background */
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 15%; /* Slightly darker card background */
+    --card-foreground: 0 0% 90%; /* Light gray for card text */
 
-    --popover: 0 0% 2%; /* Even Darker popover background */
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 12%; /* Darker popover background */
+    --popover-foreground: 0 0% 95%; /* Lighter text for popover */
 
-    --primary: 0 84.2% 60.2%; /* Bright Red */
+    --primary: 0 100% 40%; /* Bright Red */
     --primary-foreground: 0 0% 100%; /* White */
 
-    --secondary: 0 0% 2%; /* Very Dark Gray / Almost Black - for gradient end */
+    --secondary: 0 0% 5%; /* Almost Black for accents */
     --secondary-foreground: 0 0% 100%; /* White */
 
-    --muted: 0 0% 6%; /* Darker muted background */
-    --muted-foreground: 0 0% 60%; /* Lighter muted text */
+    --muted: 0 0% 8%; /* Darker muted background */
+    --muted-foreground: 0 0% 70%; /* Adjustable muted text */
 
-    --accent: 0 84.2% 60.2%; /* Bright Red, same as primary for accents */
+    --accent: 0 81% 50%; /* Brighter Red for accents */
     --accent-foreground: 0 0% 100%; /* White */
 
-    --destructive: 0 70% 50%; /* Darker, less saturated red for destructive actions */
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 100% 30%; /* Slightly darker red for destructive actions */
+    --destructive-foreground: 0 0% 98%; /* Light for text */
 
-    --border: 0 0% 8%; /* Darker border */
-    --input: 0 0% 8%; /* Darker input background */
-    --ring: 0 84.2% 60.2%; /* Bright Red for focus rings */
-    
+    --border: 0 0% 10%; /* Darker borders */
+    --input: 0 0% 10%; /* Input background */
+    --ring: 0 100% 45%; /* Bright Red for focus rings */
+
     --radius: 0.5rem;
 
-    --chart-1: 0 84.2% 60.2%; /* primary - red */
-    --chart-2: 0 70% 50%; /* secondary-like red */
-    --chart-3: 0 0% 70%; /* light gray */
-    --chart-4: 0 0% 50%; /* medium gray */
-    --chart-5: 0 0% 30%; /* dark gray */
+    --chart-1: 0 100% 40%; /* primary - bright red */
+    --chart-2: 0 80% 40%; /* secondary-like red */
+    --chart-3: 0 0% 75%; /* light gray */
+    --chart-4: 0 0% 55%; /* medium gray */
+    --chart-5: 0 0% 35%; /* dark gray */
 
     /* Sidebar specific colors for dark theme */
-    --sidebar-background: 0 0% 2%; /* Very dark for sidebar */
-    --sidebar-foreground: 0 0% 85%; 
-    --sidebar-primary: 0 84.2% 60.2%; /* Red */
+    --sidebar-background: 0 0% 15%; /* Very dark for sidebar */
+    --sidebar-foreground: 0 0% 90%; 
+    --sidebar-primary: 0 100% 40%; /* Bright Red */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 10%; /* Darker accent for hover states */
+    --sidebar-accent: 0 0% 15%; /* Darker accent for hover states */
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 8%;
-    --sidebar-ring: 0 84.2% 60.2%; /* Red */
+    --sidebar-border: 0 0% 10%;
+    --sidebar-ring: 0 100% 40%; /* Bright Red */
   }
 
   .dark {
     /* Ensure .dark variables match the :root for consistency in a dark-only theme */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 2%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 84.2% 60.2%;
+    --background: 0 0% 10%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 15%;
+    --card-foreground: 0 0% 90%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 0 100% 40%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 2%; 
+    --secondary: 0 0% 5%; 
     --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 6%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 0 84.2% 60.2%;
+    --muted: 0 0% 8%;
+    --muted-foreground: 0 0% 70%;
+    --accent: 0 81% 50%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 70% 50%;
+    --destructive: 0 100% 30%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 8%;
-    --input: 0 0% 8%;
-    --ring: 0 84.2% 60.2%;
+    --border: 0 0% 10%;
+    --input: 0 0% 10%;
+    --ring: 0 100% 45%;
     
-    --chart-1: 0 84.2% 60.2%;
-    --chart-2: 0 70% 50%;
-    --chart-3: 0 0% 70%;
-    --chart-4: 0 0% 50%;
-    --chart-5: 0 0% 30%;
+    --chart-1: 0 100% 40%;
+    --chart-2: 0 80% 40%;
+    --chart-3: 0 0% 75%;
+    --chart-4: 0 0% 55%;
+    --chart-5: 0 0% 35%;
 
-    --sidebar-background: 0 0% 2%;
-    --sidebar-foreground: 0 0% 85%;
-    --sidebar-primary: 0 84.2% 60.2%;
+    --sidebar-background: 0 0% 15%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 0 100% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent: 0 0% 15%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 8%;
-    --sidebar-ring: 0 84.2% 60.2%;
+    --sidebar-border: 0 0% 10%;
+    --sidebar-ring: 0 100% 40%;
   }
 }
 
@@ -99,21 +99,21 @@
   }
 }
 
-/* Custom gradient text utility - Now solid red with enhanced neon shadow */
+/* Custom gradient text utility */
 .text-gradient-red {
   color: hsl(var(--primary));
-  text-shadow: 0 0 7px hsla(var(--primary), 0.75), /* Enhanced neon glow */
-               0 0 14px hsla(var(--primary), 0.55),
-               0 0 20px hsla(var(--primary), 0.35);
+  text-shadow: 0 0 7px hsla(var(--primary), 0.85), 
+               0 0 14px hsla(var(--primary), 0.65),
+               0 0 20px hsla(var(--primary), 0.45);
 }
 
-/* Main gradient for progress bars etc - 0deg (bottom to top: dark gray -> black -> red) */
+/* Main gradient for progress bars etc */
 .bg-main-gradient {
-  background: linear-gradient(0deg, rgba(43, 43, 43, 1) 0%, rgba(0, 0, 0, 1) 13%, rgba(255, 0, 0, 1) 100%);
+  background: linear-gradient(0deg, rgba(30, 30, 30, 1) 0%, rgba(0, 0, 0, 1) 13%, rgba(255, 0, 0, 1) 100%);
 }
 
-/* New button gradient - 180deg (top to bottom: black to red) */
+/* New button gradient */
 .bg-new-button-gradient {
-  background-color: #2b2b2b; /* Fallback */
+  background-color: #1a1a1a; /* Fallback */
   background-image: linear-gradient(180deg, rgba(0, 0, 0, 1) 0%, rgba(255, 0, 0, 1) 100%);
 }
