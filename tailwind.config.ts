@@ -10,8 +10,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
+        body: ['SF Pro Display', 'Poppins', 'sans-serif'],
+        headline: ['SF Pro Display', 'Poppins', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
@@ -88,10 +88,25 @@ export default {
             height: '0',
           },
         },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'fade-out': {
+          '0%': { opacity: '1' },
+          '100%': { opacity: '0' },
+        },
+        'scale-up-center': {
+          '0%': { transform: 'scale(0.5)' },
+          '100%': { transform: 'scale(1)' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'fade-in': 'fade-in 0.5s ease-out forwards',
+        'fade-out': 'fade-out 0.5s ease-out forwards',
+        'scale-up-center': 'scale-up-center 0.4s cubic-bezier(0.390, 0.575, 0.565, 1.000) both',
       },
     },
   },
