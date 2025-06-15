@@ -62,15 +62,15 @@ export default function DevelopmentRadarChart({
   }
 
   return (
-    <Card className="bg-background border-transparent shadow-none h-full">
+    <Card className="bg-white border-neutral-300 shadow-md h-full">
       <CardHeader className="items-start pb-0">
         {title && (
             <div className="flex items-center gap-2">
-            <ClipboardList className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-xl font-semibold text-foreground">{title}</CardTitle>
+            <ClipboardList className="h-5 w-5 text-neutral-700" />
+            <CardTitle className="text-xl font-semibold text-neutral-800">{title}</CardTitle>
             </div>
         )}
-        {description && <CardDescription className="text-muted-foreground">{description}</CardDescription>}
+        {description && <CardDescription className="text-neutral-600">{description}</CardDescription>}
       </CardHeader>
       <CardContent className="pb-0">
         <ChartContainer
@@ -82,7 +82,7 @@ export default function DevelopmentRadarChart({
               cursor={false}
               content={<ChartTooltipContent indicator="line" hideLabel={true} />}
             />
-            <PolarGrid stroke="hsla(var(--muted-foreground), 0.6)" strokeWidth={1} />
+            <PolarGrid stroke="#d1d5db" strokeWidth={1}/>
             <PolarAngleAxis
               dataKey="category"
               tick={false}
@@ -91,24 +91,24 @@ export default function DevelopmentRadarChart({
             <PolarRadiusAxis
                 angle={90} 
                 domain={[0, Math.max(...data.map(d => d.fullMark), 1)]} 
-                tickCount={4} 
+                tickCount={6} 
                 tick={false}
-                axisLine={false} 
+                axisLine={{ stroke: "#d1d5db", strokeWidth: 1 }}
                 tickLine={false} 
             />
             <Radar
               dataKey="value"
-              fill="transparent"
+              fill="hsla(var(--primary), 0.3)"
               stroke="hsl(var(--primary))" 
-              strokeWidth={2}
-              dot={{ r: 3, fill: 'hsl(var(--primary))', strokeWidth: 0 }} 
+              strokeWidth={1}
+              dot={false}
             />
           </RadarChart>
         </ChartContainer>
       </CardContent>
        {footerText && (
         <CardFooter className="flex-col gap-2 text-sm pt-2 pb-4">
-            <div className="text-xs text-muted-foreground text-center">
+            <div className="text-xs text-neutral-500 text-center">
             {footerText}
             </div>
         </CardFooter>

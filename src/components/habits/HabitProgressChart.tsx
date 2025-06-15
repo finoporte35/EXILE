@@ -30,11 +30,9 @@ const developmentCategories = [
 export default function HabitProgressChart({ habits }: HabitProgressChartProps) {
   const chartData = developmentCategories.map(category => {
     const categoryHabits = habits.filter(h => h.category === category && h.completed);
-    // Ensure value is never NaN if categoryHabits.length is 0, default to 0
     const value = categoryHabits.length > 0 ? categoryHabits.reduce((sum, h) => sum + h.xp, 0) / categoryHabits.length : 0;
-    const fullMark = 100; // Assuming fullMark is 100 for average XP or a target
+    const fullMark = 100; 
     
-    // If no habits in category, value is 0. Otherwise, calculate average XP.
     let totalXpInCategory = 0;
     let completedHabitsInCategory = 0;
     habits.forEach(h => {
@@ -43,18 +41,14 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
         completedHabitsInCategory++;
       }
     });
-    // Calculate average XP for completed habits in the category, or 0 if none completed
     const averageXp = completedHabitsInCategory > 0 ? totalXpInCategory / completedHabitsInCategory : 0;
-
 
     return {
       category: category,
-      // Use averageXp, ensuring it's capped by fullMark if necessary
       value: Math.min(averageXp, fullMark), 
       fullMark: fullMark,
     };
   });
-
 
   const chartConfig = developmentCategories.reduce((config, category, index) => {
     config[category] = {
@@ -63,7 +57,6 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
     };
     return config;
   }, {} as any);
-
 
   if (habits.length === 0) {
     return (
@@ -79,7 +72,6 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
       </Card>
     );
   }
-
 
   return (
     <Card className="bg-white border-neutral-300 shadow-lg">
@@ -99,7 +91,7 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
               cursor={false}
               content={<ChartTooltipContent indicator="line" hideLabel={true} />}
             />
-            <PolarGrid stroke="#000000" strokeWidth={1} />
+            <PolarGrid stroke="#d1d5db" strokeWidth={1}/>
             <PolarAngleAxis 
               dataKey="category" 
               tick={false} 
@@ -108,17 +100,17 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
             <PolarRadiusAxis
                 angle={30} 
                 domain={[0, Math.max(...chartData.map(d => d.fullMark), 1)]}
-                tickCount={5} 
+                tickCount={6} 
                 tick={false} 
-                axisLine={{ stroke: "#000000", strokeWidth: 1 }} 
+                axisLine={{ stroke: "#d1d5db", strokeWidth: 1 }}
                 tickLine={false} 
             />
             <Radar
               dataKey="value"
-              fill="transparent" 
+              fill="hsla(var(--primary), 0.3)" 
               stroke="hsl(var(--primary))" 
               strokeWidth={1}
-              dot={{ r: 3, fill: 'hsl(var(--primary))', strokeWidth: 0 }}
+              dot={false}
             />
           </RadarChart>
         </ChartContainer>
@@ -131,4 +123,3 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
     </Card>
   )
 }
-
