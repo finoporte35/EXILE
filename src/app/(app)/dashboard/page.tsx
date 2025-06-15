@@ -41,7 +41,7 @@ const KeyIndicatorItem: React.FC<KeyIndicatorProps> = ({ name, percentage }) => 
       <span className="text-sm text-foreground">{name}</span>
       <span className="text-sm text-primary font-semibold">{percentage}%</span>
     </div>
-    <Progress value={percentage} className="h-1.5 bg-neutral-700" indicatorClassName="bg-main-gradient" />
+    <Progress value={percentage} className="h-1.5 bg-neutral-700" indicatorClassName="bg-primary" />
   </div>
 );
 
@@ -73,7 +73,7 @@ export default function DashboardPage() {
       
       {/* Welcome Message */}
       <div>
-        <h2 className="text-3xl font-bold text-gradient-red">Tu Panel</h2>
+        <h2 className="text-2xl font-semibold text-primary">Tu Panel</h2>
         <p className="text-muted-foreground">Bienvenido de nuevo, Usuario. Revisa tu progreso.</p>
       </div>
 
@@ -100,7 +100,7 @@ export default function DashboardPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-primary" />
-              <CardTitle className="text-xl font-semibold text-gradient-red">Indicadores Clave</CardTitle>
+              <CardTitle className="text-xl font-semibold text-primary">Indicadores Clave</CardTitle>
             </div>
             <CardDescription>Monitorea tus indicadores de rendimiento.</CardDescription>
           </CardHeader>
@@ -126,12 +126,12 @@ export default function DashboardPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <ListTodo className="h-5 w-5 text-primary" />
-              <CardTitle className="text-xl font-semibold text-gradient-red">Acciones Rápidas</CardTitle>
+              <CardTitle className="text-xl font-semibold text-primary">Acciones Rápidas</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
             {quickActions.map((action) => (
-              <Button key={action.label} variant="outline" className="w-full justify-start border-neutral-700 hover:bg-neutral-700/50 hover:border-primary/50" asChild>
+              <Button key={action.label} variant="outline" className="w-full justify-start border-neutral-800 text-muted-foreground hover:bg-neutral-700/50 hover:border-primary/50 hover:text-foreground" asChild>
                 <Link href={action.href}>
                   <action.icon className="mr-2 h-4 w-4 text-primary" />
                   {action.label}
@@ -145,7 +145,7 @@ export default function DashboardPage() {
           <CardHeader>
              <div className="flex items-center gap-2">
               <Lightbulb className="h-5 w-5 text-primary" />
-              <CardTitle className="text-xl font-semibold text-gradient-red">Enlace Motivacional</CardTitle>
+              <CardTitle className="text-xl font-semibold text-primary">Enlace Motivacional</CardTitle>
             </div>
             <CardDescription>Accede a tu dosis diaria de inspiración.</CardDescription>
           </CardHeader>

@@ -52,7 +52,7 @@ export default function DevelopmentRadarChart({
     return (
       <Card className="flex flex-col items-center justify-center min-h-[300px] bg-card border-border shadow-md">
         <CardHeader>
-          <CardTitle className="text-gradient-red">{title}</CardTitle>
+          <CardTitle className="text-primary">{title}</CardTitle>
         </CardHeader>
         <CardContent className="text-center">
           <TrendingUp className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
@@ -69,7 +69,7 @@ export default function DevelopmentRadarChart({
       <CardHeader className="items-start pb-0"> {/* Changed to items-start and removed items-center */}
         <div className="flex items-center gap-2">
           <ClipboardList className="h-5 w-5 text-primary" /> {/* Added icon from image */}
-          <CardTitle className="text-xl font-semibold text-gradient-red">{title}</CardTitle>
+          <CardTitle className="text-xl font-semibold text-primary">{title}</CardTitle>
         </div>
         <CardDescription>
           {description}
@@ -85,24 +85,24 @@ export default function DevelopmentRadarChart({
               cursor={false}
               content={<ChartTooltipContent indicator="line" />}
             />
-            <PolarGrid stroke="hsla(var(--muted-foreground), 0.3)" />
-            <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={{ stroke: "hsla(var(--muted-foreground), 0.3)" }} />
+            <PolarGrid stroke="hsla(var(--foreground), 0.15)" />
+            <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={{ stroke: "hsla(var(--foreground), 0.15)" }} />
             <PolarRadiusAxis 
-                angle={90} // Start axis at top for typical radar
+                angle={90} 
                 domain={[0, Math.max(...data.map(d => d.fullMark), 1)]} 
                 tickCount={4} 
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} 
-                axisLine={{ stroke: "hsla(var(--muted-foreground), 0.3)" }}
-                tickLine={{ stroke: "hsla(var(--muted-foreground), 0.3)" }}
+                axisLine={{ stroke: "hsla(var(--foreground), 0.15)" }}
+                tickLine={{ stroke: "hsla(var(--foreground), 0.15)" }}
             />
             <Radar
               dataKey="value"
-              fill="hsla(var(--primary), 0.4)"
+              fill="hsla(var(--primary), 0.3)"
               stroke="hsl(var(--primary))"
               strokeWidth={2}
               dot={{
                 r: 3,
-                fillOpacity: 1,
+                fill: "hsl(var(--primary))",
                 stroke: "hsl(var(--primary))"
               }}
             />
