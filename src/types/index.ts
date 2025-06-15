@@ -8,6 +8,8 @@ export interface Habit {
   xp: number;
   streak: number;
   category: string;
+  lastCompletedDate?: string; // YYYY-MM-DD
+  createdAt: string; // ISO Date string
 }
 
 export interface Attribute {
@@ -45,4 +47,3 @@ export interface SleepLog {
   notes?: string;
   createdAt: string; // ISO string for when the log was created
 }
-

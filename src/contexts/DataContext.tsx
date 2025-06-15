@@ -107,6 +107,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             return { 
                 id: d.id, 
                 ...data, 
+                lastCompletedDate: data.lastCompletedDate || undefined, // Ensure field is handled
                 createdAt: (data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date()).toISOString() 
             } as Habit;
         });
@@ -148,57 +149,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch (error: any) {
         console.error("DataContext: Error loading data from Firestore for", MOCK_USER_ID, error);
         setDataLoadingError(error); 
-        // Keep default local values if Firestore fails, rather than resetting if they were already set from localStorage
         setUserName(prev => prev || DEFAULT_USERNAME);
         setUserXP(prev => prev || INITIAL_XP);
         setHabits(prev => prev.length > 0 ? prev : []);
         setGoals(prev => prev.length > 0 ? prev : INITIAL_GOALS); 
         setSleepLogs(prev => prev.length > 0 ? prev : INITIAL_SLEEP_LOGS);
       } finally {
-        // Attribute calculation should depend on loaded data, so ensure it runs after data is potentially set
-        const calculatedAttributes = INITIAL_ATTRIBUTES.map(attr => {
-            let value = 0; // Default value
-            // Example: derive 'Motivation' from completed 'Productivity' habits
-            if (attr.name === "Motivación") {
-                const productivityHabits = habits.filter(h => h.category === "Productividad");
-                const completedProductivityXP = productivityHabits.reduce((sum, h) => sum + (h.completed ? h.xp : 0), 0);
-                const totalProductivityXP = productivityHabits.reduce((sum, h) => sum + h.xp, 0);
-                value = totalProductivityXP > 0 ? (completedProductivityXP / totalProductivityXP) * 100 : 0;
-            }
-             // Example: derive 'Energy' from sleep quality
-            if (attr.name === "Energía") {
-                if (sleepLogs.length > 0) {
-                    const lastLog = sleepLogs[0]; // Assuming sorted by date desc
-                    if (lastLog.quality === "excellent") value = 90;
-                    else if (lastLog.quality === "good") value = 75;
-                    else if (lastLog.quality === "fair") value = 50;
-                    else if (lastLog.quality === "poor") value = 25;
-                }
-            }
-             // Example: derive 'Discipline' from overall habit completion
-            if (attr.name === "Disciplina") {
-                const totalPossibleXP = habits.reduce((sum, h) => sum + h.xp, 0);
-                const currentXPFromHabits = habits.reduce((sum, h) => sum + (h.completed ? h.xp : 0), 0);
-                value = totalPossibleXP > 0 ? (currentXPFromHabits / totalPossibleXP) * 100 : 0;
-            }
-            // Placeholder for other attributes or if specific logic isn't met
-            value = Math.min(100, Math.max(0, Math.round(value))); 
-
-            return { 
-                ...attr, 
-                value: value, 
-                currentLevel: `${value}/100`, 
-                xpInArea: `${userXP}/1000` // This is a placeholder, actual xpInArea would be complex
-            };
-        });
-        setAttributes(calculatedAttributes);
         setIsLoading(false);
         console.log("DataContext: Loading complete. isLoading set to false.");
       }
     };
 
     loadData();
-  }, []); // Re-run on MOCK_USER_ID change if it were dynamic
+  }, []);
 
 
   const setUserNameState = useCallback(async (name: string) => {
@@ -239,6 +202,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       completed: false,
       xp: habitXP,
       streak: 0,
+      lastCompletedDate: undefined, // Initialize new field
       createdAt: serverTimestamp() 
     };
     try {
@@ -252,6 +216,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         completed: newHabitData.completed,
         xp: newHabitData.xp,
         streak: newHabitData.streak,
+        lastCompletedDate: newHabitData.lastCompletedDate,
         createdAt: new Date().toISOString() 
       };
       setHabits(prev => [newHabitForState, ...prev].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
@@ -269,46 +234,68 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     const originalHabits = [...habits];
     const originalXP = userXP;
+    const habitToToggle = originalHabits.find(h => h.id === id);
 
-    let updatedHabitFirestoreData: Partial<Habit> = {};
-    let newTotalXP = userXP;
-    let xpChange = 0;
+    if (!habitToToggle) {
+        console.error("DataContext: Habit with ID not found for toggling:", id);
+        return;
+    }
 
-    const newHabits = habits.map(habit => {
-        if (habit.id === id) {
-            const newCompletedStatus = !habit.completed;
-            xpChange = newCompletedStatus ? habit.xp : -habit.xp;
-            const newStreak = newCompletedStatus ? habit.streak + 1 : Math.max(0, habit.streak); // Streak increases on completion, doesn't decrease on un-completion unless logic is different
+    const newCompletedStatus = !habitToToggle.completed;
+    let xpChange = newCompletedStatus ? habitToToggle.xp : -habitToToggle.xp;
+    let newTotalXP = Math.max(0, userXP + xpChange);
 
-            updatedHabitFirestoreData = { // Data to send to Firestore
-                completed: newCompletedStatus,
-                streak: newStreak,
-            };
-            newTotalXP = Math.max(0, userXP + xpChange); // Calculate new total XP
-            return { ...habit, ...updatedHabitFirestoreData }; // Optimistically update local state
+    let newStreak = habitToToggle.streak;
+    let newLastCompletedDate = habitToToggle.lastCompletedDate;
+    const todayDateString = new Date().toISOString().split('T')[0];
+
+    if (newCompletedStatus) { // Marking as complete
+        if (habitToToggle.lastCompletedDate !== todayDateString) {
+            newStreak = habitToToggle.streak + 1;
+            newLastCompletedDate = todayDateString;
         }
-        return habit;
-    });
+    } else { // Marking as incomplete
+        if (habitToToggle.lastCompletedDate === todayDateString) {
+            // If it was completed today and is now being unchecked, revert today's streak increment.
+            newStreak = Math.max(0, habitToToggle.streak - 1);
+            newLastCompletedDate = undefined; // Or set to yesterday if more complex logic is needed
+        }
+        // If unchecking a habit completed on a previous day, streak and lastCompletedDate remain.
+    }
     
-    setHabits(newHabits); // Optimistic UI update for habits
-    setUserXP(newTotalXP); // Optimistic UI update for XP
+    const updatedHabitClientData: Partial<Habit> = {
+        completed: newCompletedStatus,
+        streak: newStreak,
+        lastCompletedDate: newLastCompletedDate,
+    };
 
-    if (Object.keys(updatedHabitFirestoreData).length > 0) {
-        const habitDocRef = doc(db, "users", MOCK_USER_ID, "habits", id);
-        const userDocRef = doc(db, "users", MOCK_USER_ID);
-        const batch = writeBatch(db);
+    const updatedHabitFirestoreData: any = { ...updatedHabitClientData };
+    if (updatedHabitFirestoreData.lastCompletedDate === undefined) {
+        updatedHabitFirestoreData.lastCompletedDate = null; // Firestore prefers null for removal
+    }
 
-        batch.update(habitDocRef, updatedHabitFirestoreData);
-        batch.update(userDocRef, { xp: newTotalXP });
+
+    const newHabitsState = habits.map(h => 
+        h.id === id ? { ...h, ...updatedHabitClientData } : h
+    );
+    
+    setHabits(newHabitsState);
+    setUserXP(newTotalXP);
+
+    const habitDocRef = doc(db, "users", MOCK_USER_ID, "habits", id);
+    const userDocRef = doc(db, "users", MOCK_USER_ID);
+    const batch = writeBatch(db);
+
+    batch.update(habitDocRef, updatedHabitFirestoreData);
+    batch.update(userDocRef, { xp: newTotalXP });
         
-        try {
-            await batch.commit();
-            console.log("DataContext: Habit toggled & XP updated in Firestore via batch. Habit ID:", id);
-        } catch (error) {
-            console.error("DataContext: Error toggling habit/updating XP in Firestore. Reverting local state. Habit ID:", id, error);
-            setHabits(originalHabits); // Revert habits
-            setUserXP(originalXP); // Revert XP
-        }
+    try {
+        await batch.commit();
+        console.log("DataContext: Habit toggled & XP updated in Firestore. ID:", id, "New streak:", newStreak, "Last completed:", newLastCompletedDate);
+    } catch (error) {
+        console.error("DataContext: Error toggling habit/updating XP in Firestore. Reverting. ID:", id, error);
+        setHabits(originalHabits);
+        setUserXP(originalXP);
     }
   }, [userXP, habits, MOCK_USER_ID]);
 
@@ -348,22 +335,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     const originalGoals = [...goals];
     const originalXP = userXP;
-    let newTotalXP = userXP;
-    let xpChange = 0;
-    let newCompletedStatus = false;
+    const goalToToggle = originalGoals.find(g => g.id === id);
 
-    const newGoals = goals.map(goal => {
-        if (goal.id === id) {
-            newCompletedStatus = !goal.isCompleted;
-            xpChange = newCompletedStatus ? goal.xp : -goal.xp;
-            newTotalXP = Math.max(0, userXP + xpChange);
-            return { ...goal, isCompleted: newCompletedStatus };
-        }
-        return goal;
-    });
+    if (!goalToToggle) {
+        console.error("DataContext: Goal with ID not found for toggling:", id);
+        return;
+    }
+
+    const newCompletedStatus = !goalToToggle.isCompleted;
+    let xpChange = newCompletedStatus ? goalToToggle.xp : -goalToToggle.xp;
+    let newTotalXP = Math.max(0, userXP + xpChange);
     
-    setGoals(newGoals); // Optimistic UI update for goals
-    setUserXP(newTotalXP); // Optimistic UI update for XP
+    const newGoalsState = goals.map(goal => 
+        goal.id === id ? { ...goal, isCompleted: newCompletedStatus } : goal
+    );
+    
+    setGoals(newGoalsState);
+    setUserXP(newTotalXP);
     
     const goalDocRef = doc(db, "users", MOCK_USER_ID, "goals", id);
     const userDocRef = doc(db, "users", MOCK_USER_ID);
@@ -374,11 +362,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     try {
         await batch.commit();
-        console.log("DataContext: Goal completion toggled & XP updated in Firestore via batch. Goal ID:", id);
+        console.log("DataContext: Goal completion toggled & XP updated in Firestore. Goal ID:", id);
     } catch (error) {
-        console.error("DataContext: Error toggling goal completion/updating XP. Reverting local state. Goal ID:", id, error);
-        setGoals(originalGoals); // Revert goals
-        setUserXP(originalXP); // Revert XP
+        console.error("DataContext: Error toggling goal completion/updating XP. Reverting. Goal ID:", id, error);
+        setGoals(originalGoals);
+        setUserXP(originalXP);
     }
   }, [userXP, goals, MOCK_USER_ID]);
 
@@ -407,7 +395,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     const { date, timeToBed, timeWokeUp, quality, notes } = logData;
 
-    const baseDate = new Date(date); // This is the day user went to bed
+    const baseDate = new Date(date); 
     const [bedHoursStr, bedMinutesStr] = timeToBed.split(':');
     const [wokeHoursStr, wokeMinutesStr] = timeWokeUp.split(':');
 
@@ -418,13 +406,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     if (isNaN(bedHours) || isNaN(bedMinutes) || isNaN(wokeHours) || isNaN(wokeMinutes)) {
         console.error("DataContext: Invalid time format for sleep log.", logData);
-        return; // Or throw error / notify user
+        return;
     }
 
     let bedDateTime = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), bedHours, bedMinutes, 0, 0);
     let wokeDateTime = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), wokeHours, wokeMinutes, 0, 0);
     
-    if (wokeDateTime.getTime() <= bedDateTime.getTime()) { // Woke up on the next day
+    if (wokeDateTime.getTime() <= bedDateTime.getTime()) { 
       wokeDateTime.setDate(wokeDateTime.getDate() + 1);
     }
     
@@ -432,7 +420,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const sleepDurationHours = Math.max(0, durationMs / (1000 * 60 * 60));
 
     const newLogFirestoreData = {
-      date: Timestamp.fromDate(baseDate), // Store the "went to bed" date
+      date: Timestamp.fromDate(baseDate), 
       timeToBed,
       timeWokeUp,
       sleepDurationHours: parseFloat(sleepDurationHours.toFixed(2)),
@@ -491,15 +479,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           nextRankCalculated = null; 
         }
       } else {
-        // If userXP is less than the current rank's requirement, it means it's the first rank or an error.
-        // Ensure currentRankCalculated is the one whose xpRequired is <= userXP.
-        // This loop structure already handles finding the highest rank achieved.
         break; 
       }
     }
     
     let xpTowardsNext = 0;
-    let totalXPForLevel = 100; // Default to 100 to avoid division by zero if only one rank
+    let totalXPForLevel = 100; 
     let progressPercent = 0;
 
     const currentRankXpRequirement = currentRankCalculated.xpRequired;
@@ -507,30 +492,30 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (nextRankCalculated) {
       const nextRankXpRequirement = nextRankCalculated.xpRequired;
       xpTowardsNext = Math.max(0, userXP - currentRankXpRequirement);
-      totalXPForLevel = Math.max(1, nextRankXpRequirement - currentRankXpRequirement); // Ensure at least 1 to avoid div by zero
+      totalXPForLevel = Math.max(1, nextRankXpRequirement - currentRankXpRequirement); 
       progressPercent = (xpTowardsNext / totalXPForLevel) * 100;
     } else { 
-      // At max rank or only one rank exists
       if (RANKS_DATA.length === 1) {
         totalXPForLevel = currentRankXpRequirement > 0 ? currentRankXpRequirement : 100; 
         xpTowardsNext = userXP;
-        progressPercent = (xpTowardsNext / totalXPForLevel) * 100;
-      } else { // Max rank achieved
+      } else { 
          const currentRankIndex = RANKS_DATA.findIndex(r => r.name === currentRankCalculated.name);
-         if (currentRankIndex > 0) { // There was a previous rank
+         if (currentRankIndex > 0) { 
             const previousRankXp = RANKS_DATA[currentRankIndex - 1].xpRequired;
             totalXPForLevel = Math.max(1, currentRankXpRequirement - previousRankXp);
             xpTowardsNext = Math.max(0, userXP - previousRankXp);
-            progressPercent = (xpTowardsNext / totalXPForLevel) * 100;
-         } else { // This is the first rank, but also the max rank (e.g. only one rank defined)
+         } else { 
             totalXPForLevel = currentRankXpRequirement > 0 ? currentRankXpRequirement : 100;
             xpTowardsNext = userXP;
-            progressPercent = (xpTowardsNext / totalXPForLevel) * 100;
          }
       }
-      if (userXP >= currentRankXpRequirement) { // If exactly on or over max rank XP, show 100%
+      progressPercent = totalXPForLevel > 0 ? (xpTowardsNext / totalXPForLevel) * 100 : 0;
+      if (userXP >= currentRankXpRequirement && totalXPForLevel > 0) { 
         progressPercent = 100;
-        xpTowardsNext = totalXPForLevel; // Fill the bar
+        xpTowardsNext = totalXPForLevel; 
+      } else if (totalXPForLevel === 0 && userXP >= currentRankXpRequirement) {
+        progressPercent = 100;
+        xpTowardsNext = 0; // Or totalXPForLevel if it should be full
       }
     }
     
@@ -539,25 +524,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       nextRank: nextRankCalculated,
       xpTowardsNextRank: xpTowardsNext,
       totalXPForNextRankLevel: totalXPForLevel,
-      rankProgressPercent: Math.min(100, Math.max(0, progressPercent)) // Clamp between 0 and 100
+      rankProgressPercent: Math.min(100, Math.max(0, progressPercent)) 
     };
   }, [userXP]);
 
   useEffect(() => {
-    // Recalculate attributes whenever userXP, habits or sleepLogs change
-    // This is a simplified example. You might want more sophisticated logic.
     const calculatedAttributes = INITIAL_ATTRIBUTES.map(attr => {
         let value = 0;
         switch (attr.name) {
             case "Motivación":
                 const completedGoalsXP = goals.filter(g => g.isCompleted).reduce((sum, g) => sum + g.xp, 0);
-                const totalGoalsXP = goals.reduce((sum, g) => sum + g.xp, DEFAULT_GOAL_XP * goals.length || 1); // Avoid div by 0
-                value = totalGoalsXP > 0 ? (completedGoalsXP / totalGoalsXP) * 70 : 0; // Goals contribute up to 70%
-                value += (userXP / (nextRank?.xpRequired || userXP + 1000)) * 30; // General XP contributes up to 30%
+                const totalGoalsXP = goals.reduce((sum, g) => sum + g.xp, DEFAULT_GOAL_XP * goals.length || 1); 
+                value = totalGoalsXP > 0 ? (completedGoalsXP / totalGoalsXP) * 70 : 0; 
+                value += (userXP / (nextRank?.xpRequired || userXP + 1000)) * 30; 
                 break;
             case "Energía":
                 if (sleepLogs.length > 0) {
-                    const recentLogs = sleepLogs.slice(0, 7); // Last 7 logs
+                    const recentLogs = sleepLogs.slice(0, 7); 
                     const qualityScore = recentLogs.reduce((sum, log) => {
                         if (log.quality === "excellent") return sum + 4;
                         if (log.quality === "good") return sum + 3;
@@ -568,18 +551,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     const avgQuality = recentLogs.length > 0 ? (qualityScore / (recentLogs.length * 4)) * 100 : 50;
                     value = avgQuality;
                 } else {
-                    value = 50; // Default if no sleep logs
+                    value = 50; 
                 }
                 break;
             case "Disciplina":
                 const totalHabitCompletions = habits.filter(h => h.completed).length;
                 const totalHabitCount = habits.length;
                 const streakBonus = habits.reduce((sum, h) => sum + h.streak, 0) / (totalHabitCount || 1);
-                value = totalHabitCount > 0 ? (totalHabitCompletions / totalHabitCount) * 80 : 0; // Habits contribute 80%
-                value += Math.min(20, streakBonus * 2); // Streaks contribute up to 20%
+                value = totalHabitCount > 0 ? (totalHabitCompletions / totalHabitCount) * 80 : 0; 
+                value += Math.min(20, streakBonus * 2); 
                 break;
-            default: // For other attributes, use a generic calculation or keep them at a base value
-                value = (userXP / (currentRank.xpRequired + (nextRank?.xpRequired || 1000))) * 50 + 10; // Base value + XP progression
+            default: 
+                value = (userXP / (currentRank.xpRequired + (nextRank?.xpRequired || 1000))) * 50 + 10; 
                 break;
         }
         value = Math.min(100, Math.max(0, Math.round(value)));
@@ -587,7 +570,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             ...attr, 
             value: value,
             currentLevel: `${value}/100`,
-            xpInArea: `${userXP}/${nextRank?.xpRequired || (currentRank.xpRequired + 1000)}` // Simplified
+            xpInArea: `${userXP}/${nextRank?.xpRequired || (currentRank.xpRequired + 1000)}` 
         };
     });
     setAttributes(calculatedAttributes);
@@ -658,4 +641,3 @@ export const useData = (): DataContextState => {
   }
   return context;
 };
-
