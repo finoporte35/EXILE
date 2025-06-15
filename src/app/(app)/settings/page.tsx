@@ -34,7 +34,7 @@ export default function SettingsPage() {
             <Label htmlFor="bio">Biografía Corta</Label>
             <Input id="bio" placeholder="Cuéntanos un poco sobre ti..." />
           </div>
-           <Button className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
+           <Button className="bg-main-gradient text-primary-foreground hover:opacity-90">
             <Save className="mr-2 h-4 w-4" /> Guardar Cambios de Cuenta
           </Button>
         </CardContent>
@@ -58,7 +58,7 @@ export default function SettingsPage() {
               Recibir resúmenes semanales por correo
             </Label>
           </div>
-           <Button className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
+           <Button className="bg-main-gradient text-primary-foreground hover:opacity-90">
              <Save className="mr-2 h-4 w-4" /> Guardar Preferencias de Notificación
           </Button>
         </CardContent>

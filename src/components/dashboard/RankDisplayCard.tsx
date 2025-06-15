@@ -40,7 +40,12 @@ export default function RankDisplayCard() {
             <span>Progreso al siguiente rango</span>
             <span>{Math.round(xpPercentage)}%</span>
           </div>
-          <Progress value={progress} className="h-2 [&>div]:bg-gradient-to-r [&>div]:from-primary [&>div]:to-accent" aria-label={`Progreso al siguiente rango: ${Math.round(xpPercentage)}%`} />
+          <Progress 
+            value={progress} 
+            className="h-2 bg-secondary" 
+            indicatorClassName="bg-main-gradient" 
+            aria-label={`Progreso al siguiente rango: ${Math.round(xpPercentage)}%`} 
+           />
         </div>
         <p className="text-xs text-center text-muted-foreground">Sigue esforzándote para alcanzar el rango de <span className="font-semibold text-accent">Adepto</span>!</p>
       </CardContent>

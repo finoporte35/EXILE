@@ -41,7 +41,7 @@ const KeyIndicatorItem: React.FC<KeyIndicatorProps> = ({ name, percentage }) => 
       <span className="text-sm text-foreground">{name}</span>
       <span className="text-sm text-primary font-semibold">{percentage}%</span>
     </div>
-    <Progress value={percentage} className="h-1.5 bg-neutral-700 [&>div]:bg-primary" indicatorClassName="bg-primary" />
+    <Progress value={percentage} className="h-1.5 bg-neutral-700" indicatorClassName="bg-main-gradient" />
   </div>
 );
 
@@ -91,7 +91,7 @@ export default function DashboardPage() {
           <h3 className="text-sm font-medium text-muted-foreground">Progreso al Siguiente Rango</h3>
           <span className="text-sm font-semibold text-primary">0%</span>
         </div>
-        <Progress value={0} className="h-2 bg-neutral-700 [&>div]:bg-primary" />
+        <Progress value={0} className="h-2 bg-neutral-700" indicatorClassName="bg-main-gradient" />
       </div>
 
       {/* Middle Section: Key Indicators & Development Radar */}

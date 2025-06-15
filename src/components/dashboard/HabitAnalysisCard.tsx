@@ -60,7 +60,7 @@ export default function HabitAnalysisCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         {!analysisResult && !isLoading && (
-          <Button onClick={handleAnalyzeHabits} className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90" disabled={isLoading}>
+          <Button onClick={handleAnalyzeHabits} className="w-full bg-main-gradient text-primary-foreground hover:opacity-90" disabled={isLoading}>
             {isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (

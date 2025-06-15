@@ -28,7 +28,12 @@ const StatBar: React.FC<StatBarProps> = ({ label, value, icon: Icon, colorClass 
         </span>
         <span className={`font-semibold ${colorClass}`}>{value}%</span>
       </div>
-      <Progress value={progress} className={`h-2 [&>div]:bg-gradient-to-r [&>div]:from-primary [&>div]:to-secondary ${colorClass.replace('text-', 'bg-')}`} aria-label={`${label} ${value}%`} />
+      <Progress 
+        value={progress} 
+        className="h-2 bg-secondary" 
+        indicatorClassName="bg-main-gradient"
+        aria-label={`${label} ${value}%`} 
+      />
     </div>
   );
 };
@@ -36,9 +41,9 @@ const StatBar: React.FC<StatBarProps> = ({ label, value, icon: Icon, colorClass 
 export default function UserStatsCard() {
   // Mock data, will be connected to habit system later
   const stats = [
-    { label: "Energía", value: 75, icon: Zap, colorClass: "text-primary" },
+    { label: "Energía", value: 75, icon: Zap, colorClass: "text-primary" }, // colorClass for icon and text
     { label: "Motivación", value: 60, icon: Brain, colorClass: "text-accent" },
-    { label: "Disciplina", value: 85, icon: Shield, colorClass: "text-secondary" },
+    { label: "Disciplina", value: 85, icon: Shield, colorClass: "text-secondary" }, // Mapped to --secondary in CSS which is very dark; consider adjusting if too dark for text.
   ];
 
   return (

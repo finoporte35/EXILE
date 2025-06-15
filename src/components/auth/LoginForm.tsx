@@ -85,7 +85,7 @@ export default function LoginForm() {
               </Button>
             </div>
           </div>
-          <Button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity duration-300" disabled={isLoading}>
+          <Button type="submit" className="w-full bg-main-gradient text-primary-foreground hover:opacity-90 transition-opacity duration-300" disabled={isLoading}>
             {isLoading ? "Ingresando..." : "Ingresar"}
           </Button>
         </form>

@@ -102,7 +102,7 @@ export default function HabitTracker() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={addHabit} className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 whitespace-nowrap">
+          <Button onClick={addHabit} className="bg-main-gradient text-primary-foreground hover:opacity-90 whitespace-nowrap">
             <PlusCircle className="mr-2 h-4 w-4" /> Añadir
           </Button>
         </div>
@@ -133,7 +133,12 @@ export default function HabitTracker() {
           <span>Progreso Diario de XP</span>
           <span>{Math.round(progressPercentage)}%</span>
         </div>
-        <Progress value={animatedProgress} className="h-3 [&>div]:bg-gradient-to-r [&>div]:from-primary [&>div]:to-secondary" aria-label={`Progreso diario de XP: ${Math.round(progressPercentage)}%`} />
+        <Progress 
+            value={animatedProgress} 
+            className="h-3 bg-secondary" 
+            indicatorClassName="bg-main-gradient" 
+            aria-label={`Progreso diario de XP: ${Math.round(progressPercentage)}%`} 
+        />
       </div>
 
       {filteredHabits.length > 0 ? (

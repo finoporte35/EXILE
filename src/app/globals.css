@@ -101,5 +101,12 @@
 
 /* Custom gradient text utility */
 .text-gradient-red {
-  @apply bg-gradient-to-l from-primary to-secondary bg-clip-text text-transparent;
+  background: linear-gradient(0deg, rgba(43, 43, 43, 1) 0%, rgba(0, 0, 0, 1) 13%, rgba(255, 0, 0, 1) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.bg-main-gradient {
+  background: linear-gradient(0deg, rgba(43, 43, 43, 1) 0%, rgba(0, 0, 0, 1) 13%, rgba(255, 0, 0, 1) 100%);
 }

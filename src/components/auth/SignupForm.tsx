@@ -31,18 +31,12 @@ export default function SignupForm() {
       setIsLoading(false);
       return;
     }
-
-    // Simulate an API call delay for a better UX in prototype
+    
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Simplified mock signup: Always succeeds if passwords match.
-    // Referral code is ignored for this prototype version.
-    // In a real app, replace this with your actual authentication logic.
     localStorage.setItem('isLoggedIn', 'true'); 
     toast({ title: "Registro exitoso", description: "Bienvenido a EXILE. Tu aventura comienza ahora." });
     router.push('/dashboard');
-    // No need to explicitly set setIsLoading(false) if navigating away,
-    // as the component will unmount.
   };
 
   return (
@@ -86,7 +80,7 @@ export default function SignupForm() {
                 <Input id="referral-code" type="text" placeholder="CÓDIGOEXCLUSIVO" value={referralCode} onChange={(e) => setReferralCode(e.target.value)} className="pl-10" aria-label="Código de Referido" />
             </div>
           </div>
-          <Button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity duration-300" disabled={isLoading}>
+          <Button type="submit" className="w-full bg-main-gradient text-primary-foreground hover:opacity-90 transition-opacity duration-300" disabled={isLoading}>
             {isLoading ? "Creando cuenta..." : "Crear Cuenta"}
           </Button>
         </form>
