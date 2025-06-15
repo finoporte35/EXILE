@@ -99,15 +99,18 @@
   }
 }
 
-/* Custom gradient text utility - 0deg (bottom to top) */
+/* Custom gradient text utility - Dark on Left, Red on Right + Neon Shadow */
 .text-gradient-red {
-  background: linear-gradient(0deg, rgba(43, 43, 43, 1) 0%, rgba(0, 0, 0, 1) 13%, rgba(255, 0, 0, 1) 100%);
+  background: linear-gradient(to right, hsl(var(--secondary)), hsl(var(--primary)));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  text-shadow: 0 0 5px hsla(var(--primary), 0.7),
+               0 0 10px hsla(var(--primary), 0.5),
+               0 0 15px hsla(var(--primary), 0.3);
 }
 
-/* Main gradient for progress bars etc - 0deg (bottom to top) */
+/* Main gradient for progress bars etc - 0deg (bottom to top: dark gray -> black -> red) */
 .bg-main-gradient {
   background: linear-gradient(0deg, rgba(43, 43, 43, 1) 0%, rgba(0, 0, 0, 1) 13%, rgba(255, 0, 0, 1) 100%);
 }
