@@ -63,7 +63,7 @@ export default function SignupForm() {
             <Label htmlFor="username-signup">Nombre de Usuario</Label>
              <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input id="username-signup" type="text" placeholder="Tu nombre de guerrero" required value={username} onChange={(e) => setUsername(e.target.value)} className="pl-10" aria-label="Nombre de Usuario" />
+                <Input id="username-signup" type="text" placeholder="Nombre de tu Personaje" required value={username} onChange={(e) => setUsername(e.target.value)} className="pl-10" aria-label="Nombre de Usuario" />
             </div>
           </div>
           <div className="space-y-2">
