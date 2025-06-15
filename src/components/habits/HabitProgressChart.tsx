@@ -84,7 +84,7 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
               cursor={false}
               content={<ChartTooltipContent indicator="line" />}
             />
-            <PolarGrid className="fill-card stroke-muted-foreground/30" />
+            <PolarGrid className="fill-card stroke-muted-foreground/50" />
             <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
             <PolarRadiusAxis angle={30} domain={[0, Math.max(...chartData.map(d => d.fullMark), 1)]} tickCount={4} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
             <Radar
@@ -110,4 +110,3 @@ export default function HabitProgressChart({ habits }: HabitProgressChartProps) 
     </Card>
   )
 }
-

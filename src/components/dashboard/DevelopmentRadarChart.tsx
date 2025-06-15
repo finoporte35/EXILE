@@ -17,6 +17,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { ClipboardList } from "lucide-react";
 
 export interface RadarChartDataPoint {
   category: string;
@@ -84,7 +85,7 @@ export default function DevelopmentRadarChart({
               cursor={false}
               content={<ChartTooltipContent indicator="line" />}
             />
-            <PolarGrid className="fill-card stroke-muted-foreground/30" />
+            <PolarGrid className="fill-card stroke-muted-foreground/50" />
             <PolarAngleAxis dataKey="category" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
             <PolarRadiusAxis 
                 angle={90} // Start axis at top for typical radar
@@ -118,9 +119,3 @@ export default function DevelopmentRadarChart({
     </Card>
   )
 }
-
-// Need to import ClipboardList if it's not automatically available.
-// Assuming lucide-react is globally available or imported in ChartContainer related files.
-// If not, add:
-import { ClipboardList } from "lucide-react";
-
