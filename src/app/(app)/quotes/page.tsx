@@ -1,3 +1,4 @@
+"use client";
 
 import QuoteGeneratorClient from '@/components/quotes/QuoteGeneratorClient';
 
