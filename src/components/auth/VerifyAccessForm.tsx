@@ -23,7 +23,7 @@ export default function VerifyAccessForm() {
     
     // Mock verification
     setTimeout(() => {
-      if (invitationCode.toUpperCase() === "EXILE2025") {
+      if (invitationCode.toUpperCase() === "EXILE") { // Changed from EXILE2025 to EXILE
         localStorage.setItem('isLoggedIn', 'true');
         toast({ title: "Acceso Verificado", description: "Bienvenido a EXILE." });
         router.push('/dashboard');
@@ -81,3 +81,4 @@ export default function VerifyAccessForm() {
     </Card>
   );
 }
+
