@@ -58,6 +58,7 @@ interface DataContextState {
 
   addHabit: (name: string, category: string) => void;
   toggleHabit: (id: string) => void;
+  deleteHabit: (id: string) => void; // Added deleteHabit
   addGoal: (goalData: Omit<Goal, 'id' | 'isCompleted' | 'createdAt'>) => void;
   toggleGoalCompletion: (id: string) => void;
   deleteGoal: (id: string) => void;
@@ -371,6 +372,52 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUserXP(originalUserXP);
         localStorage.setItem('userXP', String(originalUserXP));
         console.error("DataContext: Error toggling habit/updating XP in Firestore. Reverting. ID:", id, error);
+    }
+  }, [userXP, habits]);
+
+  const deleteHabit = useCallback(async (id: string) => {
+    if (!MOCK_USER_ID) return;
+
+    const originalHabits = [...habits];
+    const habitToDelete = originalHabits.find(h => h.id === id);
+    if (!habitToDelete) return;
+
+    const originalUserXP = userXP;
+    let newTotalUserXP = userXP;
+
+    // If the habit was completed, deduct its XP
+    if (habitToDelete.completed) {
+      newTotalUserXP = Math.max(0, userXP - habitToDelete.xp);
+    }
+
+    // Update local state first for responsiveness
+    setHabits(prev => prev.filter(h => h.id !== id));
+    if (newTotalUserXP !== userXP) {
+      setUserXP(newTotalUserXP);
+      localStorage.setItem('userXP', String(newTotalUserXP));
+    }
+
+    // Perform Firestore operations
+    const habitDocRef = doc(db, "users", MOCK_USER_ID, "habits", id);
+    const userDocRef = doc(db, "users", MOCK_USER_ID);
+    const batch = writeBatch(db);
+
+    batch.delete(habitDocRef);
+    if (newTotalUserXP !== userXP) {
+      batch.update(userDocRef, { xp: newTotalUserXP });
+    }
+
+    try {
+      await batch.commit();
+      console.log("DataContext: Habit deleted and XP updated successfully. Habit ID:", id);
+    } catch (error) {
+      // Revert local state if Firestore operation fails
+      setHabits(originalHabits);
+      if (newTotalUserXP !== userXP) {
+        setUserXP(originalUserXP);
+        localStorage.setItem('userXP', String(originalUserXP));
+      }
+      console.error("DataContext: Error deleting habit or updating XP in Firestore. Reverting. ID:", id, error);
     }
   }, [userXP, habits]);
 
@@ -773,7 +820,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       currentRank, nextRank, xpTowardsNextRank, totalXPForNextRankLevel, rankProgressPercent,
       totalHabits, completedHabits, activeGoalsCount, averageSleepLast7Days,
       allEras, currentEra, currentEraId, completedEras, canStartEra, startEra, completeCurrentEra, isEraObjectiveCompleted,
-      addHabit, toggleHabit,
+      addHabit, toggleHabit, deleteHabit,
       addGoal, toggleGoalCompletion, deleteGoal,
       addSleepLog, deleteSleepLog,
       updateUserProfile, updateUserAvatar,
