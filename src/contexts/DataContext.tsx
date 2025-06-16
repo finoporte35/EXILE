@@ -5,7 +5,7 @@ import type { Rank } from '@/components/ranks/RankItem';
 import { RANKS_DATA, INITIAL_ATTRIBUTES, DEFAULT_USERNAME, INITIAL_XP, HABIT_CATEGORY_XP_MAP, DEFAULT_HABIT_XP, INITIAL_GOALS, DEFAULT_GOAL_XP, INITIAL_SLEEP_LOGS, MOCK_USER_ID } from '@/lib/app-config';
 import { ALL_ERAS_DATA } from '@/lib/eras-config'; // Import ERAS data
 import type { Habit, Attribute, Goal, SleepLog, SleepQuality, Era, EraObjective, EraReward } from '@/types';
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { differenceInMilliseconds, parse, isValid, parseISO as dateFnsParseISO } from 'date-fns';
 import { db } from '@/lib/firebase';
 import {
@@ -48,6 +48,7 @@ interface DataContextState {
   // ERAS System
   allEras: Era[];
   currentEra: Era | null;
+  currentEraId: string | null; // Added for direct access if needed
   completedEras: Era[];
   canStartEra: (eraId: string) => boolean;
   startEra: (eraId: string) => Promise<void>;
@@ -155,7 +156,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             return {
                 id: d.id,
                 ...data,
-                lastCompletedDate: data.lastCompletedDate instanceof Timestamp ? data.lastCompletedDate.toDate().toISOString().split('T')[0] : data.lastCompletedDate || null,
+                lastCompletedDate: data.lastCompletedDate instanceof Timestamp ? data.lastCompletedDate.toDate().toISOString().split('T')[0] : (data.lastCompletedDate || null),
                 createdAt: (data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt || Date.now())).toISOString()
             } as Habit;
         });
@@ -306,6 +307,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         createdAt: new Date().toISOString()
       };
       setHabits(prev => [newHabitForState, ...prev].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      console.log("DataContext: Habit added successfully. Firestore ID:", docRef.id);
     } catch (error) {
       console.error("DataContext: Error adding habit to Firestore for", MOCK_USER_ID, error);
     }
@@ -349,7 +351,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const habitDocRef = doc(db, "users", MOCK_USER_ID, "habits", id);
     const userDocRef = doc(db, "users", MOCK_USER_ID);
     const batch = writeBatch(db);
-    batch.update(habitDocRef, { ...updatedHabitClientData });
+    
+    const firestoreHabitUpdate: Record<string, any> = {
+      completed: newCompletedStatus,
+      streak: newStreak,
+    };
+    if (newLastCompletedDateString === null) {
+        firestoreHabitUpdate.lastCompletedDate = null; // Use null for Firestore
+    } else {
+        firestoreHabitUpdate.lastCompletedDate = newLastCompletedDateString;
+    }
+
+    batch.update(habitDocRef, firestoreHabitUpdate);
     batch.update(userDocRef, { xp: newTotalUserXP });
     try {
         await batch.commit();
@@ -674,11 +687,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         switch (attr.name) {
             case "Motivación":
                 const completedGoalsXP = goals.filter(g => g.isCompleted).reduce((sum, g) => sum + g.xp, 0);
-                const totalGoalsXP = goals.reduce((sum, g) => sum + g.xp, DEFAULT_GOAL_XP * goals.length || 1); // Avoid division by zero
+                const totalGoalsXP = goals.reduce((sum, g) => sum + g.xp, DEFAULT_GOAL_XP * goals.length || 1); 
                 let goalContribution = totalGoalsXP > 0 ? (completedGoalsXP / totalGoalsXP) * 70 : 0;
-                const maxPossibleUserXP = RANKS_DATA[RANKS_DATA.length -1]?.xpRequired || Math.max(1, userXP) + 1000; // Ensure divisor is not zero
-                let xpContribution = maxPossibleUserXP > 0 ? (userXP / maxPossibleUserXP) * 30 : (userXP > 0 ? 30 : 0);
-                rawValue = goalContribution + xpContribution;
+                
+                let xpContributionRank = 0;
+                if (userXP > 0) {
+                  const maxPossibleUserXP = RANKS_DATA[RANKS_DATA.length -1]?.xpRequired || (userXP + 1000); 
+                  xpContributionRank = (userXP / maxPossibleUserXP) * 30;
+                }
+                rawValue = goalContribution + xpContributionRank;
                 break;
             case "Energía":
                 if (sleepLogs.length > 0) {
@@ -755,7 +772,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       habits, attributes, goals, sleepLogs,
       currentRank, nextRank, xpTowardsNextRank, totalXPForNextRankLevel, rankProgressPercent,
       totalHabits, completedHabits, activeGoalsCount, averageSleepLast7Days,
-      allEras, currentEra, completedEras, canStartEra, startEra, completeCurrentEra, isEraObjectiveCompleted,
+      allEras, currentEra, currentEraId, completedEras, canStartEra, startEra, completeCurrentEra, isEraObjectiveCompleted,
       addHabit, toggleHabit,
       addGoal, toggleGoalCompletion, deleteGoal,
       addSleepLog, deleteSleepLog,
@@ -774,3 +791,4 @@ export const useData = (): DataContextState => {
   }
   return context;
 };
+
