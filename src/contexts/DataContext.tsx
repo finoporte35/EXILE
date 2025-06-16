@@ -125,8 +125,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const customizations = isCustomizingPredefined ? (allUserEraCustomizations[eraId] || {}) : {};
 
-    // For user-created eras, customizations are directly part of the 'baseEra' object from userCreatedEras state
-    // For predefined eras, we overlay from 'allUserEraCustomizations'
     return {
       ...baseEra,
       nombre: customizations.nombre ?? baseEra.nombre,
@@ -138,11 +136,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         ...baseEra.tema_visual,
         ...(customizations.tema_visual || {})
       },
-      // Dates for predefined eras also come from customizations if they exist
-      fechaInicio: customizations.fechaInicio ?? baseEra.fechaInicio,
-      fechaFin: customizations.fechaFin ?? baseEra.fechaFin,
-      // Objectives and rewards are taken from baseEra, descriptions might be part of UserEraCustomizations if we extend it
-      // For now, objectives/rewards descriptions of user-created eras are edited directly on the Era object.
+      fechaInicio: customizations.fechaInicio !== undefined ? customizations.fechaInicio : baseEra.fechaInicio,
+      fechaFin: customizations.fechaFin !== undefined ? customizations.fechaFin : baseEra.fechaFin,
+      objetivos: baseEra.isUserCreated ? baseEra.objetivos : (customizations.objetivos || baseEra.objetivos),
+      recompensas: baseEra.isUserCreated ? baseEra.recompensas : (customizations.recompensas || baseEra.recompensas),
     };
   }, [userCreatedEras, predefinedEras, allUserEraCustomizations]);
 
@@ -225,8 +222,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 objetivos: Array.isArray(data.objetivos) ? data.objetivos : [],
                 recompensas: Array.isArray(data.recompensas) ? data.recompensas : [],
                 tema_visual: data.tema_visual || { icono: 'Milestone', colorPrincipal: 'text-gray-400' },
-                fechaInicio: data.fechaInicio || null, // Ensure null if not present
-                fechaFin: data.fechaFin || null,       // Ensure null if not present
+                fechaInicio: data.fechaInicio instanceof Timestamp ? data.fechaInicio.toDate().toISOString() : (data.fechaInicio || null),
+                fechaFin: data.fechaFin instanceof Timestamp ? data.fechaFin.toDate().toISOString() : (data.fechaFin || null),
             } as Era;
         });
         setUserCreatedEras(loadedUserCreatedEras);
@@ -374,7 +371,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       completed: false,
       xp: habitXP,
       streak: 0,
-      lastCompletedDate: null, // Firestore compatible
+      lastCompletedDate: null,
       createdAt: serverTimestamp()
     };
     try {
@@ -636,68 +633,49 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const startEra = useCallback(async (eraId: string) => {
     if (!MOCK_USER_ID || !canStartEra(eraId)) return;
 
-    const eraToStart = getEraDetails(eraId); // Get fully composed era details
+    const eraToStart = getEraDetails(eraId);
     if (!eraToStart) return;
 
     const userDocRef = doc(db, "users", MOCK_USER_ID);
     const batch = writeBatch(db);
     const todayISO = new Date().toISOString();
 
-    // Update currentEraId on the main user document
     batch.update(userDocRef, { currentEraId: eraId, updatedAt: serverTimestamp() });
 
     if (eraToStart.isUserCreated) {
         const userEraDocRef = doc(db, "users", MOCK_USER_ID, "userCreatedEras", eraId);
         batch.update(userEraDocRef, { fechaInicio: todayISO, updatedAt: serverTimestamp() });
-        // Update local state for userCreatedEras
         setUserCreatedEras(prev => prev.map(e => e.id === eraId ? { ...e, fechaInicio: todayISO } : e));
-    } else {
-        // This branch is for predefined eras, which are currently empty.
-        // If predefined eras were to exist, their start date is stored in customizations.
-        const updatedCustoms = { ...(allUserEraCustomizations[eraId] || {}), fechaInicio: todayISO };
+    } else { // Predefined Era
+        const updatedCustoms: UserEraCustomizations = { ...(allUserEraCustomizations[eraId] || {}), fechaInicio: todayISO };
         const newAllCustomizations = { ...allUserEraCustomizations, [eraId]: updatedCustoms };
         batch.update(userDocRef, { allUserEraCustomizations: newAllCustomizations });
-        setAllUserEraCustomizations(newAllCustomizations); // Update local state for customizations
+        setAllUserEraCustomizations(newAllCustomizations);
     }
 
     try {
       await batch.commit();
-      setCurrentEraId(eraId); // Update local currentEraId
+      setCurrentEraId(eraId);
       console.log(`DataContext: User started new Era: ${eraId}`);
     } catch (error) {
       console.error(`DataContext: Error starting Era ${eraId}:`, error);
       // Revert local state changes on error
       if (eraToStart.isUserCreated) {
-          setUserCreatedEras(prev => prev.map(e => e.id === eraId ? { ...e, fechaInicio: eraToStart.fechaInicio } : e));
+          setUserCreatedEras(prev => prev.map(e => e.id === eraId ? { ...e, fechaInicio: eraToStart.fechaInicio } : e)); // Revert to original start date
       } else {
-          setAllUserEraCustomizations(allUserEraCustomizations);
+          setAllUserEraCustomizations(allUserEraCustomizations); // Revert all customizations
       }
+       setCurrentEraId(currentEraId); // Revert currentEraId if it was changed optimistically
     }
-  }, [MOCK_USER_ID, canStartEra, getEraDetails, allUserEraCustomizations, userCreatedEras, setCurrentEraId, setUserCreatedEras, setAllUserEraCustomizations]);
+  }, [MOCK_USER_ID, canStartEra, getEraDetails, allUserEraCustomizations, userCreatedEras, currentEraId, setCurrentEraId, setUserCreatedEras, setAllUserEraCustomizations]);
 
   const isEraObjectiveCompleted = useCallback((objectiveId: string, eraIdToCheck?: string): boolean => {
-    const targetEraId = eraIdToCheck || currentEraId;
-    if (!targetEraId) return false;
-
-    const era = getEraDetails(targetEraId);
-    if (!era || !era.objetivos) return false;
-
-    const objective = era.objetivos.find(o => o.id === objectiveId);
-    if (!objective) return false;
-
-    if (era.isUserCreated) return false; // User-created objectives aren't functionally checked yet.
-
-    switch(objective.id) {
-        case 'obj0_1':
-            return !!(userName && userName !== DEFAULT_USERNAME && userEmail && userAvatar);
-        case 'obj0_2':
-            return habits.length > 0;
-        case 'obj0_3':
-            return habits.some(h => h.completed && h.streak > 0);
-        default:
-            return false;
-    }
-  }, [currentEraId, habits, goals, userXP, userName, userEmail, userAvatar, getEraDetails]);
+    // This function's logic for predefined eras would go here if they existed.
+    // Since all predefined eras are removed, this function might not be strictly necessary
+    // for objective checking unless user-created eras get functional objectives later.
+    // For now, it can return false or be simplified.
+    return false;
+  }, []);
 
 
   const completeCurrentEra = useCallback(async () => {
@@ -715,7 +693,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     const newCompletedIds = [...completedEraIds, currentEraId];
-    const nextEraIdToStart = currentEra.siguienteEraId || null;
+    const nextEraIdToStart = null; // No automatic advancement since predefined eras are gone
 
     const userUpdates: Record<string, any> = {
       currentEraId: nextEraIdToStart,
@@ -728,12 +706,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const userEraDocRef = doc(db, "users", MOCK_USER_ID, "userCreatedEras", currentEraId);
         batch.update(userEraDocRef, { fechaFin: todayISO, updatedAt: serverTimestamp() });
         setUserCreatedEras(prev => prev.map(e => e.id === currentEraId ? { ...e, fechaFin: todayISO } : e));
-    } else {
-        // Predefined Era completion (customization update)
-        const updatedCustoms = { ...(allUserEraCustomizations[currentEraId] || {}), fechaFin: todayISO };
+    } else { // Predefined Era (though none exist now)
+        const updatedCustoms: UserEraCustomizations = { ...(allUserEraCustomizations[currentEraId] || {}), fechaFin: todayISO };
         const newAllCustomizations = { ...allUserEraCustomizations, [currentEraId]: updatedCustoms };
-        userUpdates.allUserEraCustomizations = newAllCustomizations; // Add to batch
-        setAllUserEraCustomizations(newAllCustomizations); // Update local state
+        userUpdates.allUserEraCustomizations = newAllCustomizations;
+        setAllUserEraCustomizations(newAllCustomizations);
     }
 
     batch.update(userDocRef, userUpdates);
@@ -744,14 +721,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setCurrentEraId(nextEraIdToStart);
       setUserXP(newXp);
       localStorage.setItem('userXP', String(newXp));
-      console.log(`DataContext: User completed Era: ${currentEraId}. Advanced to: ${nextEraIdToStart}. New XP: ${newXp}`);
+      console.log(`DataContext: User completed Era: ${currentEraId}. New XP: ${newXp}`);
     } catch (error) {
       console.error(`DataContext: Error completing Era ${currentEraId}:`, error);
        if (currentEra.isUserCreated) {
-          setUserCreatedEras(prev => prev.map(e => e.id === currentEraId ? { ...e, fechaFin: currentEra.fechaFin } : e)); // Revert
+          setUserCreatedEras(prev => prev.map(e => e.id === currentEraId ? { ...e, fechaFin: currentEra.fechaFin } : e));
       } else {
-          setAllUserEraCustomizations(allUserEraCustomizations); // Revert
+          setAllUserEraCustomizations(allUserEraCustomizations);
       }
+      setCurrentEraId(currentEraId); // Revert currentEraId
+      setUserXP(userXP); // Revert XP
+      localStorage.setItem('userXP', String(userXP));
     }
   }, [MOCK_USER_ID, currentEraId, currentEra, completedEraIds, userXP, allUserEraCustomizations, userCreatedEras, setCurrentEraId, setCompletedEraIds, setUserXP, setUserCreatedEras, setAllUserEraCustomizations]);
 
@@ -763,7 +743,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (eraIsUserCreated) {
         const eraDocRef = doc(db, "users", MOCK_USER_ID, "userCreatedEras", eraId);
-        // Ensure we only update fields relevant to user-created eras and don't accidentally clear essential ones
         const updatePayload: Partial<Era> & { updatedAt: any } = { updatedAt: serverTimestamp() };
 
         if (details.nombre !== undefined) updatePayload.nombre = details.nombre;
@@ -772,13 +751,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (details.mecanicas_especiales_desc !== undefined) updatePayload.mecanicas_especiales_desc = details.mecanicas_especiales_desc;
         if (details.xpRequeridoParaIniciar !== undefined) updatePayload.xpRequeridoParaIniciar = details.xpRequeridoParaIniciar;
         if (details.tema_visual !== undefined) updatePayload.tema_visual = details.tema_visual;
-
-        // For objectives and rewards of user-created eras, update their descriptions
+        
         if (details.objetivos) {
-            updatePayload.objetivos = details.objetivos.map(obj => ({ id: obj.id, description: obj.description.trim() }));
+            updatePayload.objetivos = details.objetivos.map(obj => ({ id: obj.id || `obj_${Date.now()}`, description: (obj.description || "").trim() }));
         }
         if (details.recompensas) {
-            updatePayload.recompensas = details.recompensas.map(rew => ({ type: rew.type, description: rew.description.trim(), value: rew.value, attributeName: rew.attributeName }));
+            updatePayload.recompensas = details.recompensas.map(rew => ({ type: rew.type, description: (rew.description || "").trim(), value: rew.value, attributeName: rew.attributeName }));
         }
 
         try {
@@ -788,8 +766,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } catch (error) {
             console.error(`DataContext: Error updating user-created Era ${eraId}:`, error);
         }
-    } else {
-        // This branch handles customizations for predefined eras (currently none)
+    } else { // Predefined Era (though none exist now)
         const customizationDetails: UserEraCustomizations = {};
         if (details.nombre !== undefined) customizationDetails.nombre = details.nombre;
         if (details.descripcion !== undefined) customizationDetails.descripcion = details.descripcion;
@@ -797,7 +774,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (details.mecanicas_especiales_desc !== undefined) customizationDetails.mecanicas_especiales_desc = details.mecanicas_especiales_desc;
         if (details.xpRequeridoParaIniciar !== undefined) customizationDetails.xpRequeridoParaIniciar = details.xpRequeridoParaIniciar;
         if (details.tema_visual !== undefined) customizationDetails.tema_visual = details.tema_visual;
-        // Note: fechaInicio/fechaFin are handled by startEra/completeCurrentEra for predefined eras via customizations
+        // No objective/reward description editing for predefined eras through this path
 
         const newCustomizationsForEra = { ...(allUserEraCustomizations[eraId] || {}), ...customizationDetails };
         Object.keys(newCustomizationsForEra).forEach(key => {
@@ -832,22 +809,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const generatedId = `user_era_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-    const newEraFirestoreData = { // This object is sent to Firestore
+    const newEraFirestoreData = {
         nombre: baseDetails.nombre,
         descripcion: baseDetails.descripcion,
         descripcionCompletada: "Has completado tu era personalizada: " + baseDetails.nombre,
-        objetivos: [] as EraObjective[], // Start with empty objectives
+        objetivos: [] as EraObjective[],
         condiciones_completado_desc: "Completa los objetivos que te propongas para esta era.",
         mecanicas_especiales_desc: "Define tus propias mecánicas especiales si lo deseas.",
-        recompensas: [{ type: 'xp' as const, description: "XP por completar esta era personalizada.", value: 100, attributeName: undefined }] as EraReward[],
+        recompensas: [{ type: 'xp' as const, description: "XP por completar esta era personalizada.", value: 100, attributeName: null }] as EraReward[],
         tema_visual: { colorPrincipal: 'text-gray-400', icono: "Milestone" } as EraVisualTheme,
         siguienteEraId: null,
         xpRequeridoParaIniciar: 0,
         isUserCreated: true,
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(), // Set updatedAt on creation
-        fechaInicio: null,    // Correct: use null for Firestore
-        fechaFin: null,       // Correct: use null for Firestore
+        updatedAt: serverTimestamp(),
+        fechaInicio: null,
+        fechaFin: null,
     };
 
     try {
@@ -855,23 +832,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const newEraDocRef = doc(userErasColRef, generatedId);
         await setDoc(newEraDocRef, newEraFirestoreData);
 
-        const newEraForState: Era = { // This object is for local state
+        const newEraForState: Era = {
             id: generatedId,
             nombre: newEraFirestoreData.nombre,
             descripcion: newEraFirestoreData.descripcion,
             descripcionCompletada: newEraFirestoreData.descripcionCompletada,
-            objetivos: newEraFirestoreData.objetivos.map(o => ({...o})), // Ensure deep copy if needed
+            objetivos: newEraFirestoreData.objetivos.map(o => ({...o})),
             condiciones_completado_desc: newEraFirestoreData.condiciones_completado_desc,
             mecanicas_especiales_desc: newEraFirestoreData.mecanicas_especiales_desc,
-            recompensas: newEraFirestoreData.recompensas.map(r => ({...r})), // Ensure deep copy
-            tema_visual: {...newEraFirestoreData.tema_visual}, // Ensure deep copy
+            recompensas: newEraFirestoreData.recompensas.map(r => ({...r})),
+            tema_visual: {...newEraFirestoreData.tema_visual},
             siguienteEraId: newEraFirestoreData.siguienteEraId,
             xpRequeridoParaIniciar: newEraFirestoreData.xpRequeridoParaIniciar,
             isUserCreated: newEraFirestoreData.isUserCreated,
-            createdAt: new Date().toISOString(), // Approximate from serverTimestamp for local state
-            updatedAt: new Date().toISOString(), // Approximate for local state
-            fechaInicio: null, // Consistent for local state
-            fechaFin: null,    // Consistent for local state
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            fechaInicio: null,
+            fechaFin: null,
         };
         setUserCreatedEras(prevEras => [...prevEras, newEraForState].sort((a,b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
         console.log(`DataContext: User created new Era: ${generatedId}`);
@@ -894,9 +871,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const originalAllUserEraCustomizations = { ...allUserEraCustomizations };
     const originalCurrentEraId = currentEraId;
 
-    // Optimistically update local state
     setUserCreatedEras(prevEras => prevEras.filter(e => e.id !== eraId));
-    if (allUserEraCustomizations[eraId]) { // Also remove customizations if any (should not happen for user-created)
+    if (allUserEraCustomizations[eraId]) {
         const newCustomizations = { ...allUserEraCustomizations };
         delete newCustomizations[eraId];
         setAllUserEraCustomizations(newCustomizations);
@@ -911,10 +887,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const userDocRef = doc(db, "users", MOCK_USER_ID);
     const userDocUpdates: Record<string, any> = { updatedAt: serverTimestamp() };
-    if (currentEraId === eraId) { // If the deleted era was active
+    if (currentEraId === eraId) {
         userDocUpdates.currentEraId = null;
     }
-    // If there were customizations for this user-created era (unlikely but to be safe)
     if (allUserEraCustomizations[eraId]) {
        const tempCustomizations = { ...allUserEraCustomizations };
        delete tempCustomizations[eraId];
@@ -927,7 +902,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.log(`DataContext: Successfully deleted user-created Era: ${eraId}`);
     } catch (error) {
         console.error(`DataContext: Error deleting user-created Era ${eraId}:`, error);
-        // Revert local state on error
         setUserCreatedEras(originalUserCreatedEras);
         setAllUserEraCustomizations(originalAllUserEraCustomizations);
         setCurrentEraId(originalCurrentEraId);
@@ -1127,3 +1101,4 @@ export const EraIconMapper: React.FC<{ iconName?: string; className?: string }> 
   const IconComponent = getIconComponent(iconName);
   return <IconComponent className={className} />;
 };
+
