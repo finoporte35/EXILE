@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
-  LayoutGrid, User, TrendingUp, ClipboardList, ListChecks, Moon, Target, QuoteIcon, Settings, HelpCircle, LogOut
+  LayoutGrid, User, TrendingUp, ClipboardList, ListChecks, Moon, Target, QuoteIcon, Settings, HelpCircle, LogOut, BookCopy as ErasIcon // Using BookCopy for Eras
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/shared/Logo';
@@ -14,21 +14,37 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useData } from '@/contexts/DataContext'; 
-// Removed useEffect and useState for local avatar state
+
+const menuPrincipalItems = [
+  { href: '/dashboard', label: 'Panel', icon: LayoutGrid },
+  { href: '/profile', label: 'Perfil', icon: User },
+  { href: '/ranks', label: 'Rangos', icon: TrendingUp },
+  { href: '/eras', label: 'Eras', icon: ErasIcon }, // Added Eras link
+  { href: '/development', label: 'Desarrollo Personal', icon: ClipboardList },
+  { href: '/habits', label: 'Hábitos', icon: ListChecks },
+  { href: '/sleep', label: 'Sueño', icon: Moon },
+  { href: '/goals', label: 'Metas', icon: Target },
+  { href: '/quotes', label: 'Frases', icon: QuoteIcon },
+];
+
+const sistemaItems = [
+  { href: '/settings', label: 'Ajustes', icon: Settings },
+  { href: '/support', label: 'Ayuda y Soporte', icon: HelpCircle },
+];
+
 
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { open, isMobile, setOpenMobile } = useSidebar();
-  const { userName, userAvatar, currentRank, isLoading, updateUserAvatar } = useData(); // Get userAvatar and updateUserAvatar from context
+  const { userName, userAvatar, currentRank, isLoading, updateUserAvatar } = useData(); 
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('username'); // Keep for potential fast initial load
+    localStorage.removeItem('username'); 
     localStorage.removeItem('userXP');
     localStorage.removeItem('habits');
-    // localStorage.removeItem('userAvatar'); // Context now handles this, but clearing is safe
-    updateUserAvatar(null); // Clear avatar in context and localStorage
+    updateUserAvatar(null); 
     
     if (isMobile) {
       setOpenMobile(false); 
