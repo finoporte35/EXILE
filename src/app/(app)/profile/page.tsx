@@ -59,17 +59,11 @@ export default function ProfilePage() {
   // Select the first 6 attributes for display, or fewer if not available
   const displayAttributes = attributes.slice(0, 6);
 
-  // Placeholder for share functionality
-  const handleShare = () => {
-    // Implement share functionality (e.g., copy link, use Web Share API)
-    console.log("Share button clicked");
-  };
-
   return (
     <div className="flex flex-col items-center justify-start min-h-full py-8 px-4 space-y-8">
       <h1 className="text-3xl font-bold text-foreground">Perfil</h1>
 
-      <Card className="w-full max-w-sm bg-neutral-900 shadow-xl rounded-3xl p-6 border-2 border-neutral-800">
+      <Card className="w-full max-w-lg bg-neutral-900 shadow-xl rounded-3xl p-6 border-2 border-neutral-800">
         <div className="relative flex justify-center mb-2">
           <Avatar className="h-32 w-32 border-4 border-neutral-700">
             <AvatarImage src={userAvatar || undefined} alt={userName} data-ai-hint="user portrait" />
@@ -84,8 +78,6 @@ export default function ProfilePage() {
                 key={attr.name} 
                 label={attr.name} 
                 value={attr.value}
-                // Example of conditional coloring if needed later:
-                // progressColorClass={attr.name === "Potential" ? "bg-green-500" : "bg-primary"}
               />
             ))}
           </div>
@@ -105,19 +97,13 @@ export default function ProfilePage() {
         aria-hidden="true"
       />
 
-      <div className="w-full max-w-sm flex gap-4 mt-2">
+      <div className="w-full max-w-lg flex mt-4">
         <Button 
           onClick={handleUploadButtonClick}
           variant="outline"
           className="flex-1 bg-neutral-800 border-neutral-700 text-foreground hover:bg-neutral-700 h-12 rounded-xl text-base"
         >
           <Download className="mr-2 h-5 w-5" /> Cambiar Avatar
-        </Button>
-        <Button 
-          onClick={handleShare}
-          className="flex-1 bg-neutral-50 text-neutral-900 hover:bg-neutral-200 h-12 rounded-xl text-base"
-        >
-          <Send className="mr-2 h-5 w-5" /> Compartir
         </Button>
       </div>
       
