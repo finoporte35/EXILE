@@ -11,9 +11,10 @@ import Link from 'next/link';
 import { Eye, EyeOff, Mail, Loader2 } from 'lucide-react';
 import Logo from '@/components/shared/Logo';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase'; // Import auth
+import { signInWithEmailAndPassword } from 'firebase/auth'; // Import Firebase Auth function
 import { doc, getDoc } from 'firebase/firestore';
-import { MOCK_USER_ID } from '@/lib/app-config';
+import { useData } from '@/contexts/DataContext'; // To check auth state
 
 export default function LoginForm() {
   const router = useRouter();
@@ -22,51 +23,55 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { authUser, authLoading } = useData();
 
-  // Check if user is already "logged in" via localStorage on component mount
+  // Redirect if user is already logged in
   useEffect(() => {
-    if (localStorage.getItem('isLoggedIn') === 'true') {
+    if (!authLoading && authUser) {
       router.replace('/dashboard');
     }
-  }, [router]);
+  }, [authUser, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    if (!MOCK_USER_ID) {
-        toast({ variant: "destructive", title: "Error de Configuración", description: "ID de usuario no definido." });
-        setIsLoading(false);
-        return;
-    }
-
     try {
-      const userDocRef = doc(db, "users", MOCK_USER_ID);
-      const userDocSnap = await getDoc(userDocRef);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
 
-      if (userDocSnap.exists()) {
-        const userData = userDocSnap.data();
-        if (userData.email === email) {
-          // Email matches. Password check is omitted for this mock setup.
-          localStorage.setItem('isLoggedIn', 'true');
-          localStorage.setItem('username', userData.username); 
-          localStorage.setItem('userEmail', userData.email); // Store email on login
+      // DataContext will handle loading data based on authUser change.
+      // We can optionally check if user document exists in Firestore here,
+      // but for now, we'll assume DataContext handles new user setup if needed.
+      
+      toast({ title: "Inicio de Sesión Exitoso", description: `Bienvenido de nuevo, ${firebaseUser.displayName || firebaseUser.email}.` });
+      router.push('/dashboard'); // Let DataContext load data on dashboard
 
-          toast({ title: "Inicio de Sesión Exitoso", description: `Bienvenido de nuevo, ${userData.username}.` });
-          router.push('/dashboard');
-        } else {
-          toast({ variant: "destructive", title: "Error de Inicio de Sesión", description: "Credenciales incorrectas." });
-        }
-      } else {
-        toast({ variant: "destructive", title: "Perfil No Encontrado", description: "No se encontró un perfil. Por favor, configura uno." });
-      }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error during login:", error);
-      toast({ variant: "destructive", title: "Error de Conexión", description: "No se pudo conectar con el servidor. Intenta de nuevo." });
+      let errorMessage = "Credenciales incorrectas o error de conexión.";
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        errorMessage = "Correo o contraseña incorrectos.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "El formato del correo no es válido.";
+      }
+      toast({ variant: "destructive", title: "Error de Inicio de Sesión", description: errorMessage });
     } finally {
       setIsLoading(false);
     }
   };
+  // Prevent rendering form if auth is still loading or user is already logged in
+  if (authLoading || authUser) {
+    return (
+      <div className="flex h-screen w-screen flex-col items-center justify-center bg-background space-y-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-xl text-foreground">
+          {authLoading ? "Verificando sesión..." : "Redirigiendo..."}
+        </p>
+      </div>
+    );
+  }
+
 
   return (
     <Card className="w-full max-w-md shadow-2xl border-primary/20">
@@ -129,9 +134,9 @@ export default function LoginForm() {
       </CardContent>
       <CardFooter className="flex flex-col items-center space-y-2">
         <p className="text-sm text-muted-foreground">
-          ¿No tienes perfil o quieres reconfigurarlo?{' '}
+          ¿No tienes perfil?{' '}
           <Link href="/signup" className="font-medium text-primary hover:underline">
-            Configurar Perfil
+            Crear Perfil
           </Link>
         </p>
       </CardFooter>
@@ -139,3 +144,4 @@ export default function LoginForm() {
   );
 }
 
+    

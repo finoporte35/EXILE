@@ -14,24 +14,32 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LogOut, User, Settings, SidebarOpenIcon } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar'; 
-import Logo from '@/components/shared/Logo';
 import { useRouter } from 'next/navigation';
-// Removed useEffect, useState for local avatar state
 import { useData } from '@/contexts/DataContext'; 
+import { auth } from '@/lib/firebase'; // Import auth
+import { signOut } from 'firebase/auth'; // Import signOut
 
 export function AppHeader() {
   const { toggleSidebar, isMobile } = useSidebar();
   const router = useRouter();
-  const { userName, userAvatar, isLoading: isUserDataLoading, updateUserAvatar } = useData(); // Get userAvatar and updateUserAvatar
+  // userName and userAvatar now come from authUser in DataContext or Firestore data
+  const { authUser, userName, userAvatar, isLoading: isUserDataLoading, updateUserAvatar } = useData(); 
 
-  const handleLogout = () => {
-    localStorage.removeItem('isLoggedIn');
-    // localStorage.removeItem('userAvatar'); // Context handles this
-    updateUserAvatar(null); // Clear avatar in context and localStorage
-    router.push('/login');
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      // DataContext's onAuthStateChanged will handle clearing user state
+      // No need to call updateUserAvatar(null) here, as auth state change will trigger data reset
+      router.push('/login');
+    } catch (error) {
+      console.error("Error signing out: ", error);
+      // Handle error, e.g., show a toast
+    }
   };
-
-  const headerUserInitial = isUserDataLoading ? 'U' : (userName ? userName.charAt(0).toUpperCase() : 'U');
+  
+  const displayName = authUser?.displayName || userName;
+  const avatarSrc = authUser?.photoURL || userAvatar;
+  const headerUserInitial = isUserDataLoading ? 'U' : (displayName ? displayName.charAt(0).toUpperCase() : 'U');
   
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-md sm:px-6">
@@ -46,14 +54,14 @@ export function AppHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={userAvatar || undefined} alt="User Avatar" data-ai-hint="user avatar" />
+                <AvatarImage src={avatarSrc || undefined} alt={displayName || "User Avatar"} data-ai-hint="user avatar" />
                 <AvatarFallback>{headerUserInitial}</AvatarFallback>
               </Avatar>
               <span className="sr-only">Toggle user menu</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
+            <DropdownMenuLabel>{displayName || "Mi Cuenta"}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/profile" className="flex items-center gap-2">
@@ -78,3 +86,5 @@ export function AppHeader() {
     </header>
   );
 }
+
+    

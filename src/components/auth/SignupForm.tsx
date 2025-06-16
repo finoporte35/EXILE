@@ -12,8 +12,9 @@ import { Eye, EyeOff, Mail, User, AlertTriangle, Loader2 } from 'lucide-react';
 import Logo from '@/components/shared/Logo';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { INITIAL_XP, MOCK_USER_ID } from '@/lib/app-config';
-import { db } from '@/lib/firebase';
+import { INITIAL_XP } from '@/lib/app-config';
+import { db, auth } from '@/lib/firebase'; // Import auth
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'; // Import Firebase Auth functions
 import {
   collection,
   query,
@@ -21,7 +22,6 @@ import {
   getDocs,
   doc,
   setDoc,
-  getDoc,
   serverTimestamp,
 } from 'firebase/firestore';
 
@@ -57,61 +57,54 @@ export default function SignupForm() {
     }
 
     try {
-      // Check username uniqueness (excluding MOCK_USER_ID itself)
+      // Check username uniqueness (excluding MOCK_USER_ID itself - this logic needs to be UID based now)
+      // For signup, username uniqueness check against Firestore should still be performed.
       const usersRef = collection(db, "users");
       const qUsername = query(usersRef, where("username", "==", username));
       const usernameSnapshot = await getDocs(qUsername);
-      for (const userDoc of usernameSnapshot.docs) {
-        if (userDoc.id !== MOCK_USER_ID) {
-          toast({ variant: "destructive", title: "Conflicto de Datos", description: "Este nombre de usuario ya está en uso por otro perfil." });
-          setIsLoading(false);
-          return;
-        }
+      if (!usernameSnapshot.empty) {
+        toast({ variant: "destructive", title: "Conflicto de Datos", description: "Este nombre de usuario ya está en uso." });
+        setIsLoading(false);
+        return;
       }
 
-      // Check email uniqueness (excluding MOCK_USER_ID itself)
-      const qEmail = query(usersRef, where("email", "==", email));
-      const emailSnapshot = await getDocs(qEmail);
-      for (const userDoc of emailSnapshot.docs) {
-        if (userDoc.id !== MOCK_USER_ID) {
-          toast({ variant: "destructive", title: "Conflicto de Datos", description: "Este correo electrónico ya está registrado en otro perfil." });
-          setIsLoading(false);
-          return;
-        }
-      }
+      // Create user with Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
 
-      // Proceed to create/update MOCK_USER_ID document
-      const userDocRef = doc(db, "users", MOCK_USER_ID);
-      const userDocSnap = await getDoc(userDocRef);
+      // Update Firebase Auth profile (displayName)
+      await updateProfile(firebaseUser, { displayName: username });
 
-      let currentXP = INITIAL_XP;
-      if (userDocSnap.exists()) {
-        currentXP = userDocSnap.data().xp || INITIAL_XP;
-      }
-
+      // Create user document in Firestore using the new UID
+      const userDocRef = doc(db, "users", firebaseUser.uid);
       const userDataToSave = {
         username: username,
-        email: email,
-        xp: currentXP,
+        email: firebaseUser.email, // Use email from Firebase Auth user
+        xp: INITIAL_XP,
+        avatarUrl: null, // Initially no avatar
+        currentEraId: null,
+        completedEraIds: [],
+        allUserEraCustomizations: {},
+        createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
-
-      if (!userDocSnap.exists()) {
-        (userDataToSave as any).createdAt = serverTimestamp();
-      }
-
-      await setDoc(userDocRef, userDataToSave, { merge: true });
+      await setDoc(userDocRef, userDataToSave);
       
-      localStorage.setItem('username', username);
-      localStorage.setItem('userXP', String(currentXP)); 
-      localStorage.setItem('habits', JSON.stringify([])); 
+      // Store username in localStorage for avatar page (or pass via query params)
+      localStorage.setItem('usernameForAvatar', username); 
       
-      toast({ title: "Perfil Configurado", description: "Ahora, selecciona tu avatar para continuar." });
+      toast({ title: "Cuenta Creada", description: "Ahora, selecciona tu avatar para continuar." });
       router.push('/signup/avatar'); 
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error during signup:", error);
-      toast({ variant: "destructive", title: "Error Inesperado", description: "No se pudo completar la configuración. Intenta de nuevo." });
+      let errorMessage = "No se pudo completar la configuración. Intenta de nuevo.";
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "Este correo electrónico ya está registrado. Intenta iniciar sesión.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "La contraseña es demasiado débil. Debe tener al menos 6 caracteres.";
+      }
+      toast({ variant: "destructive", title: "Error de Registro", description: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -161,14 +154,14 @@ export default function SignupForm() {
           
           <Button type="submit" className="w-full bg-new-button-gradient text-primary-foreground hover:opacity-90 transition-opacity duration-300" disabled={isLoading}>
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {isLoading ? "Guardando..." : "Siguiente: Elegir Avatar"}
+            {isLoading ? "Creando cuenta..." : "Siguiente: Elegir Avatar"}
           </Button>
         </form>
         <Alert variant="default" className="bg-muted/30 border-primary/20">
             <AlertTriangle className="h-4 w-4 text-primary" />
             <AlertTitle className="text-sm font-semibold text-primary">Aviso Importante</AlertTitle>
             <AlertDescription className="text-xs text-muted-foreground">
-                Tus datos (nombre, correo, XP, hábitos) se guardan en Firebase y localmente en tu navegador. Considera realizar copias de seguridad de tu progreso desde la sección de Ajustes.
+                Tus datos se guardarán en Firebase asociados a tu cuenta.
             </AlertDescription>
         </Alert>
       </CardContent>
@@ -183,3 +176,5 @@ export default function SignupForm() {
     </Card>
   );
 }
+
+    

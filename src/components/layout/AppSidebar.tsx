@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
-  LayoutGrid, User, TrendingUp, ClipboardList, ListChecks, Moon, Target, QuoteIcon, Settings, HelpCircle, LogOut, BookCopy as ErasIcon // Using BookCopy for Eras
+  LayoutGrid, User, TrendingUp, ClipboardList, ListChecks, Moon, Target, QuoteIcon, Settings, HelpCircle, LogOut, BookCopy as ErasIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/shared/Logo';
@@ -14,12 +14,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useData } from '@/contexts/DataContext'; 
+import { auth } from '@/lib/firebase'; // Import auth
+import { signOut } from 'firebase/auth'; // Import signOut
 
 const menuPrincipalItems = [
   { href: '/dashboard', label: 'Panel', icon: LayoutGrid },
   { href: '/profile', label: 'Perfil', icon: User },
   { href: '/ranks', label: 'Rangos', icon: TrendingUp },
-  { href: '/eras', label: 'Eras', icon: ErasIcon }, // Added Eras link
+  { href: '/eras', label: 'Eras', icon: ErasIcon },
   { href: '/development', label: 'Desarrollo Personal', icon: ClipboardList },
   { href: '/habits', label: 'Hábitos', icon: ListChecks },
   { href: '/sleep', label: 'Sueño', icon: Moon },
@@ -37,22 +39,26 @@ export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { open, isMobile, setOpenMobile } = useSidebar();
-  const { userName, userAvatar, currentRank, isLoading, updateUserAvatar } = useData(); 
+  // isLoading here refers to combined auth and data loading
+  const { authUser, userName, userAvatar, currentRank, isLoading } = useData(); 
 
-  const handleLogout = () => {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('username'); 
-    localStorage.removeItem('userXP');
-    localStorage.removeItem('habits');
-    updateUserAvatar(null); 
-    
-    if (isMobile) {
-      setOpenMobile(false); 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      // DataContext's onAuthStateChanged will handle state clearing.
+      if (isMobile) {
+        setOpenMobile(false); 
+      }
+      router.push('/login');
+    } catch (error) {
+      console.error("Error signing out: ", error);
+      // Optionally show a toast message for logout error
     }
-    router.push('/login');
   };
 
-  const sidebarUserName = isLoading ? "Cargando..." : userName;
+  const displayName = authUser?.displayName || userName;
+  const avatarSrc = authUser?.photoURL || userAvatar;
+  const sidebarUserName = isLoading ? "Cargando..." : displayName;
   const sidebarRankName = isLoading ? "" : (currentRank.name.split(" - ")[1] || currentRank.name);
   
   return (
@@ -112,7 +118,7 @@ export function AppSidebar() {
         <SidebarFooter className="p-3 border-t border-sidebar-border mt-auto">
           <div className={cn("flex items-center gap-3", open ? "flex-row" : "flex-col group-data-[collapsible=icon]:flex-col")}>
             <Avatar className={cn("h-10 w-10 bg-primary flex-shrink-0", open ? "" : "group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8")}>
-              <AvatarImage src={userAvatar || undefined} alt={sidebarUserName} data-ai-hint="user avatar" />
+              <AvatarImage src={avatarSrc || undefined} alt={sidebarUserName} data-ai-hint="user avatar" />
               <AvatarFallback className="text-primary-foreground text-lg">
                 {sidebarUserName ? sidebarUserName.charAt(0).toUpperCase() : "U"}
               </AvatarFallback>
@@ -139,3 +145,5 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+
+    

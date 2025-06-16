@@ -10,12 +10,16 @@ import { ImageUp, Send, Loader2 } from 'lucide-react';
 import Logo from '@/components/shared/Logo';
 import { useToast } from '@/hooks/use-toast';
 import { DEFAULT_USERNAME } from '@/lib/app-config';
+import { useData } from '@/contexts/DataContext'; // Import useData
+import { auth } from '@/lib/firebase'; // Import auth
+import { updateProfile } from 'firebase/auth'; // Import updateProfile
 
 const PLACEHOLDER_AVATAR_PREFIX = 'https://placehold.co/';
 
 export default function AvatarSelectionForm() {
   const router = useRouter();
   const { toast } = useToast();
+  const { authUser, updateUserAvatar: contextUpdateUserAvatar } = useData(); // Get authUser and context's avatar update function
   const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
   const [isAvatarSetByUser, setIsAvatarSetByUser] = useState(false);
   const [username, setUsername] = useState<string>(DEFAULT_USERNAME);
@@ -23,19 +27,31 @@ export default function AvatarSelectionForm() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const storedUsername = localStorage.getItem('username');
+    // Get username passed from signup form (e.g., via localStorage or rely on authUser.displayName)
+    const storedUsername = localStorage.getItem('usernameForAvatar');
     if (storedUsername) {
       setUsername(storedUsername);
+    } else if (authUser?.displayName) {
+      setUsername(authUser.displayName);
     }
-    const storedAvatar = localStorage.getItem('userAvatar');
-    if (storedAvatar && !storedAvatar.startsWith(PLACEHOLDER_AVATAR_PREFIX)) {
-      setAvatarSrc(storedAvatar);
+
+    // Check if user already has an avatar in Firebase Auth or local state from DataContext
+    if (authUser?.photoURL && !authUser.photoURL.startsWith(PLACEHOLDER_AVATAR_PREFIX)) {
+      setAvatarSrc(authUser.photoURL);
       setIsAvatarSetByUser(true);
     } else {
-      setAvatarSrc(null); // Ensure fallback is shown if only placeholder or no avatar
-      setIsAvatarSetByUser(false);
+      // Check local storage if migrating or fallback needed (scoped by UID if possible)
+      const localAvatarKey = authUser ? `userAvatar_${authUser.uid}` : 'userAvatar';
+      const storedAvatar = localStorage.getItem(localAvatarKey);
+       if (storedAvatar && !storedAvatar.startsWith(PLACEHOLDER_AVATAR_PREFIX)) {
+        setAvatarSrc(storedAvatar);
+        setIsAvatarSetByUser(true);
+      } else {
+        setAvatarSrc(null);
+        setIsAvatarSetByUser(false);
+      }
     }
-  }, []);
+  }, [authUser]);
 
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -44,8 +60,8 @@ export default function AvatarSelectionForm() {
       reader.onloadend = () => {
         const result = reader.result as string;
         setAvatarSrc(result);
-        localStorage.setItem('userAvatar', result);
         setIsAvatarSetByUser(true);
+        // Don't save to localStorage or Firestore yet, do it on "Continue"
       };
       reader.readAsDataURL(file);
     }
@@ -56,7 +72,7 @@ export default function AvatarSelectionForm() {
   };
 
   const handleContinue = async () => {
-    if (!isAvatarSetByUser) {
+    if (!isAvatarSetByUser || !avatarSrc) {
       toast({
         variant: "destructive",
         title: "Avatar Requerido",
@@ -64,29 +80,46 @@ export default function AvatarSelectionForm() {
       });
       return;
     }
+    if (!authUser) {
+      toast({ variant: "destructive", title: "Error", description: "Usuario no autenticado. Por favor, vuelve a registrarte." });
+      router.push('/signup');
+      return;
+    }
 
     setIsLoading(true);
     
-    setTimeout(() => {
-      localStorage.setItem('isLoggedIn', 'true');
+    try {
+      // Update Firebase Auth profile photoURL
+      await updateProfile(authUser, { photoURL: avatarSrc });
+      // Update Firestore via DataContext
+      await contextUpdateUserAvatar(avatarSrc); 
+      
+      localStorage.removeItem('usernameForAvatar'); // Clean up temp username
+
       toast({ title: "¡Perfil Completo!", description: `Bienvenido a EXILE, ${username}. ¡Tu aventura comienza ahora!` });
       router.push('/dashboard');
+    } catch (error) {
+      console.error("Error updating avatar:", error);
+      toast({ variant: "destructive", title: "Error al Guardar Avatar", description: "No se pudo actualizar tu avatar. Inténtalo de nuevo."});
+    } finally {
       setIsLoading(false); 
-    }, 500); 
+    }
   };
+
+  const currentUsernameForDisplay = authUser?.displayName || username;
 
   return (
     <Card className="w-full max-w-md shadow-2xl border-primary/20">
       <CardHeader className="text-center">
         <Logo className="mx-auto mb-2" />
         <CardTitle className="font-headline text-2xl">Elige tu Avatar</CardTitle>
-        <CardDescription>Selecciona una imagen para tu perfil, {username}.</CardDescription>
+        <CardDescription>Selecciona una imagen para tu perfil, {currentUsernameForDisplay}.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6 flex flex-col items-center">
         <Avatar className="h-32 w-32 mb-4 border-4 border-primary shadow-lg">
-          <AvatarImage src={avatarSrc || undefined} alt={username} data-ai-hint="user avatar abstract"/>
+          <AvatarImage src={avatarSrc || undefined} alt={currentUsernameForDisplay} data-ai-hint="user avatar abstract"/>
           <AvatarFallback className="text-5xl bg-muted text-muted-foreground">
-            {username ? username.charAt(0).toUpperCase() : "U"}
+            {currentUsernameForDisplay ? currentUsernameForDisplay.charAt(0).toUpperCase() : "U"}
           </AvatarFallback>
         </Avatar>
         
@@ -120,3 +153,5 @@ export default function AvatarSelectionForm() {
     </Card>
   );
 }
+
+    

@@ -5,7 +5,10 @@ import { User, PersonStanding, Sparkles, Shield, Zap, Users, Brain, Crown, Atom,
 
 export const DEFAULT_USERNAME = "Explorador";
 export const INITIAL_XP = 0;
-export const MOCK_USER_ID = "default-exile-user"; // Centralized MOCK_USER_ID
+// MOCK_USER_ID will no longer be used for general user data operations.
+// It might be retained for very specific, non-auth development scenarios if absolutely necessary,
+// but DataContext will now rely on Firebase Auth UID.
+export const MOCK_USER_ID = "default-exile-user";
 
 export const RANKS_DATA: Rank[] = [
   { name: "Level 1 - NPC", xpRequired: 0, description: "El inicio de tu jornada.", icon: User, percentage: 86 },
@@ -47,6 +50,6 @@ export const DEFAULT_GOAL_XP = 50;
 
 export const INITIAL_SLEEP_LOGS: SleepLog[] = [];
 // Define XP for logging sleep if desired, e.g.
-// export const DEFAULT_SLEEP_LOG_XP = 5; 
+// export const DEFAULT_SLEEP_LOG_XP = 5;
 
-
+    
