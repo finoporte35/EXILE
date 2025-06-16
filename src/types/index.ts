@@ -82,4 +82,7 @@ export interface Era {
 export interface UserEraCustomizations {
   nombre?: string;
   descripcion?: string;
+  condiciones_completado_desc?: string;
+  mecanicas_especiales_desc?: string;
+  xpRequeridoParaIniciar?: number;
 }

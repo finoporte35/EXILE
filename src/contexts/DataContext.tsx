@@ -99,6 +99,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       ...baseEra,
       nombre: currentEraCustomizations?.nombre || baseEra.nombre,
       descripcion: currentEraCustomizations?.descripcion || baseEra.descripcion,
+      condiciones_completado_desc: currentEraCustomizations?.condiciones_completado_desc || baseEra.condiciones_completado_desc,
+      mecanicas_especiales_desc: currentEraCustomizations?.mecanicas_especiales_desc || baseEra.mecanicas_especiales_desc,
+      xpRequeridoParaIniciar: currentEraCustomizations?.xpRequeridoParaIniciar !== undefined ? currentEraCustomizations.xpRequeridoParaIniciar : baseEra.xpRequeridoParaIniciar,
     };
   }, [allEras, currentEraId, currentEraCustomizations]);
   
@@ -566,7 +569,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (completedEraIds.includes(eraId) || currentEraId === eraId) return false; 
 
     
-    if (eraToStart.xpRequeridoParaIniciar && userXP < eraToStart.xpRequeridoParaIniciar) {
+    const xpRequired = currentEraCustomizations?.xpRequeridoParaIniciar !== undefined && eraId === currentEraId
+        ? currentEraCustomizations.xpRequeridoParaIniciar
+        : eraToStart.xpRequeridoParaIniciar;
+
+    if (xpRequired !== undefined && userXP < xpRequired) {
         return false;
     }
     
@@ -583,7 +590,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 
     return true;
-  }, [userXP, currentEraId, completedEraIds, allEras]);
+  }, [userXP, currentEraId, completedEraIds, allEras, currentEraCustomizations]);
 
   const startEra = useCallback(async (eraId: string) => {
     if (!MOCK_USER_ID || !canStartEra(eraId)) return;
@@ -683,12 +690,16 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!MOCK_USER_ID || !currentEraId) return;
     const userDocRef = doc(db, "users", MOCK_USER_ID);
     try {
-      const newCustomizations = {
-        nombre: details.nombre?.trim() || undefined,
-        descripcion: details.descripcion?.trim() || undefined,
-      };
+      const newCustomizations: UserEraCustomizations = {};
+      if (details.nombre?.trim()) newCustomizations.nombre = details.nombre.trim();
+      if (details.descripcion?.trim()) newCustomizations.descripcion = details.descripcion.trim();
+      if (details.condiciones_completado_desc?.trim()) newCustomizations.condiciones_completado_desc = details.condiciones_completado_desc.trim();
+      if (details.mecanicas_especiales_desc?.trim()) newCustomizations.mecanicas_especiales_desc = details.mecanicas_especiales_desc.trim();
+      if (details.xpRequeridoParaIniciar !== undefined && !isNaN(details.xpRequeridoParaIniciar)) {
+        newCustomizations.xpRequeridoParaIniciar = Number(details.xpRequeridoParaIniciar);
+      }
       
-      const finalCustomizations = (newCustomizations.nombre || newCustomizations.descripcion) ? newCustomizations : null;
+      const finalCustomizations = Object.keys(newCustomizations).length > 0 ? newCustomizations : null;
 
       await updateDoc(userDocRef, {
         currentEraCustomizations: finalCustomizations,
