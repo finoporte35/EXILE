@@ -1,13 +1,19 @@
 
 "use client";
 
-import { useState } from 'react'; // Added import for useState
+import { useState, useEffect } from 'react'; 
 import { useData } from '@/contexts/DataContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Loader2, Lock, BookCopy, Award, ShieldCheck, Info } from 'lucide-react';
-import type { Era, EraObjective, EraReward } from '@/types';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { CheckCircle, Loader2, Lock, BookCopy, Award, ShieldCheck, Info, Edit3, Save } from 'lucide-react';
+import type { Era, EraObjective, EraReward, UserEraCustomizations } from '@/types';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+
 
 const EraObjectiveItem: React.FC<{ objective: EraObjective; completed: boolean }> = ({ objective, completed }) => (
   <li className={cn("flex items-start gap-2", completed ? "text-green-400" : "text-muted-foreground")}>
@@ -24,8 +30,19 @@ const EraRewardItem: React.FC<{ reward: EraReward }> = ({ reward }) => (
 );
 
 const CurrentEraDisplay: React.FC = () => {
-  const { currentEra, completeCurrentEra, isLoading, isEraObjectiveCompleted, userXP } = useData();
+  const { currentEra, completeCurrentEra, isLoading, isEraObjectiveCompleted, userXP, updateCurrentEraDetails } = useData();
+  const { toast } = useToast();
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editableName, setEditableName] = useState("");
+  const [editableDescription, setEditableDescription] = useState("");
+
+  useEffect(() => {
+    if (currentEra) {
+      setEditableName(currentEra.nombre);
+      setEditableDescription(currentEra.descripcion);
+    }
+  }, [currentEra]);
 
   if (isLoading) {
     return (
@@ -51,7 +68,7 @@ const CurrentEraDisplay: React.FC = () => {
 
   const EraIcon = currentEra.tema_visual.icono || BookCopy;
   const allObjectivesMet = currentEra.objetivos.every(obj => isEraObjectiveCompleted(obj.id, currentEra.id));
-  const canCompleteEra = allObjectivesMet && (currentEra.xpRequeridoParaIniciar === undefined || userXP >= (currentEra.xpRequeridoParaIniciar + (currentEra.recompensas.find(r => r.type === 'xp' && r.value && typeof r.value === 'number' && r.description.toLowerCase().includes("por dominar"))?.value || 0) ) ); // Simplified condition for now
+  const canCompleteEra = allObjectivesMet && (currentEra.xpRequeridoParaIniciar === undefined || userXP >= (currentEra.xpRequeridoParaIniciar + (currentEra.recompensas.find(r => r.type === 'xp' && r.value && typeof r.value === 'number' && r.description.toLowerCase().includes("por dominar"))?.value || 0) ) ); 
 
   const handleCompleteEra = async () => {
     setIsCompleting(true);
@@ -64,18 +81,69 @@ const CurrentEraDisplay: React.FC = () => {
     completed: isEraObjectiveCompleted(obj.id, currentEra.id)
   }));
 
+  const handleSaveChanges = async () => {
+    if (!editableName.trim() || !editableDescription.trim()) {
+      toast({ variant: "destructive", title: "Campos requeridos", description: "El nombre y la descripción de la Era no pueden estar vacíos." });
+      return;
+    }
+    const detailsToUpdate: UserEraCustomizations = {};
+    if (editableName.trim() !== currentEra.nombre) {
+        detailsToUpdate.nombre = editableName.trim();
+    }
+    if (editableDescription.trim() !== currentEra.descripcion) {
+        detailsToUpdate.descripcion = editableDescription.trim();
+    }
+    
+    // Only update if there are actual changes
+    if (Object.keys(detailsToUpdate).length > 0) {
+        await updateCurrentEraDetails(detailsToUpdate);
+        toast({ title: "Era Actualizada", description: "Los detalles de tu Era actual han sido guardados." });
+    }
+    setIsEditing(false);
+  };
+
 
   return (
     <Card className="shadow-xl border-primary/20 bg-card mb-8">
       <CardHeader className="border-b border-neutral-700/50 pb-4">
-        <div className="flex items-center gap-3 mb-2">
-          <EraIcon className={cn("h-10 w-10", currentEra.tema_visual.colorPrincipal || 'text-primary')} />
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">ERA ACTUAL</p>
-            <CardTitle className={cn("text-3xl font-headline", currentEra.tema_visual.colorPrincipal || 'text-gradient-red')}>
-              {currentEra.nombre}
-            </CardTitle>
-          </div>
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 mb-2">
+            <EraIcon className={cn("h-10 w-10", currentEra.tema_visual.colorPrincipal || 'text-primary')} />
+            <div>
+                <p className="text-sm font-medium text-muted-foreground">ERA ACTUAL</p>
+                <CardTitle className={cn("text-3xl font-headline", currentEra.tema_visual.colorPrincipal || 'text-gradient-red')}>
+                {currentEra.nombre}
+                </CardTitle>
+            </div>
+            </div>
+            <Dialog open={isEditing} onOpenChange={setIsEditing}>
+                <DialogTrigger asChild>
+                    <Button variant="outline" size="icon" className="text-primary hover:bg-primary/10">
+                        <Edit3 className="h-5 w-5" />
+                        <span className="sr-only">Editar Era</span>
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Editar Detalles de la Era Actual</DialogTitle>
+                        <DialogDescription>Personaliza el nombre y la descripción de tu era.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div>
+                            <Label htmlFor="eraName">Nombre de la Era</Label>
+                            <Input id="eraName" value={editableName} onChange={(e) => setEditableName(e.target.value)} />
+                        </div>
+                        <div>
+                            <Label htmlFor="eraDescription">Descripción de la Era</Label>
+                            <Textarea id="eraDescription" value={editableDescription} onChange={(e) => setEditableDescription(e.target.value)} rows={4} />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                        <Button onClick={handleSaveChanges}><Save className="mr-2 h-4 w-4"/>Guardar Cambios</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
         <CardDescription className="text-base leading-relaxed">{currentEra.descripcion}</CardDescription>
       </CardHeader>
@@ -166,7 +234,7 @@ export default function ErasPage() {
         <div>
           <h2 className="text-2xl font-semibold text-primary mb-4">Crónicas de tu Saga (Eras Completadas)</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {completedEras.slice().reverse().map(era => ( // Show most recent completed first
+            {completedEras.slice().reverse().map(era => ( 
               <CompletedEraItem key={era.id} era={era} />
             ))}
           </div>
@@ -202,3 +270,4 @@ export default function ErasPage() {
     </div>
   );
 }
+

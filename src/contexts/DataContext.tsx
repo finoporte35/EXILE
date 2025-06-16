@@ -3,8 +3,8 @@
 
 import type { Rank } from '@/components/ranks/RankItem';
 import { RANKS_DATA, INITIAL_ATTRIBUTES, DEFAULT_USERNAME, INITIAL_XP, HABIT_CATEGORY_XP_MAP, DEFAULT_HABIT_XP, INITIAL_GOALS, DEFAULT_GOAL_XP, INITIAL_SLEEP_LOGS, MOCK_USER_ID } from '@/lib/app-config';
-import { ALL_ERAS_DATA } from '@/lib/eras-config'; // Import ERAS data
-import type { Habit, Attribute, Goal, SleepLog, SleepQuality, Era, EraObjective, EraReward } from '@/types';
+import { ALL_ERAS_DATA } from '@/lib/eras-config'; 
+import type { Habit, Attribute, Goal, SleepLog, SleepQuality, Era, EraObjective, EraReward, UserEraCustomizations } from '@/types';
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { differenceInMilliseconds, parse, isValid, parseISO as dateFnsParseISO } from 'date-fns';
 import { db } from '@/lib/firebase';
@@ -45,20 +45,21 @@ interface DataContextState {
   activeGoalsCount: number;
   averageSleepLast7Days: string;
   
-  // ERAS System
+  
   allEras: Era[];
   currentEra: Era | null;
-  currentEraId: string | null; // Added for direct access if needed
+  currentEraId: string | null; 
   completedEras: Era[];
   canStartEra: (eraId: string) => boolean;
   startEra: (eraId: string) => Promise<void>;
   completeCurrentEra: () => Promise<void>;
   isEraObjectiveCompleted: (objectiveId: string, eraId?: string) => boolean;
+  updateCurrentEraDetails: (details: UserEraCustomizations) => Promise<void>;
 
 
   addHabit: (name: string, category: string) => void;
   toggleHabit: (id: string) => void;
-  deleteHabit: (id: string) => void; // Added deleteHabit
+  deleteHabit: (id: string) => void; 
   addGoal: (goalData: Omit<Goal, 'id' | 'isCompleted' | 'createdAt'>) => void;
   toggleGoalCompletion: (id: string) => void;
   deleteGoal: (id: string) => void;
@@ -84,12 +85,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [goals, setGoals] = useState<Goal[]>([]);
   const [sleepLogs, setSleepLogs] = useState<SleepLog[]>([]);
 
-  // ERAS State
+  
   const [allEras] = useState<Era[]>(ALL_ERAS_DATA);
   const [currentEraId, setCurrentEraId] = useState<string | null>(null);
   const [completedEraIds, setCompletedEraIds] = useState<string[]>([]);
+  const [currentEraCustomizations, setCurrentEraCustomizations] = useState<UserEraCustomizations | null>(null);
 
-  const currentEra = useMemo(() => allEras.find(era => era.id === currentEraId) || null, [allEras, currentEraId]);
+  const currentEra = useMemo(() => {
+    if (!currentEraId) return null;
+    const baseEra = allEras.find(era => era.id === currentEraId);
+    if (!baseEra) return null;
+    return {
+      ...baseEra,
+      nombre: currentEraCustomizations?.nombre || baseEra.nombre,
+      descripcion: currentEraCustomizations?.descripcion || baseEra.descripcion,
+    };
+  }, [allEras, currentEraId, currentEraCustomizations]);
+  
   const completedEras = useMemo(() => completedEraIds.map(id => allEras.find(era => era.id === id)).filter(Boolean) as Era[], [allEras, completedEraIds]);
 
 
@@ -112,6 +124,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         let initialCurrentEraId = ALL_ERAS_DATA.length > 0 ? ALL_ERAS_DATA[0].id : null;
         let initialCompletedEraIds: string[] = [];
+        let initialEraCustomizations: UserEraCustomizations | null = null;
 
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
@@ -122,6 +135,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           
           initialCurrentEraId = userData.currentEraId || initialCurrentEraId;
           initialCompletedEraIds = userData.completedEraIds || [];
+          initialEraCustomizations = userData.currentEraCustomizations || null;
 
           localStorage.setItem('username', userData.username || DEFAULT_USERNAME);
           localStorage.setItem('userEmail', userData.email || "");
@@ -136,6 +150,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             avatarUrl: initialAvatarFromStorage || null,
             currentEraId: initialCurrentEraId,
             completedEraIds: initialCompletedEraIds,
+            currentEraCustomizations: null,
             createdAt: serverTimestamp()
           });
           setUserName(DEFAULT_USERNAME);
@@ -147,8 +162,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         setCurrentEraId(initialCurrentEraId);
         setCompletedEraIds(initialCompletedEraIds);
+        setCurrentEraCustomizations(initialEraCustomizations);
 
-        // Load Habits, Goals, SleepLogs as before...
+
         const habitsColRef = collection(db, "users", MOCK_USER_ID, "habits");
         const habitsQuery = query(habitsColRef, orderBy("createdAt", "desc"));
         const habitsSnapshot = await getDocs(habitsQuery);
@@ -195,14 +211,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch (error: any) {
         console.error("DataContext: Error loading data from Firestore for", MOCK_USER_ID, error);
         setDataLoadingError(error);
-        // Fallback to localStorage for basic profile if Firestore fails
+        
         setUserName(localStorage.getItem('username') || DEFAULT_USERNAME);
         setUserEmail(localStorage.getItem('userEmail') || "");
         setUserXP(parseInt(localStorage.getItem('userXP') || String(INITIAL_XP),10));
         setUserAvatar(localStorage.getItem('userAvatar') || null);
-        // For ERAS, fallback to first era if not loaded
+        
         setCurrentEraId(ALL_ERAS_DATA.length > 0 ? ALL_ERAS_DATA[0].id : null);
         setCompletedEraIds([]);
+        setCurrentEraCustomizations(null);
         setHabits([]);
         setGoals([]);
         setSleepLogs([]);
@@ -227,7 +244,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     const userDocRef = doc(db, "users", MOCK_USER_ID);
     try {
-        // Username and email conflict checks (as implemented previously)
+        
         if (newUsername !== userName) {
             const usersRef = collection(db, "users");
             const qUsername = query(usersRef, where("username", "==", newUsername));
@@ -358,7 +375,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       streak: newStreak,
     };
     if (newLastCompletedDateString === null) {
-        firestoreHabitUpdate.lastCompletedDate = null; // Use null for Firestore
+        firestoreHabitUpdate.lastCompletedDate = null; 
     } else {
         firestoreHabitUpdate.lastCompletedDate = newLastCompletedDateString;
     }
@@ -385,19 +402,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const originalUserXP = userXP;
     let newTotalUserXP = userXP;
 
-    // If the habit was completed, deduct its XP
+    
     if (habitToDelete.completed) {
       newTotalUserXP = Math.max(0, userXP - habitToDelete.xp);
     }
 
-    // Update local state first for responsiveness
+    
     setHabits(prev => prev.filter(h => h.id !== id));
     if (newTotalUserXP !== userXP) {
       setUserXP(newTotalUserXP);
       localStorage.setItem('userXP', String(newTotalUserXP));
     }
 
-    // Perform Firestore operations
+    
     const habitDocRef = doc(db, "users", MOCK_USER_ID, "habits", id);
     const userDocRef = doc(db, "users", MOCK_USER_ID);
     const batch = writeBatch(db);
@@ -411,7 +428,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await batch.commit();
       console.log("DataContext: Habit deleted and XP updated successfully. Habit ID:", id);
     } catch (error) {
-      // Revert local state if Firestore operation fails
+      
       setHabits(originalHabits);
       if (newTotalUserXP !== userXP) {
         setUserXP(originalUserXP);
@@ -542,25 +559,25 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [sleepLogs]);
 
-  // ERAS System Logic
+  
   const canStartEra = useCallback((eraId: string): boolean => {
     const eraToStart = allEras.find(e => e.id === eraId);
     if (!eraToStart) return false;
-    if (completedEraIds.includes(eraId) || currentEraId === eraId) return false; // Already completed or current
+    if (completedEraIds.includes(eraId) || currentEraId === eraId) return false; 
 
-    // Check XP requirement
+    
     if (eraToStart.xpRequeridoParaIniciar && userXP < eraToStart.xpRequeridoParaIniciar) {
         return false;
     }
-    // Check if previous era (if any) is completed
+    
     const previousEraIndex = allEras.findIndex(e => e.siguienteEraId === eraId);
     if (previousEraIndex !== -1) {
         const previousEra = allEras[previousEraIndex];
         if (!completedEraIds.includes(previousEra.id)) {
-            return false; // Previous era must be completed
+            return false; 
         }
     } else if (allEras.findIndex(e => e.id === eraId) > 0 && !currentEraId && completedEraIds.length === 0) {
-        // If it's not the very first era, and no era is current or completed, user should start from era 0
+        
         return false;
     }
 
@@ -572,8 +589,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!MOCK_USER_ID || !canStartEra(eraId)) return;
     const userDocRef = doc(db, "users", MOCK_USER_ID);
     try {
-      await updateDoc(userDocRef, { currentEraId: eraId, updatedAt: serverTimestamp() });
+      await updateDoc(userDocRef, { 
+        currentEraId: eraId, 
+        currentEraCustomizations: null, 
+        updatedAt: serverTimestamp() 
+      });
       setCurrentEraId(eraId);
+      setCurrentEraCustomizations(null); 
       console.log(`DataContext: User started new Era: ${eraId}`);
     } catch (error) {
       console.error(`DataContext: Error starting Era ${eraId}:`, error);
@@ -590,28 +612,28 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const objective = era.objetivos.find(o => o.id === objectiveId);
     if (!objective) return false;
 
-    // Simplified completion logic for this example
-    // In a real app, this would check against habits, goals, user stats etc.
+    
+    
     switch(objective.id) {
-        case 'obj0_1': // Configura tu perfil de EXILE por completo.
+        case 'obj0_1': 
             return !!(userName && userName !== DEFAULT_USERNAME && userEmail && userAvatar);
-        case 'obj0_2': // Añade tu primer hábito diario.
+        case 'obj0_2': 
             return habits.length > 0;
-        case 'obj0_3': // Completa un hábito por primera vez.
+        case 'obj0_3': 
             return habits.some(h => h.completed && h.streak > 0);
-        case 'obj1_1': // Mantén una racha de 3 días en al menos un hábito.
+        case 'obj1_1': 
             return habits.some(h => (h.streak || 0) >= 3);
-        case 'obj1_2': // Acumula 100 XP total.
+        case 'obj1_2': 
             return userXP >= 100;
-        case 'obj1_3': // Define tu primera Meta S.M.A.R.T.
+        case 'obj1_3': 
             return goals.length > 0;
-        case 'obj2_1': // Completa 5 hábitos diferentes en una semana. (Simplified: 5 completed habits ever)
+        case 'obj2_1': 
             return habits.filter(h => h.completed).length >= 5;
-        case 'obj2_2': // Alcanza una racha de 7 días en un hábito clave.
+        case 'obj2_2': 
             return habits.some(h => (h.streak || 0) >= 7);
-        case 'obj2_3': // Completa tu primera Meta S.M.A.R.T.
+        case 'obj2_3': 
             return goals.some(g => g.isCompleted);
-        // Add more cases for other objectives as needed
+        
         default:
             return false;
     }
@@ -629,7 +651,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (reward.type === 'xp' && typeof reward.value === 'number') {
         newXp += reward.value;
       }
-      // Future: handle other reward types (items, attribute_boosts)
+      
     });
 
     const newCompletedIds = [...completedEraIds, currentEraId];
@@ -639,6 +661,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       currentEraId: nextEraId,
       completedEraIds: newCompletedIds,
       xp: newXp,
+      currentEraCustomizations: null, 
       updatedAt: serverTimestamp(),
     });
     
@@ -646,14 +669,37 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await batch.commit();
       setCompletedEraIds(newCompletedIds);
       setCurrentEraId(nextEraId);
-      setUserXP(newXp); // Update local XP state
-      localStorage.setItem('userXP', String(newXp)); // Update localStorage XP
+      setCurrentEraCustomizations(null); 
+      setUserXP(newXp); 
+      localStorage.setItem('userXP', String(newXp)); 
 
       console.log(`DataContext: User completed Era: ${currentEraId}. Advanced to: ${nextEraId}. New XP: ${newXp}`);
     } catch (error) {
       console.error(`DataContext: Error completing Era ${currentEraId}:`, error);
     }
   }, [currentEraId, currentEra, completedEraIds, userXP, allEras]);
+
+  const updateCurrentEraDetails = useCallback(async (details: UserEraCustomizations) => {
+    if (!MOCK_USER_ID || !currentEraId) return;
+    const userDocRef = doc(db, "users", MOCK_USER_ID);
+    try {
+      const newCustomizations = {
+        nombre: details.nombre?.trim() || undefined,
+        descripcion: details.descripcion?.trim() || undefined,
+      };
+      
+      const finalCustomizations = (newCustomizations.nombre || newCustomizations.descripcion) ? newCustomizations : null;
+
+      await updateDoc(userDocRef, {
+        currentEraCustomizations: finalCustomizations,
+        updatedAt: serverTimestamp(),
+      });
+      setCurrentEraCustomizations(finalCustomizations);
+      console.log(`DataContext: Updated details for current Era ${currentEraId}:`, finalCustomizations);
+    } catch (error) {
+      console.error(`DataContext: Error updating details for Era ${currentEraId}:`, error);
+    }
+  }, [currentEraId]);
 
 
   const { currentRank, nextRank, xpTowardsNextRank, totalXPForNextRankLevel, rankProgressPercent } = React.useMemo(() => {
@@ -819,7 +865,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       habits, attributes, goals, sleepLogs,
       currentRank, nextRank, xpTowardsNextRank, totalXPForNextRankLevel, rankProgressPercent,
       totalHabits, completedHabits, activeGoalsCount, averageSleepLast7Days,
-      allEras, currentEra, currentEraId, completedEras, canStartEra, startEra, completeCurrentEra, isEraObjectiveCompleted,
+      allEras, currentEra, currentEraId, completedEras, canStartEra, startEra, completeCurrentEra, isEraObjectiveCompleted, updateCurrentEraDetails,
       addHabit, toggleHabit, deleteHabit,
       addGoal, toggleGoalCompletion, deleteGoal,
       addSleepLog, deleteSleepLog,
