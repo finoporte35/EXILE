@@ -46,16 +46,17 @@ export default function DevelopmentRadarChart({
     return config;
   }, {} as any);
 
-  if (data.length === 0 || data.every(d => d.value === 0 && d.fullMark === 0)) {
+  if (data.length === 0 || data.every(d => d.value === 0)) {
     return (
       <Card className="flex flex-col items-center justify-center min-h-[300px] bg-card border-neutral-800 shadow-md">
-        <CardHeader>
-          <CardTitle className="text-primary">{title}</CardTitle>
+        <CardHeader className="items-center text-center">
+          {title && <CardTitle className="text-primary">{title}</CardTitle>}
+          {description && <CardDescription className="mt-1">{description}</CardDescription>}
         </CardHeader>
         <CardContent className="text-center">
           <TrendingUp className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <p className="text-foreground">Aún no hay datos para mostrar.</p>
-          <p className="text-sm text-muted-foreground">Completa algunas acciones para ver tu progreso aquí.</p>
+          <p className="text-foreground mt-2">No hay progreso para mostrar todavía.</p>
+          <p className="text-sm text-muted-foreground">Completa acciones para desarrollar tus atributos.</p>
         </CardContent>
       </Card>
     );
@@ -89,17 +90,17 @@ export default function DevelopmentRadarChart({
               tickLine={false}
             />
             <PolarRadiusAxis
-                angle={30} 
-                domain={[0, Math.max(...data.map(d => d.fullMark), 1)]} 
-                tickCount={5} 
+                angle={30}
+                domain={[0, Math.max(...data.map(d => d.fullMark), 1)]}
+                tickCount={5}
                 tick={false}
                 axisLine={false}
-                tickLine={false} 
+                tickLine={false}
             />
             <Radar
               dataKey="value"
               fill="transparent"
-              stroke="hsl(var(--primary))" 
+              stroke="hsl(var(--primary))"
               strokeWidth={2}
               dot={{ r: 3, fill: "hsl(var(--primary))", strokeWidth: 0 }}
             />
@@ -116,3 +117,4 @@ export default function DevelopmentRadarChart({
     </Card>
   )
 }
+
