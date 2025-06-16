@@ -16,42 +16,18 @@ import { LogOut, User, Settings, SidebarOpenIcon } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar'; 
 import Logo from '@/components/shared/Logo';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react'; // Added useEffect, useState
-import { useData } from '@/contexts/DataContext'; // Added useData
-
-const PLACEHOLDER_AVATAR_PREFIX = 'https://placehold.co/';
+// Removed useEffect, useState for local avatar state
+import { useData } from '@/contexts/DataContext'; 
 
 export function AppHeader() {
   const { toggleSidebar, isMobile } = useSidebar();
   const router = useRouter();
-  const [headerAvatarUrl, setHeaderAvatarUrl] = useState<string | null>(null);
-  const { userName, isLoading: isUserDataLoading } = useData();
-
-  useEffect(() => {
-    const updateAvatar = () => {
-      const storedAvatar = localStorage.getItem('userAvatar');
-      if (storedAvatar && !storedAvatar.startsWith(PLACEHOLDER_AVATAR_PREFIX)) {
-        setHeaderAvatarUrl(storedAvatar);
-      } else {
-        setHeaderAvatarUrl(null);
-      }
-    };
-    updateAvatar();
-
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'userAvatar') {
-        updateAvatar();
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
+  const { userName, userAvatar, isLoading: isUserDataLoading, updateUserAvatar } = useData(); // Get userAvatar and updateUserAvatar
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userAvatar'); // Clear avatar on logout
+    // localStorage.removeItem('userAvatar'); // Context handles this
+    updateUserAvatar(null); // Clear avatar in context and localStorage
     router.push('/login');
   };
 
@@ -70,7 +46,7 @@ export function AppHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={headerAvatarUrl || undefined} alt="User Avatar" data-ai-hint="user avatar" />
+                <AvatarImage src={userAvatar || undefined} alt="User Avatar" data-ai-hint="user avatar" />
                 <AvatarFallback>{headerUserInitial}</AvatarFallback>
               </Avatar>
               <span className="sr-only">Toggle user menu</span>

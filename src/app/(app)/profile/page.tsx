@@ -12,9 +12,8 @@ import type { Attribute } from '@/types';
 
 interface StatItemProps {
   name: string;
-  value: number; // Attribute value (0-100)
+  value: number; 
   Icon: React.ElementType; 
-  // indicatorClass will be derived from theme or fixed if not dynamic
 }
 
 const StatItem: React.FC<StatItemProps> = ({ name, value, Icon }) => (
@@ -32,6 +31,8 @@ const StatItem: React.FC<StatItemProps> = ({ name, value, Icon }) => (
 export default function ProfilePage() {
   const { 
     userName, 
+    userAvatar, // Get avatar from context
+    updateUserAvatar, // Get update function from context
     currentRank, 
     nextRank, 
     userXP, 
@@ -39,16 +40,7 @@ export default function ProfilePage() {
     attributes 
   } = useData();
     
-  const [avatarSrc, setAvatarSrc] = useState("https://placehold.co/100x100.png");
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Load avatar from localStorage if exists
-  useEffect(() => {
-    const storedAvatar = localStorage.getItem('userAvatar');
-    if (storedAvatar) {
-      setAvatarSrc(storedAvatar);
-    }
-  }, []);
 
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -56,8 +48,7 @@ export default function ProfilePage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
-        setAvatarSrc(result);
-        localStorage.setItem('userAvatar', result); // Save avatar to localStorage
+        updateUserAvatar(result); // Update avatar through context
       };
       reader.readAsDataURL(file);
     }
@@ -74,7 +65,6 @@ export default function ProfilePage() {
     ? `${(nextRank.xpRequired - userXP).toLocaleString()} XP para ${nextRank.name.split(" - ")[1]}`
     : "Rango Máximo";
 
-  // Get specific attributes for display
   const motivation = attributes.find(a => a.name === "Motivación");
   const energy = attributes.find(a => a.name === "Energía");
   const discipline = attributes.find(a => a.name === "Disciplina");
@@ -94,7 +84,7 @@ export default function ProfilePage() {
         <CardContent className="p-0">
           <div className="flex flex-col items-center mb-6">
             <Avatar className="h-24 w-24 mb-3 border-2 border-primary">
-              <AvatarImage src={avatarSrc} alt={userName} data-ai-hint="user avatar abstract" />
+              <AvatarImage src={userAvatar || undefined} alt={userName} data-ai-hint="user avatar abstract" />
               <AvatarFallback className="text-4xl bg-primary text-primary-foreground">{userName.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <h2 className="text-xl font-semibold text-foreground">{userName}</h2>
