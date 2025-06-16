@@ -52,7 +52,7 @@ export interface SleepLog {
 export interface EraObjective {
   id: string;
   description: string;
-  
+  // Future: type (e.g., 'xp_reach', 'habit_streak', 'goal_complete'), targetValue, currentProgress
 }
 
 export interface EraReward {
@@ -60,8 +60,10 @@ export interface EraReward {
   description: string; 
   value?: number | string; 
   attributeName?: string; 
+  // Future: itemId, attributeToBoost, etc.
 }
 
+// Represents the fundamental structure of an Era, whether predefined or user-created
 export interface Era {
   id: string; 
   nombre: string; 
@@ -73,16 +75,27 @@ export interface Era {
   recompensas: EraReward[]; 
   tema_visual: { 
     colorPrincipal?: string; 
-    icono?: LucideIcon; 
+    // Store icon name as string for Firestore compatibility with user-created eras
+    // The actual LucideIcon component will be mapped during rendering
+    icono?: string; // e.g., "Sunrise", "Zap"
   };
   siguienteEraId?: string | null; 
-  xpRequeridoParaIniciar?: number; 
+  xpRequeridoParaIniciar?: number;
+  // For user-created eras, we might add a flag or check presence in userCreatedEras list
+  isUserCreated?: boolean; 
+  createdAt?: string; // For sorting or tracking user-created eras
 }
 
+// Represents user-specific overrides for certain fields of an Era (predefined or user-created)
 export interface UserEraCustomizations {
   nombre?: string;
   descripcion?: string;
   condiciones_completado_desc?: string;
   mecanicas_especiales_desc?: string;
   xpRequeridoParaIniciar?: number;
+  // Note: objectives, rewards, tema_visual (icon/color mapping for user eras is part of base Era),
+  // and siguienteEraId are not part of simple customization here.
+  // For user-created eras, estos campos (nombre, desc, etc) son su base.
+  // Esta interfaz es más para sobrescribir ERAS PREDEFINIDAS.
+  // Para ERAS CREADAS por el usuario, estos campos se editan directamente en el documento de la Era.
 }

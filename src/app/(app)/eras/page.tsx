@@ -1,15 +1,15 @@
 
 "use client";
 
-import { useState, useEffect } from 'react'; 
-import { useData } from '@/contexts/DataContext';
+import { useState, useEffect, useMemo } from 'react'; 
+import { useData, EraIconMapper } from '@/contexts/DataContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
-import { CheckCircle, Loader2, Lock, BookCopy, Award, ShieldCheck, Info, Edit3, Save, Settings2 } from 'lucide-react';
+import { CheckCircle, Loader2, Lock, Award, ShieldCheck, Info, Edit3, Save, Settings2, PlusCircle } from 'lucide-react';
 import type { Era, EraObjective, EraReward, UserEraCustomizations } from '@/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -25,34 +25,113 @@ const EraObjectiveItem: React.FC<{ objective: EraObjective; completed: boolean }
 const EraRewardItem: React.FC<{ reward: EraReward }> = ({ reward }) => (
   <li className="flex items-center gap-2 text-sm text-amber-400">
     <Award className="h-4 w-4 text-amber-500" />
-    <span>{reward.description}</span>
+    <span>{reward.description} {(reward.type === 'xp' && reward.value) ? `(+${reward.value} XP)` : ''}</span>
   </li>
 );
 
-const CurrentEraDisplay: React.FC = () => {
-  const { currentEra, completeCurrentEra, isLoading, isEraObjectiveCompleted, userXP, updateCurrentEraDetails } = useData();
+
+interface EraEditorDialogProps {
+  eraToEdit: Era; // Pass the full Era object to prefill
+  onSave: (eraId: string, details: UserEraCustomizations) => Promise<void>;
+  triggerButton: React.ReactNode;
+}
+
+const EraEditorDialog: React.FC<EraEditorDialogProps> = ({ eraToEdit, onSave, triggerButton }) => {
   const { toast } = useToast();
-  const [isCompleting, setIsCompleting] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  
-  const [editableName, setEditableName] = useState("");
-  const [editableDescription, setEditableDescription] = useState("");
-  const [editableCondiciones, setEditableCondiciones] = useState("");
-  const [editableMecanicas, setEditableMecanicas] = useState("");
-  const [editableXpRequerido, setEditableXpRequerido] = useState<string | number>("");
+  const [isOpen, setIsOpen] = useState(false);
+  const [editableName, setEditableName] = useState(eraToEdit.nombre);
+  const [editableDescription, setEditableDescription] = useState(eraToEdit.descripcion);
+  const [editableCondiciones, setEditableCondiciones] = useState(eraToEdit.condiciones_completado_desc);
+  const [editableMecanicas, setEditableMecanicas] = useState(eraToEdit.mecanicas_especiales_desc);
+  const [editableXpRequerido, setEditableXpRequerido] = useState<string>(
+    eraToEdit.xpRequeridoParaIniciar !== undefined ? String(eraToEdit.xpRequeridoParaIniciar) : ""
+  );
 
-
+  // Effect to reset form when dialog opens with a new era
   useEffect(() => {
-    if (currentEra) {
-      setEditableName(currentEra.nombre);
-      setEditableDescription(currentEra.descripcion);
-      setEditableCondiciones(currentEra.condiciones_completado_desc);
-      setEditableMecanicas(currentEra.mecanicas_especiales_desc);
-      setEditableXpRequerido(currentEra.xpRequeridoParaIniciar !== undefined ? String(currentEra.xpRequeridoParaIniciar) : "");
+    if (isOpen) {
+      setEditableName(eraToEdit.nombre);
+      setEditableDescription(eraToEdit.descripcion);
+      setEditableCondiciones(eraToEdit.condiciones_completado_desc);
+      setEditableMecanicas(eraToEdit.mecanicas_especiales_desc);
+      setEditableXpRequerido(eraToEdit.xpRequeridoParaIniciar !== undefined ? String(eraToEdit.xpRequeridoParaIniciar) : "");
     }
-  }, [currentEra, isEditing]); // Re-populate form when dialog opens or currentEra changes
+  }, [isOpen, eraToEdit]);
 
-  if (isLoading) {
+
+  const handleSaveChanges = async () => {
+    if (!editableName.trim()) {
+      toast({ variant: "destructive", title: "Campo Requerido", description: "El nombre de la Era no puede estar vacío." });
+      return;
+    }
+    
+    const detailsToUpdate: UserEraCustomizations = {};
+    // Only include fields if they actually changed from the base Era's current state
+    // This logic might need adjustment if eraToEdit already includes prior customizations.
+    // For simplicity, we send all, and DataContext can handle merging or direct updates.
+    detailsToUpdate.nombre = editableName.trim();
+    detailsToUpdate.descripcion = editableDescription.trim();
+    detailsToUpdate.condiciones_completado_desc = editableCondiciones.trim();
+    detailsToUpdate.mecanicas_especiales_desc = editableMecanicas.trim();
+    
+    const parsedXpRequerido = parseInt(String(editableXpRequerido), 10);
+    if (!isNaN(parsedXpRequerido)) {
+        detailsToUpdate.xpRequeridoParaIniciar = parsedXpRequerido;
+    } else if (String(editableXpRequerido).trim() === "") {
+        detailsToUpdate.xpRequeridoParaIniciar = undefined; // Allow clearing
+    }
+
+    await onSave(eraToEdit.id, detailsToUpdate);
+    toast({ title: "Era Actualizada", description: `Los detalles de la Era "${eraToEdit.nombre}" han sido guardados.` });
+    setIsOpen(false);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>{triggerButton}</DialogTrigger>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Editar Detalles de la Era: {eraToEdit.nombre}</DialogTitle>
+          <DialogDescription>Personaliza los aspectos narrativos y algunos parámetros de esta era.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div>
+            <Label htmlFor={`eraName-${eraToEdit.id}`}>Nombre de la Era</Label>
+            <Input id={`eraName-${eraToEdit.id}`} value={editableName} onChange={(e) => setEditableName(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor={`eraDescription-${eraToEdit.id}`}>Descripción de la Era</Label>
+            <Textarea id={`eraDescription-${eraToEdit.id}`} value={editableDescription} onChange={(e) => setEditableDescription(e.target.value)} rows={3} />
+          </div>
+          <div>
+            <Label htmlFor={`eraCondiciones-${eraToEdit.id}`}>Descripción de Condiciones de Completado</Label>
+            <Textarea id={`eraCondiciones-${eraToEdit.id}`} value={editableCondiciones} onChange={(e) => setEditableCondiciones(e.target.value)} rows={2} />
+          </div>
+          <div>
+            <Label htmlFor={`eraMecanicas-${eraToEdit.id}`}>Descripción de Mecánicas Especiales</Label>
+            <Textarea id={`eraMecanicas-${eraToEdit.id}`} value={editableMecanicas} onChange={(e) => setEditableMecanicas(e.target.value)} rows={2} />
+          </div>
+          <div>
+            <Label htmlFor={`eraXpRequerido-${eraToEdit.id}`}>XP Requerido para Iniciar esta Era (opcional)</Label>
+            <Input id={`eraXpRequerido-${eraToEdit.id}`} type="number" placeholder="Ej: 1000" value={editableXpRequerido} onChange={(e) => setEditableXpRequerido(e.target.value)} />
+            <p className="text-xs text-muted-foreground mt-1">Si se deja vacío, se usará el valor por defecto de la Era (0 si es nueva). Afecta si puedes *comenzar* esta Era.</p>
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+          <Button onClick={handleSaveChanges}><Save className="mr-2 h-4 w-4"/>Guardar Cambios</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+
+const CurrentEraDisplay: React.FC = () => {
+  const { currentEra, completeCurrentEra, isLoading, isEraObjectiveCompleted, userXP, updateEraCustomizations } = useData();
+  const [isCompleting, setIsCompleting] = useState(false);
+
+  if (isLoading && !currentEra) { // Show loader only if currentEra is not yet available due to loading
     return (
       <div className="flex justify-center items-center p-10">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -67,19 +146,18 @@ const CurrentEraDisplay: React.FC = () => {
           <CardTitle className="text-xl text-gradient-red">Fin de la Saga... por ahora</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">Has completado todas las Eras disponibles. ¡Felicidades, leyenda!</p>
-          <p className="text-muted-foreground mt-2">Pronto habrá nuevos capítulos en tu aventura.</p>
+          <p className="text-muted-foreground">Has completado todas las Eras disponibles o no hay una era activa.</p>
+          <p className="text-muted-foreground mt-2">Pronto habrá nuevos capítulos en tu aventura o puedes iniciar una nueva.</p>
         </CardContent>
       </Card>
     );
   }
 
-  const EraIcon = currentEra.tema_visual.icono || BookCopy;
   const allObjectivesMet = currentEra.objetivos.every(obj => isEraObjectiveCompleted(obj.id, currentEra.id));
   
   const currentEraXpRequirement = currentEra.xpRequeridoParaIniciar !== undefined ? currentEra.xpRequeridoParaIniciar : 0;
-  const xpFromDominating = currentEra.recompensas.find(r => r.type === 'xp' && r.value && typeof r.value === 'number' && r.description.toLowerCase().includes("por dominar"))?.value || 0;
-  const totalXpNeededForCompletion = currentEraXpRequirement + xpFromDominating;
+  const xpFromDominating = currentEra.recompensas.find(r => r.type === 'xp' && r.value && typeof r.value === 'number' && r.description.toLowerCase().includes("por dominar"))?.value || 0; // Simplified
+  const totalXpNeededForCompletion = currentEraXpRequirement + (xpFromDominating || 0); // Use a sensible sum
   const canCompleteEra = allObjectivesMet && userXP >= totalXpNeededForCompletion;
 
 
@@ -94,55 +172,12 @@ const CurrentEraDisplay: React.FC = () => {
     completed: isEraObjectiveCompleted(obj.id, currentEra.id)
   }));
 
-  const handleSaveChanges = async () => {
-    if (!editableName.trim()) {
-      toast({ variant: "destructive", title: "Campo Requerido", description: "El nombre de la Era no puede estar vacío." });
-      return;
-    }
-    
-    const detailsToUpdate: UserEraCustomizations = {};
-    if (editableName.trim() !== currentEra.nombre) {
-        detailsToUpdate.nombre = editableName.trim();
-    }
-    if (editableDescription.trim() !== currentEra.descripcion) {
-        detailsToUpdate.descripcion = editableDescription.trim();
-    }
-    if (editableCondiciones.trim() !== currentEra.condiciones_completado_desc) {
-        detailsToUpdate.condiciones_completado_desc = editableCondiciones.trim();
-    }
-    if (editableMecanicas.trim() !== currentEra.mecanicas_especiales_desc) {
-        detailsToUpdate.mecanicas_especiales_desc = editableMecanicas.trim();
-    }
-    
-    const parsedXpRequerido = parseInt(String(editableXpRequerido), 10);
-    if (!isNaN(parsedXpRequerido) && parsedXpRequerido !== currentEra.xpRequeridoParaIniciar) {
-        detailsToUpdate.xpRequeridoParaIniciar = parsedXpRequerido;
-    } else if (String(editableXpRequerido).trim() === "" && currentEra.xpRequeridoParaIniciar !== undefined) {
-        // If user clears the field, and it was previously defined, allow setting it back to undefined (or let backend handle)
-        // For now, this assumes that an empty string means "no specific XP requirement from customization"
-        // and it will fall back to base Era's value. If base Era also has undefined, it will be undefined.
-        // To explicitly set to 'undefined' from client is tricky if base has a value.
-        // We'll let DataContext handle merging logic correctly.
-        if (currentEra.xpRequeridoParaIniciar !== undefined) { // Only mark for update if it's a change from a defined value
-           detailsToUpdate.xpRequeridoParaIniciar = undefined; // Signal to DataContext to potentially revert to base or store as undefined
-        }
-    }
-
-
-    if (Object.keys(detailsToUpdate).length > 0) {
-        await updateCurrentEraDetails(detailsToUpdate);
-        toast({ title: "Era Actualizada", description: "Los detalles de tu Era actual han sido guardados." });
-    }
-    setIsEditing(false);
-  };
-
-
   return (
     <Card className="shadow-xl border-primary/20 bg-card mb-8">
       <CardHeader className="border-b border-neutral-700/50 pb-4">
         <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 mb-2">
-            <EraIcon className={cn("h-10 w-10", currentEra.tema_visual.colorPrincipal || 'text-primary')} />
+            <EraIconMapper iconName={currentEra.tema_visual.icono} className={cn("h-10 w-10", currentEra.tema_visual.colorPrincipal || 'text-primary')} />
             <div>
                 <p className="text-sm font-medium text-muted-foreground">ERA ACTUAL</p>
                 <CardTitle className={cn("text-3xl font-headline", currentEra.tema_visual.colorPrincipal || 'text-gradient-red')}>
@@ -150,67 +185,31 @@ const CurrentEraDisplay: React.FC = () => {
                 </CardTitle>
             </div>
             </div>
-            <Dialog open={isEditing} onOpenChange={(open) => {
-                setIsEditing(open);
-                if (open && currentEra) { // Re-populate form when dialog opens
-                    setEditableName(currentEra.nombre);
-                    setEditableDescription(currentEra.descripcion);
-                    setEditableCondiciones(currentEra.condiciones_completado_desc);
-                    setEditableMecanicas(currentEra.mecanicas_especiales_desc);
-                    setEditableXpRequerido(currentEra.xpRequeridoParaIniciar !== undefined ? String(currentEra.xpRequeridoParaIniciar) : "");
-                }
-            }}>
-                <DialogTrigger asChild>
+             <EraEditorDialog 
+                eraToEdit={currentEra}
+                onSave={updateEraCustomizations}
+                triggerButton={
                     <Button variant="outline" size="icon" className="text-primary hover:bg-primary/10">
                         <Edit3 className="h-5 w-5" />
-                        <span className="sr-only">Editar Era</span>
+                        <span className="sr-only">Editar Era Actual</span>
                     </Button>
-                </DialogTrigger>
-                <DialogContent className="max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Editar Detalles de la Era Actual</DialogTitle>
-                        <DialogDescription>Personaliza los aspectos narrativos y algunos parámetros de tu era.</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div>
-                            <Label htmlFor="eraName">Nombre de la Era</Label>
-                            <Input id="eraName" value={editableName} onChange={(e) => setEditableName(e.target.value)} />
-                        </div>
-                        <div>
-                            <Label htmlFor="eraDescription">Descripción de la Era</Label>
-                            <Textarea id="eraDescription" value={editableDescription} onChange={(e) => setEditableDescription(e.target.value)} rows={3} />
-                        </div>
-                        <div>
-                            <Label htmlFor="eraCondiciones">Descripción de Condiciones de Completado</Label>
-                            <Textarea id="eraCondiciones" value={editableCondiciones} onChange={(e) => setEditableCondiciones(e.target.value)} rows={2} />
-                        </div>
-                        <div>
-                            <Label htmlFor="eraMecanicas">Descripción de Mecánicas Especiales</Label>
-                            <Textarea id="eraMecanicas" value={editableMecanicas} onChange={(e) => setEditableMecanicas(e.target.value)} rows={2} />
-                        </div>
-                        <div>
-                            <Label htmlFor="eraXpRequerido">XP Requerido para Iniciar esta Era (opcional)</Label>
-                            <Input id="eraXpRequerido" type="number" placeholder="Ej: 1000" value={editableXpRequerido} onChange={(e) => setEditableXpRequerido(e.target.value)} />
-                             <p className="text-xs text-muted-foreground mt-1">Si se deja vacío, se usará el valor por defecto de la Era. Afecta si puedes *comenzar* esta Era.</p>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                        <Button onClick={handleSaveChanges}><Save className="mr-2 h-4 w-4"/>Guardar Cambios</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                }
+            />
         </div>
         <CardDescription className="text-base leading-relaxed">{currentEra.descripcion}</CardDescription>
       </CardHeader>
       <CardContent className="pt-6 space-y-6">
         <div>
           <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-sky-400"/>Objetivos de la Era:</h3>
-          <ul className="space-y-1.5 list-inside">
-            {objectivesWithStatus.map(obj => (
-              <EraObjectiveItem key={obj.id} objective={obj} completed={obj.completed} />
-            ))}
-          </ul>
+           {currentEra.objetivos.length > 0 ? (
+            <ul className="space-y-1.5 list-inside">
+                {objectivesWithStatus.map(obj => (
+                <EraObjectiveItem key={obj.id} objective={obj} completed={obj.completed} />
+                ))}
+            </ul>
+            ) : (
+                <p className="text-sm text-muted-foreground">No hay objetivos específicos definidos para esta era. ¡Enfócate en tu crecimiento general!</p>
+            )}
         </div>
         <div>
           <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center gap-2"><Award className="h-5 w-5 text-amber-400"/>Recompensas al Completar:</h3>
@@ -230,7 +229,7 @@ const CurrentEraDisplay: React.FC = () => {
             <h3 className="text-lg font-semibold text-foreground mb-2">Condiciones para Completar:</h3>
             <p className="text-sm text-muted-foreground">{currentEra.condiciones_completado_desc}</p>
             {currentEra.xpRequeridoParaIniciar !== undefined && (
-                 <p className="text-xs text-muted-foreground">(XP de inicio base: {currentEra.xpRequeridoParaIniciar})</p>
+                 <p className="text-xs text-muted-foreground">(XP de inicio base: {currentEra.xpRequeridoParaIniciar.toLocaleString()})</p>
             )}
         </div>
       </CardContent>
@@ -248,28 +247,140 @@ const CurrentEraDisplay: React.FC = () => {
   );
 };
 
-const CompletedEraItem: React.FC<{ era: Era }> = ({ era }) => {
-  const EraIcon = era.tema_visual.icono || BookCopy;
+const EraListItem: React.FC<{ era: Era; type: 'completed' | 'upcoming' | 'user-created'; onStart?: (eraId: string) => void; canStartStatus?: boolean; onEdit: (era: Era) => void; }> = ({ era, type, onStart, canStartStatus, onEdit }) => {
   return (
-    <Card className="bg-card/50 border-neutral-800 shadow-sm hover:shadow-md transition-shadow">
+    <Card className={cn("bg-card/80 border-neutral-700 shadow-sm flex flex-col h-full", 
+        type === 'completed' && "border-green-500/20 opacity-80",
+        type === 'upcoming' && !canStartStatus && "opacity-60"
+    )}>
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <EraIcon className={cn("h-6 w-6", era.tema_visual.colorPrincipal || 'text-gray-400')} />
-          <CardTitle className={cn("text-lg", era.tema_visual.colorPrincipal || 'text-gray-300')}>{era.nombre}</CardTitle>
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+            <EraIconMapper iconName={era.tema_visual.icono} className={cn("h-6 w-6", era.tema_visual.colorPrincipal || 'text-muted-foreground')} />
+            <CardTitle className={cn("text-lg", era.tema_visual.colorPrincipal || (type === 'completed' ? 'text-green-400' : 'text-foreground'))}>{era.nombre}</CardTitle>
+            </div>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => onEdit(era)}>
+                <Edit3 className="h-4 w-4" />
+                <span className="sr-only">Editar Era</span>
+            </Button>
         </div>
+        {era.xpRequeridoParaIniciar !== undefined && <p className="text-xs text-muted-foreground pt-1">Requiere: {era.xpRequeridoParaIniciar.toLocaleString()} XP</p>}
       </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground line-clamp-3">{era.descripcionCompletada || era.descripcion}</p>
+      <CardContent className="flex-grow">
+        <p className="text-sm text-muted-foreground line-clamp-3">{type === 'completed' ? era.descripcionCompletada || era.descripcion : era.descripcion}</p>
       </CardContent>
+      {type !== 'completed' && onStart && (
+        <CardFooter>
+          <Button onClick={() => onStart(era.id)} disabled={!canStartStatus} className="w-full">
+            {canStartStatus ? "Comenzar esta Era" : "Requisitos no cumplidos"}
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   );
 };
 
+const CreateEraDialog: React.FC<{ onCreate: (details: { nombre: string, descripcion: string }) => Promise<void> }> = ({ onCreate }) => {
+    const { toast } = useToast();
+    const [isOpen, setIsOpen] = useState(false);
+    const [nombre, setNombre] = useState("");
+    const [descripcion, setDescripcion] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async () => {
+        if (!nombre.trim()) {
+            toast({ variant: "destructive", title: "Nombre Requerido", description: "El nombre de la nueva Era no puede estar vacío." });
+            return;
+        }
+        setIsSubmitting(true);
+        await onCreate({ nombre, descripcion });
+        toast({ title: "Era Creada", description: `La Era "${nombre}" ha sido añadida a tus futuras eras.` });
+        setNombre("");
+        setDescripcion("");
+        setIsOpen(false);
+        setIsSubmitting(false);
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full sm:w-auto">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Crear Nueva Era
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Crear Nueva Era</DialogTitle>
+                    <DialogDescription>Define el nombre y la descripción inicial de tu nueva Era. Podrás editar más detalles después.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div>
+                        <Label htmlFor="newEraName">Nombre de la Era</Label>
+                        <Input id="newEraName" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej: La Era de la Autodisciplina"/>
+                    </div>
+                    <div>
+                        <Label htmlFor="newEraDescription">Descripción Breve</Label>
+                        <Textarea id="newEraDescription" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Ej: Un período enfocado en construir hábitos sólidos..." rows={3}/>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="outline" disabled={isSubmitting}>Cancelar</Button></DialogClose>
+                    <Button onClick={handleSubmit} disabled={isSubmitting || !nombre.trim()}>
+                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4"/>}
+                        {isSubmitting ? "Creando..." : "Crear Era"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 
 export default function ErasPage() {
-  const { completedEras, isLoading, allEras, startEra, canStartEra, currentEraId } = useData();
+  const { 
+    predefinedEras, 
+    userCreatedEras,
+    completedEras: completedEraObjects, // Renamed to avoid conflict with variable name
+    isLoading, 
+    currentEraId, 
+    startEra, 
+    canStartEra,
+    updateEraCustomizations,
+    createUserEra,
+    getEraDetails
+  } = useData();
 
-  if (isLoading) {
+  const [eraToEditInDialog, setEraToEditInDialog] = useState<Era | null>(null);
+
+  const handleEditEra = (era: Era) => {
+    // Make sure we pass the fully merged era to the dialog
+    const detailedEra = getEraDetails(era.id);
+    if (detailedEra) {
+        setEraToEditInDialog(detailedEra);
+    }
+  };
+
+  const allKnownErasForFiltering = useMemo(() => {
+    const combined = [...predefinedEras, ...userCreatedEras];
+    // Deduplicate based on ID, preferring userCreatedEras if IDs clash (shouldn't happen with proper ID generation)
+    const eraMap = new Map<string, Era>();
+    combined.forEach(era => eraMap.set(era.id, era));
+    return Array.from(eraMap.values());
+  }, [predefinedEras, userCreatedEras]);
+
+
+  const upcomingEras = useMemo(() => {
+    return allKnownErasForFiltering
+      .filter(era => 
+        !completedEraObjects.find(cEra => cEra.id === era.id) && 
+        era.id !== currentEraId
+      )
+      .map(era => getEraDetails(era.id)) // Get merged details
+      .filter(Boolean) as Era[];
+  }, [allKnownErasForFiltering, completedEraObjects, currentEraId, getEraDetails]);
+
+
+  if (isLoading && !currentEraId && completedEraObjects.length === 0 && userCreatedEras.length === 0 && predefinedEras.length === 0) {
     return (
       <div className="flex justify-center items-center p-10 h-full">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -277,30 +388,33 @@ export default function ErasPage() {
     );
   }
   
-  const upcomingEras = allEras.filter(era => 
-    !completedEras.find(cEra => cEra.id === era.id) && 
-    era.id !== currentEraId 
-    // The canStartEra logic for upcoming eras will use the base XP requirement from allEras,
-    // as currentEraCustomizations only applies to the *current* active era.
-  );
-
-
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-2 mb-1">
-        <BookCopy className="h-8 w-8 text-primary" />
-        <h1 className="text-3xl font-headline font-bold text-gradient-red">Saga de Eras</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div>
+            <div className="flex items-center gap-2 mb-1">
+                <EraIconMapper iconName="BookCopy" className="h-8 w-8 text-primary" />
+                <h1 className="text-3xl font-headline font-bold text-gradient-red">Saga de Eras</h1>
+            </div>
+            <p className="text-muted-foreground ml-10 sm:ml-0">Revive tus capítulos completados, contempla tu era actual y forja las futuras.</p>
+        </div>
+        <CreateEraDialog onCreate={createUserEra} />
       </div>
-      <p className="text-muted-foreground ml-10">Revive tus capítulos completados y contempla tu era actual.</p>
+
 
       <CurrentEraDisplay />
 
-      {completedEras.length > 0 && (
+      {completedEraObjects.length > 0 && (
         <div>
           <h2 className="text-2xl font-semibold text-primary mb-4">Crónicas de tu Saga (Eras Completadas)</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {completedEras.slice().reverse().map(era => ( 
-              <CompletedEraItem key={era.id} era={era} />
+            {completedEraObjects.slice().reverse().map(era => ( 
+              <EraListItem 
+                key={era.id} 
+                era={era} 
+                type="completed" 
+                onEdit={() => handleEditEra(era)}
+              />
             ))}
           </div>
         </div>
@@ -313,29 +427,61 @@ export default function ErasPage() {
             {upcomingEras.map(era => {
               const isPossibleToStart = canStartEra(era.id);
               return (
-                <Card key={era.id} className="bg-card/80 border-neutral-700 shadow-sm">
-                  <CardHeader>
-                      <div className="flex items-center gap-2">
-                          {era.tema_visual.icono ? <era.tema_visual.icono className={cn("h-6 w-6", era.tema_visual.colorPrincipal || 'text-muted-foreground')} /> : <Lock className="h-6 w-6 text-muted-foreground" />}
-                          <CardTitle className={cn("text-lg", era.tema_visual.colorPrincipal || 'text-muted-foreground')}>{era.nombre}</CardTitle>
-                      </div>
-                      {era.xpRequeridoParaIniciar !== undefined && <p className="text-xs text-muted-foreground pt-1">Requiere: {era.xpRequeridoParaIniciar.toLocaleString()} XP</p>}
-                  </CardHeader>
-                  <CardContent>
-                      <p className="text-sm text-muted-foreground line-clamp-3">{era.descripcion}</p>
-                  </CardContent>
-                  <CardFooter>
-                      <Button onClick={() => startEra(era.id)} disabled={!isPossibleToStart} className="w-full">
-                          {isPossibleToStart ? "Comenzar esta Era" : "Requisitos no cumplidos"}
-                      </Button>
-                  </CardFooter>
-                </Card>
+                <EraListItem 
+                    key={era.id} 
+                    era={era} 
+                    type={era.isUserCreated ? "user-created" : "upcoming"}
+                    onStart={startEra}
+                    canStartStatus={isPossibleToStart}
+                    onEdit={() => handleEditEra(era)}
+                />
               );
             })}
           </div>
         </div>
       )}
+
+      {/* Dialog for editing any Era (current, completed, upcoming) */}
+      {eraToEditInDialog && (
+        <EraEditorDialog
+            eraToEdit={eraToEditInDialog}
+            onSave={async (eraId, details) => {
+                await updateEraCustomizations(eraId, details);
+                setEraToEditInDialog(null); // Close dialog by clearing the state
+            }}
+            // This is a bit tricky, we need to control the Dialog's open state from here too
+            // For simplicity, the EraEditorDialog controls its own open state now based on presence of eraToEdit
+            // To close it, we just set eraToEditInDialog to null.
+            // The trigger button is now part of EraListItem and CurrentEraDisplay.
+            // So this component doesn't need to render the Dialog directly,
+            // but it needs to set `eraToEditInDialog` to open it.
+            // We can keep the Dialog structure separate like this or embed it.
+            // For now, let's assume EraEditorDialog handles its open/close via its own `isOpen` state triggered by `eraToEditInDialog`.
+            // Or better: pass `isOpen` and `onOpenChange` to EraEditorDialog.
+            // Simpler: Let EraEditorDialog handle its own state, and we just pass the `eraToEdit` to trigger its appearance.
+            // The onSave callback will close it by setting its internal state.
+            // If EraEditorDialog's <Dialog open={isOpen} onOpenChange={setIsOpen}> is used,
+            // we need to lift this state here.
+
+            // Re-evaluating: The EraEditorDialog is better if it controls its own open/close.
+            // So when `handleEditEra` is called, `eraToEditInDialog` is set.
+            // The EraEditorDialog component should then use `eraToEdit` prop to determine if it should open.
+            // However, a Dialog needs an external trigger or an `open` prop.
+            // Let's make EraEditorDialog simpler: it's always mounted, but its internal <Dialog> is controlled by its own `isOpen` state.
+            // The `triggerButton` prop passed to it makes more sense if we do this.
+            // I'll keep the current structure where ErasPage mounts EraEditorDialog based on `eraToEditInDialog`
+            // And EraEditorDialog takes `eraToEdit` to prefill.
+            // The trigger is part of EraListItem and CurrentEraDisplay directly.
+            // The onSave in DataContext updates state, which re-renders ErasPage.
+
+            // No, the current setup for EraEditorDialog in CurrentEraDisplay is good.
+            // It has its own DialogTrigger and DialogContent. We need a *shared* dialog instance here.
+            // So, ErasPage will render the Dialog, and its `open` state is controlled by `!!eraToEditInDialog`.
+            // `onOpenChange` will set `eraToEditInDialog` to null to close it.
+            triggerButton={<></>} // Placeholder, actual triggers are on list items
+        />
+      )}
+      
     </div>
   );
 }
-

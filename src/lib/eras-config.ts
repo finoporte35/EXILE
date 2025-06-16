@@ -1,9 +1,10 @@
 
 // src/lib/eras-config.ts
 import type { Era } from '@/types';
-import { Sunrise, Zap, Shield, BookOpen, Mountain } from 'lucide-react';
+// Import icon names as strings, components will be resolved dynamically
+// import { Sunrise, Zap, Shield, BookOpen, Mountain } from 'lucide-react'; 
 
-export const ALL_ERAS_DATA: Era[] = [
+export const ALL_PREDEFINED_ERAS_DATA: Era[] = [
   {
     id: 'era_0_prologo',
     nombre: 'Prólogo: El Llamado',
@@ -22,7 +23,7 @@ export const ALL_ERAS_DATA: Era[] = [
     ],
     tema_visual: {
       colorPrincipal: 'text-gray-400',
-      icono: Sunrise,
+      icono: "Sunrise", // Icon name as string
     },
     siguienteEraId: 'era_1_despertar',
     xpRequeridoParaIniciar: 0,
@@ -45,7 +46,7 @@ export const ALL_ERAS_DATA: Era[] = [
     ],
     tema_visual: {
       colorPrincipal: 'text-sky-400',
-      icono: Zap,
+      icono: "Zap", // Icon name as string
     },
     siguienteEraId: 'era_2_disciplina',
     xpRequeridoParaIniciar: 50,
@@ -68,7 +69,7 @@ export const ALL_ERAS_DATA: Era[] = [
     ],
     tema_visual: {
       colorPrincipal: 'text-red-500',
-      icono: Shield,
+      icono: "Shield", // Icon name as string
     },
     siguienteEraId: 'era_3_conocimiento',
     xpRequeridoParaIniciar: 150,
@@ -91,7 +92,7 @@ export const ALL_ERAS_DATA: Era[] = [
     ],
     tema_visual: {
         colorPrincipal: 'text-purple-400',
-        icono: BookOpen,
+        icono: "BookOpen", // Icon name as string
     },
     siguienteEraId: 'era_4_maestria',
     xpRequeridoParaIniciar: 750,
@@ -114,7 +115,7 @@ export const ALL_ERAS_DATA: Era[] = [
     ],
     tema_visual: {
         colorPrincipal: 'text-yellow-400',
-        icono: Mountain,
+        icono: "Mountain", // Icon name as string
     },
     siguienteEraId: null, // Última era definida por ahora
     xpRequeridoParaIniciar: 2000,
