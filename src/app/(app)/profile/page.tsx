@@ -1,42 +1,40 @@
 
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+import { useState, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ImageUp } from 'lucide-react';
+import { ImageUp, Send, Download } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import type { Attribute } from '@/types';
+import { cn } from '@/lib/utils';
 
-interface StatItemProps {
-  name: string;
-  value: number; 
-  Icon: React.ElementType; 
+interface AttributeRatingItemProps {
+  label: string;
+  value: number;
+  progressColorClass?: string; // e.g., "bg-green-500", "bg-orange-500"
 }
 
-const StatItem: React.FC<StatItemProps> = ({ name, value, Icon }) => (
-  <div className="text-center">
-    <p className="text-xs text-muted-foreground mb-1">{name}</p>
-    <div className="flex items-center justify-center gap-1 mb-1">
-      <Icon className="h-5 w-5 text-primary" />
-      <p className="text-3xl font-bold text-foreground">{value}</p>
-    </div>
-    <Progress value={value} className="h-2 bg-muted" indicatorClassName="bg-primary" />
+const AttributeRatingItem: React.FC<AttributeRatingItemProps> = ({ label, value, progressColorClass = "bg-primary" }) => (
+  <div className="flex flex-col items-start">
+    <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
+    <p className="text-4xl font-bold text-foreground my-1">{value}</p>
+    <Progress 
+      value={value} 
+      className="h-2 w-full bg-neutral-700" 
+      indicatorClassName={cn(progressColorClass)} 
+    />
   </div>
 );
-
 
 export default function ProfilePage() {
   const { 
     userName, 
-    userAvatar, // Get avatar from context
-    updateUserAvatar, // Get update function from context
+    userAvatar,
+    updateUserAvatar,
     currentRank, 
-    nextRank, 
-    userXP, 
-    rankProgressPercent,
     attributes 
   } = useData();
     
@@ -48,76 +46,53 @@ export default function ProfilePage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
-        updateUserAvatar(result); // Update avatar through context
+        updateUserAvatar(result);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleButtonClick = () => {
+  const handleUploadButtonClick = () => {
     fileInputRef.current?.click();
   };
 
-  const rankName = currentRank.name.split(" - ")[1] || currentRank.name;
-  const rankLevel = currentRank.name.split(" - ")[0];
+  // Select the first 6 attributes for display, or fewer if not available
+  const displayAttributes = attributes.slice(0, 6);
 
-  const xpToNextRankDisplay = nextRank 
-    ? `${(nextRank.xpRequired - userXP).toLocaleString()} XP para ${nextRank.name.split(" - ")[1]}`
-    : "Rango Máximo";
-
-  const motivation = attributes.find(a => a.name === "Motivación");
-  const energy = attributes.find(a => a.name === "Energía");
-  const discipline = attributes.find(a => a.name === "Disciplina");
-
-  const displayStats = [
-    motivation && { name: motivation.name, value: motivation.value, Icon: motivation.icon },
-    energy && { name: energy.name, value: energy.value, Icon: energy.icon },
-    discipline && { name: discipline.name, value: discipline.value, Icon: discipline.icon },
-  ].filter(Boolean) as { name: string; value: number; Icon: React.ElementType }[];
-
+  // Placeholder for share functionality
+  const handleShare = () => {
+    // Implement share functionality (e.g., copy link, use Web Share API)
+    console.log("Share button clicked");
+  };
 
   return (
-    <div className="space-y-8 flex flex-col items-center min-h-full py-8 px-4">
-      <h1 className="text-4xl font-headline font-bold text-gradient-red text-center">Perfil</h1>
+    <div className="flex flex-col items-center justify-start min-h-full py-8 px-4 space-y-8">
+      <h1 className="text-3xl font-bold text-foreground">Perfil</h1>
 
-      <Card className="w-full max-w-md bg-card shadow-lg p-6 sm:p-8 relative border-neutral-800">
-        <CardContent className="p-0">
-          <div className="flex flex-col items-center mb-6">
-            <Avatar className="h-24 w-24 mb-3 border-2 border-primary">
-              <AvatarImage src={userAvatar || undefined} alt={userName} data-ai-hint="user avatar abstract" />
-              <AvatarFallback className="text-4xl bg-primary text-primary-foreground">{userName.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <h2 className="text-xl font-semibold text-foreground">{userName}</h2>
-            <p className="text-xs text-muted-foreground">{rankLevel}</p>
-            
-            <span className="mt-1 px-2 py-0.5 text-xs font-medium bg-primary text-primary-foreground rounded-full">
-                {rankName}
-            </span>
-            
-          </div>
+      <Card className="w-full max-w-sm bg-neutral-900 shadow-xl rounded-3xl p-6 border-2 border-neutral-800">
+        <div className="relative flex justify-center mb-2">
+          <Avatar className="h-32 w-32 border-4 border-neutral-700">
+            <AvatarImage src={userAvatar || undefined} alt={userName} data-ai-hint="user portrait" />
+            <AvatarFallback className="text-5xl bg-neutral-800 text-neutral-400">{userName.charAt(0).toUpperCase()}</AvatarFallback>
+          </Avatar>
+        </div>
 
-          {displayStats.length > 0 && (
-            <div className="grid grid-cols-3 gap-x-4 gap-y-6 mb-8">
-              {displayStats.map((stat) => (
-                <StatItem key={stat.name} name={stat.name} value={stat.value} Icon={stat.Icon} />
-              ))}
-            </div>
-          )}
-          
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <p className="text-sm text-muted-foreground">Progreso al Siguiente Rango</p>
-              <p className="text-sm font-semibold text-primary">{Math.round(rankProgressPercent)}%</p>
-            </div>
-            <Progress 
-              value={rankProgressPercent} 
-              className="h-2 bg-muted mb-1" 
-              indicatorClassName="bg-main-gradient"
-            />
-            <p className="text-xs text-muted-foreground text-center">{xpToNextRankDisplay}</p>
+        <CardContent className="p-0 mt-6">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-6 mb-8">
+            {displayAttributes.map((attr) => (
+              <AttributeRatingItem 
+                key={attr.name} 
+                label={attr.name} 
+                value={attr.value}
+                // Example of conditional coloring if needed later:
+                // progressColorClass={attr.name === "Potential" ? "bg-green-500" : "bg-primary"}
+              />
+            ))}
           </div>
           
-          <p className="absolute bottom-3 right-4 text-xs text-muted-foreground opacity-50">EXILE</p>
+          <p className="text-center text-sm font-medium text-muted-foreground uppercase tracking-widest">
+            {currentRank.name.split(" - ")[1] || currentRank.name}
+          </p>
         </CardContent>
       </Card>
 
@@ -129,12 +104,20 @@ export default function ProfilePage() {
         style={{ display: 'none' }} 
         aria-hidden="true"
       />
-      <div className="text-center mt-6">
+
+      <div className="w-full max-w-sm flex gap-4 mt-2">
         <Button 
-          onClick={handleButtonClick}
-          className="bg-new-button-gradient text-primary-foreground hover:opacity-90"
+          onClick={handleUploadButtonClick}
+          variant="outline"
+          className="flex-1 bg-neutral-800 border-neutral-700 text-foreground hover:bg-neutral-700 h-12 rounded-xl text-base"
         >
-          <ImageUp className="mr-2 h-4 w-4" /> Cambiar Avatar
+          <Download className="mr-2 h-5 w-5" /> Cambiar Avatar
+        </Button>
+        <Button 
+          onClick={handleShare}
+          className="flex-1 bg-neutral-50 text-neutral-900 hover:bg-neutral-200 h-12 rounded-xl text-base"
+        >
+          <Send className="mr-2 h-5 w-5" /> Compartir
         </Button>
       </div>
       
