@@ -1,15 +1,12 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
+import { DataProvider } from '@/contexts/DataContext'; // Import DataProvider
 
 export const metadata: Metadata = {
-  title: 'Mi Aventura en EXILE', // Título actualizado aquí
+  title: 'Mi Aventura en EXILE', 
   description: 'Potencia tu desarrollo colectivo con EXILE.',
-  // Para cambiar el favicon, podrías añadir una sección 'icons' aquí, por ejemplo:
-  // icons: {
-  //   icon: '/favicon.ico', // o '/icon.png'
-  //   apple: '/apple-icon.png',
-  // },
 };
 
 export default function RootLayout({
@@ -25,7 +22,9 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        {children}
+        <DataProvider> {/* Wrap children with DataProvider */}
+          {children}
+        </DataProvider>
         <Toaster />
       </body>
     </html>
