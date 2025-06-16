@@ -63,6 +63,11 @@ export interface EraReward {
   // Future: itemId, attributeToBoost, etc.
 }
 
+export interface EraVisualTheme {
+  colorPrincipal?: string; // Tailwind text color class e.g. "text-blue-500"
+  icono?: string; // Lucide icon name e.g. "Sunrise"
+}
+
 // Represents the fundamental structure of an Era, whether predefined or user-created
 export interface Era {
   id: string; 
@@ -73,29 +78,23 @@ export interface Era {
   condiciones_completado_desc: string; 
   mecanicas_especiales_desc: string; 
   recompensas: EraReward[]; 
-  tema_visual: { 
-    colorPrincipal?: string; 
-    // Store icon name as string for Firestore compatibility with user-created eras
-    // The actual LucideIcon component will be mapped during rendering
-    icono?: string; // e.g., "Sunrise", "Zap"
-  };
+  tema_visual: EraVisualTheme;
   siguienteEraId?: string | null; 
   xpRequeridoParaIniciar?: number;
-  // For user-created eras, we might add a flag or check presence in userCreatedEras list
   isUserCreated?: boolean; 
   createdAt?: string; // For sorting or tracking user-created eras
+  updatedAt?: string; // For tracking user-created eras updates
 }
 
-// Represents user-specific overrides for certain fields of an Era (predefined or user-created)
+// Represents user-specific overrides for CERTAIN fields of a PREDEFINED Era.
+// User-created eras are modified directly.
 export interface UserEraCustomizations {
   nombre?: string;
   descripcion?: string;
   condiciones_completado_desc?: string;
   mecanicas_especiales_desc?: string;
   xpRequeridoParaIniciar?: number;
-  // Note: objectives, rewards, tema_visual (icon/color mapping for user eras is part of base Era),
-  // and siguienteEraId are not part of simple customization here.
-  // For user-created eras, estos campos (nombre, desc, etc) son su base.
-  // Esta interfaz es más para sobrescribir ERAS PREDEFINIDAS.
-  // Para ERAS CREADAS por el usuario, estos campos se editan directamente en el documento de la Era.
+  tema_visual?: EraVisualTheme; // Allow customizing visuals of predefined eras too
+  // Note: objectives and rewards structures of predefined eras are not meant to be customized by the user via this object.
+  // Their textual descriptions can be part of the main 'descripcion' or other text fields if needed for narrative.
 }
