@@ -6,15 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ImageUp, Send, Download } from 'lucide-react';
-import { useData } from '@/contexts/DataContext';
-import type { Attribute } from '@/types';
+import { Download, Send } from 'lucide-react';
+import { useData, EraIconMapper } from '@/contexts/DataContext';
+import type { Attribute, Era } from '@/types';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AttributeRatingItemProps {
   label: string;
   value: number;
-  progressColorClass?: string; // e.g., "bg-green-500", "bg-orange-500"
+  progressColorClass?: string; 
 }
 
 const AttributeRatingItem: React.FC<AttributeRatingItemProps> = ({ label, value, progressColorClass = "bg-primary" }) => (
@@ -35,7 +36,8 @@ export default function ProfilePage() {
     userAvatar,
     updateUserAvatar,
     currentRank, 
-    attributes 
+    attributes,
+    completedEras 
   } = useData();
     
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -56,8 +58,9 @@ export default function ProfilePage() {
     fileInputRef.current?.click();
   };
 
-  // Select the first 6 attributes for display, or fewer if not available
   const displayAttributes = attributes.slice(0, 6);
+
+  const mostRecentCompletedEra = completedEras.length > 0 ? completedEras[completedEras.length - 1] : null;
 
   return (
     <div className="flex flex-col items-center justify-start min-h-full py-8 px-4 space-y-8">
@@ -82,12 +85,30 @@ export default function ProfilePage() {
             ))}
           </div>
           
-          <p className="text-center text-sm font-medium text-primary uppercase tracking-widest">
-            {currentRank.name.split(" - ")[1] || currentRank.name}
-          </p>
+          <div className="text-center mb-4">
+            <p className="text-sm font-medium text-primary uppercase tracking-widest">
+              {currentRank.name.split(" - ")[1] || currentRank.name}
+            </p>
+            {mostRecentCompletedEra && (
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="mt-2 inline-block cursor-default">
+                      <EraIconMapper
+                        iconName={mostRecentCompletedEra.tema_visual.icono}
+                        className={cn("h-6 w-6", mostRecentCompletedEra.tema_visual.colorPrincipal || "text-muted-foreground")}
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Última Era Completada: {mostRecentCompletedEra.nombre}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
         </CardContent>
         
-        {/* Watermark */}
         <div className="absolute bottom-4 right-6 pointer-events-none">
           <p className="text-2xl font-headline font-bold text-primary opacity-20 select-none">
             EXILE
