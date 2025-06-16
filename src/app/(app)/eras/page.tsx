@@ -31,7 +31,7 @@ const EraRewardItem: React.FC<{ reward: EraReward }> = ({ reward }) => (
 
 
 interface EraEditorDialogProps {
-  eraToEdit: Era; // Pass the full Era object to prefill
+  eraToEdit: Era; 
   onSave: (eraId: string, details: UserEraCustomizations) => Promise<void>;
   triggerButton: React.ReactNode;
 }
@@ -47,7 +47,6 @@ const EraEditorDialog: React.FC<EraEditorDialogProps> = ({ eraToEdit, onSave, tr
     eraToEdit.xpRequeridoParaIniciar !== undefined ? String(eraToEdit.xpRequeridoParaIniciar) : ""
   );
 
-  // Effect to reset form when dialog opens with a new era
   useEffect(() => {
     if (isOpen) {
       setEditableName(eraToEdit.nombre);
@@ -66,9 +65,6 @@ const EraEditorDialog: React.FC<EraEditorDialogProps> = ({ eraToEdit, onSave, tr
     }
     
     const detailsToUpdate: UserEraCustomizations = {};
-    // Only include fields if they actually changed from the base Era's current state
-    // This logic might need adjustment if eraToEdit already includes prior customizations.
-    // For simplicity, we send all, and DataContext can handle merging or direct updates.
     detailsToUpdate.nombre = editableName.trim();
     detailsToUpdate.descripcion = editableDescription.trim();
     detailsToUpdate.condiciones_completado_desc = editableCondiciones.trim();
@@ -78,7 +74,7 @@ const EraEditorDialog: React.FC<EraEditorDialogProps> = ({ eraToEdit, onSave, tr
     if (!isNaN(parsedXpRequerido)) {
         detailsToUpdate.xpRequeridoParaIniciar = parsedXpRequerido;
     } else if (String(editableXpRequerido).trim() === "") {
-        detailsToUpdate.xpRequeridoParaIniciar = undefined; // Allow clearing
+        detailsToUpdate.xpRequeridoParaIniciar = undefined; 
     }
 
     await onSave(eraToEdit.id, detailsToUpdate);
@@ -131,7 +127,7 @@ const CurrentEraDisplay: React.FC = () => {
   const { currentEra, completeCurrentEra, isLoading, isEraObjectiveCompleted, userXP, updateEraCustomizations } = useData();
   const [isCompleting, setIsCompleting] = useState(false);
 
-  if (isLoading && !currentEra) { // Show loader only if currentEra is not yet available due to loading
+  if (isLoading && !currentEra) { 
     return (
       <div className="flex justify-center items-center p-10">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -156,8 +152,8 @@ const CurrentEraDisplay: React.FC = () => {
   const allObjectivesMet = currentEra.objetivos.every(obj => isEraObjectiveCompleted(obj.id, currentEra.id));
   
   const currentEraXpRequirement = currentEra.xpRequeridoParaIniciar !== undefined ? currentEra.xpRequeridoParaIniciar : 0;
-  const xpFromDominating = currentEra.recompensas.find(r => r.type === 'xp' && r.value && typeof r.value === 'number' && r.description.toLowerCase().includes("por dominar"))?.value || 0; // Simplified
-  const totalXpNeededForCompletion = currentEraXpRequirement + (xpFromDominating || 0); // Use a sensible sum
+  const xpFromDominating = currentEra.recompensas.find(r => r.type === 'xp' && r.value && typeof r.value === 'number' && r.description.toLowerCase().includes("por dominar"))?.value || 0; 
+  const totalXpNeededForCompletion = currentEraXpRequirement + (xpFromDominating || 0); 
   const canCompleteEra = allObjectivesMet && userXP >= totalXpNeededForCompletion;
 
 
@@ -340,7 +336,7 @@ export default function ErasPage() {
   const { 
     predefinedEras, 
     userCreatedEras,
-    completedEras: completedEraObjects, // Renamed to avoid conflict with variable name
+    completedEras: completedEraObjects, 
     isLoading, 
     currentEraId, 
     startEra, 
@@ -353,7 +349,6 @@ export default function ErasPage() {
   const [eraToEditInDialog, setEraToEditInDialog] = useState<Era | null>(null);
 
   const handleEditEra = (era: Era) => {
-    // Make sure we pass the fully merged era to the dialog
     const detailedEra = getEraDetails(era.id);
     if (detailedEra) {
         setEraToEditInDialog(detailedEra);
@@ -362,7 +357,6 @@ export default function ErasPage() {
 
   const allKnownErasForFiltering = useMemo(() => {
     const combined = [...predefinedEras, ...userCreatedEras];
-    // Deduplicate based on ID, preferring userCreatedEras if IDs clash (shouldn't happen with proper ID generation)
     const eraMap = new Map<string, Era>();
     combined.forEach(era => eraMap.set(era.id, era));
     return Array.from(eraMap.values());
@@ -375,7 +369,7 @@ export default function ErasPage() {
         !completedEraObjects.find(cEra => cEra.id === era.id) && 
         era.id !== currentEraId
       )
-      .map(era => getEraDetails(era.id)) // Get merged details
+      .map(era => getEraDetails(era.id)) 
       .filter(Boolean) as Era[];
   }, [allKnownErasForFiltering, completedEraObjects, currentEraId, getEraDetails]);
 
@@ -441,47 +435,20 @@ export default function ErasPage() {
         </div>
       )}
 
-      {/* Dialog for editing any Era (current, completed, upcoming) */}
       {eraToEditInDialog && (
         <EraEditorDialog
             eraToEdit={eraToEditInDialog}
             onSave={async (eraId, details) => {
                 await updateEraCustomizations(eraId, details);
-                setEraToEditInDialog(null); // Close dialog by clearing the state
+                setEraToEditInDialog(null); 
             }}
-            // This is a bit tricky, we need to control the Dialog's open state from here too
-            // For simplicity, the EraEditorDialog controls its own open state now based on presence of eraToEdit
-            // To close it, we just set eraToEditInDialog to null.
-            // The trigger button is now part of EraListItem and CurrentEraDisplay.
-            // So this component doesn't need to render the Dialog directly,
-            // but it needs to set `eraToEditInDialog` to open it.
-            // We can keep the Dialog structure separate like this or embed it.
-            // For now, let's assume EraEditorDialog handles its open/close via its own `isOpen` state triggered by `eraToEditInDialog`.
-            // Or better: pass `isOpen` and `onOpenChange` to EraEditorDialog.
-            // Simpler: Let EraEditorDialog handle its own state, and we just pass the `eraToEdit` to trigger its appearance.
-            // The onSave callback will close it by setting its internal state.
-            // If EraEditorDialog's <Dialog open={isOpen} onOpenChange={setIsOpen}> is used,
-            // we need to lift this state here.
-
-            // Re-evaluating: The EraEditorDialog is better if it controls its own open/close.
-            // So when `handleEditEra` is called, `eraToEditInDialog` is set.
-            // The EraEditorDialog component should then use `eraToEdit` prop to determine if it should open.
-            // However, a Dialog needs an external trigger or an `open` prop.
-            // Let's make EraEditorDialog simpler: it's always mounted, but its internal <Dialog> is controlled by its own `isOpen` state.
-            // The `triggerButton` prop passed to it makes more sense if we do this.
-            // I'll keep the current structure where ErasPage mounts EraEditorDialog based on `eraToEditInDialog`
-            // And EraEditorDialog takes `eraToEdit` to prefill.
-            // The trigger is part of EraListItem and CurrentEraDisplay directly.
-            // The onSave in DataContext updates state, which re-renders ErasPage.
-
-            // No, the current setup for EraEditorDialog in CurrentEraDisplay is good.
-            // It has its own DialogTrigger and DialogContent. We need a *shared* dialog instance here.
-            // So, ErasPage will render the Dialog, and its `open` state is controlled by `!!eraToEditInDialog`.
-            // `onOpenChange` will set `eraToEditInDialog` to null to close it.
-            triggerButton={<></>} // Placeholder, actual triggers are on list items
+            triggerButton={<button style={{ display: 'none' }} />} // Placeholder, actual triggers are on list items
         />
       )}
       
     </div>
   );
 }
+
+
+    
