@@ -50,12 +50,7 @@ export default function LoginForm() {
           // Email matches. Password check is omitted for this mock setup.
           localStorage.setItem('isLoggedIn', 'true');
           localStorage.setItem('username', userData.username); 
-          
-          // Avatar is already in localStorage from signup or profile page, no need to set it here unless fetching from Firestore
-          // const storedAvatar = localStorage.getItem('userAvatar');
-          // if (userData.avatarUrl && !storedAvatar) { // Example if avatar was in Firestore
-          //   localStorage.setItem('userAvatar', userData.avatarUrl);
-          // }
+          localStorage.setItem('userEmail', userData.email); // Store email on login
 
           toast({ title: "Inicio de Sesión Exitoso", description: `Bienvenido de nuevo, ${userData.username}.` });
           router.push('/dashboard');
@@ -143,3 +138,4 @@ export default function LoginForm() {
     </Card>
   );
 }
+
