@@ -50,16 +50,17 @@ export interface SleepLog {
 
 
 export interface EraObjective {
-  id: string;
+  id: string; // Unique ID for the objective
   description: string;
-  // Future: type (e.g., 'xp_reach', 'habit_streak', 'goal_complete'), targetValue, currentProgress
+  // Future: type (e.g., 'xp_reach', 'habit_streak', 'goal_complete'), targetValue, currentProgress, isMandatoryForCompletion
 }
 
 export interface EraReward {
-  type: 'xp' | 'item' | 'attribute_boost' | 'unlock';
+  id: string; // Unique ID for the reward
+  type: 'xp' | 'item' | 'attribute_boost' | 'unlock'; // For now, editor will focus on 'xp' type for simplicity
   description: string; 
-  value?: number | string; 
-  attributeName?: string; 
+  value?: number | string; // For 'xp', this would be a number. For others, could be string ID.
+  attributeName?: string | null; 
   // Future: itemId, attributeToBoost, etc.
 }
 
@@ -84,8 +85,8 @@ export interface Era {
   isUserCreated?: boolean; 
   createdAt?: string; // For sorting or tracking user-created eras
   updatedAt?: string; // For tracking user-created eras updates
-  fechaInicio?: string; // ISO date string for when the era was started
-  fechaFin?: string; // ISO date string for when the era was completed
+  fechaInicio?: string | null; // ISO date string for when the era was started
+  fechaFin?: string | null; // ISO date string for when the era was completed
 }
 
 // Represents user-specific overrides for CERTAIN fields of a PREDEFINED Era.
@@ -96,9 +97,9 @@ export interface UserEraCustomizations {
   condiciones_completado_desc?: string;
   mecanicas_especiales_desc?: string;
   xpRequeridoParaIniciar?: number;
-  tema_visual?: EraVisualTheme; // Allow customizing visuals of predefined eras too
-  fechaInicio?: string; // If a predefined era was started by the user
-  fechaFin?: string; // If a predefined era was completed by the user
-  // Note: objectives and rewards structures of predefined eras are not meant to be customized by the user via this object.
-  // Their textual descriptions can be part of the main 'descripcion' or other text fields if needed for narrative.
+  tema_visual?: EraVisualTheme; 
+  fechaInicio?: string | null; 
+  fechaFin?: string | null;
+  // Objectives and rewards of predefined eras are not structurally customizable by the user via this object.
 }
+

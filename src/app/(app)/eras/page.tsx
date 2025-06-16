@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
-import { CheckCircle, Loader2, Lock, Award, ShieldCheck, Info, Edit3, Save, Settings2, PlusCircle, Trash2, Milestone, CalendarDays } from 'lucide-react';
+import { CheckCircle, Loader2, Lock, Award, ShieldCheck, Info, Edit3, Save, Settings2, PlusCircle, Trash2, Milestone, CalendarDays, GripVertical, MinusCircle, Star } from 'lucide-react';
 import type { Era, EraObjective, EraReward, UserEraCustomizations, EraVisualTheme } from '@/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -63,10 +63,8 @@ const EraEditorDialog: React.FC<EraEditorDialogProps> = ({ eraToEdit, onSave, is
   const [editableIcono, setEditableIcono] = useState(eraToEdit.tema_visual.icono || "Milestone");
   const [editableColor, setEditableColor] = useState(eraToEdit.tema_visual.colorPrincipal || "text-gray-400");
 
-  // For user-created eras, objective/reward descriptions
-  const [editableObjectives, setEditableObjectives] = useState<EraObjective[]>(eraToEdit.objetivos.map(o => ({...o})));
-  const [editableRewards, setEditableRewards] = useState<EraReward[]>(eraToEdit.recompensas.map(r => ({...r})));
-
+  const [editableObjectives, setEditableObjectives] = useState<EraObjective[]>([]);
+  const [editableRewards, setEditableRewards] = useState<EraReward[]>([]);
 
   useEffect(() => {
     if (isOpen && eraToEdit) {
@@ -77,16 +75,35 @@ const EraEditorDialog: React.FC<EraEditorDialogProps> = ({ eraToEdit, onSave, is
       setEditableXpRequerido(eraToEdit.xpRequeridoParaIniciar !== undefined ? String(eraToEdit.xpRequeridoParaIniciar) : "");
       setEditableIcono(eraToEdit.tema_visual.icono || "Milestone");
       setEditableColor(eraToEdit.tema_visual.colorPrincipal || "text-gray-400");
-      setEditableObjectives(eraToEdit.objetivos.map(o => ({...o})));
-      setEditableRewards(eraToEdit.recompensas.map(r => ({...r})));
+      
+      // Deep copy objectives and rewards to ensure they are new instances for editing
+      setEditableObjectives(eraToEdit.objetivos ? eraToEdit.objetivos.map(o => ({ ...o })) : []);
+      setEditableRewards(eraToEdit.recompensas ? eraToEdit.recompensas.map(r => ({ ...r })) : []);
     }
   }, [isOpen, eraToEdit]);
 
-  const handleObjectiveDescriptionChange = (index: number, newDescription: string) => {
-    setEditableObjectives(prev => prev.map((obj, i) => i === index ? { ...obj, description: newDescription } : obj));
+  const handleObjectiveChange = (index: number, field: keyof EraObjective, value: string) => {
+    setEditableObjectives(prev => prev.map((obj, i) => i === index ? { ...obj, [field]: value } : obj));
   };
-  const handleRewardDescriptionChange = (index: number, newDescription: string) => {
-    setEditableRewards(prev => prev.map((rew, i) => i === index ? { ...rew, description: newDescription } : rew));
+
+  const addObjective = () => {
+    setEditableObjectives(prev => [...prev, { id: `new_obj_${Date.now()}`, description: "" }]);
+  };
+
+  const removeObjective = (index: number) => {
+    setEditableObjectives(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRewardChange = (index: number, field: keyof EraReward, value: string | number) => {
+     setEditableRewards(prev => prev.map((rew, i) => i === index ? { ...rew, [field]: value } : rew));
+  };
+  
+  const addReward = () => {
+    setEditableRewards(prev => [...prev, { id: `new_rew_${Date.now()}`, type: 'xp', description: "", value: 10 }]);
+  };
+
+  const removeReward = (index: number) => {
+    setEditableRewards(prev => prev.filter((_, i) => i !== index));
   };
 
 
@@ -112,13 +129,20 @@ const EraEditorDialog: React.FC<EraEditorDialogProps> = ({ eraToEdit, onSave, is
     }
 
     if (eraToEdit.isUserCreated) {
-        detailsToUpdate.objetivos = editableObjectives.map(obj => ({...obj, description: obj.description.trim()}));
-        detailsToUpdate.recompensas = editableRewards.map(rew => ({...rew, description: rew.description.trim()}));
+        detailsToUpdate.objetivos = editableObjectives.map(obj => ({...obj, description: obj.description.trim()})).filter(obj => obj.description);
+        detailsToUpdate.recompensas = editableRewards.map(rew => {
+            const val = typeof rew.value === 'string' ? parseInt(rew.value, 10) : rew.value;
+            return ({
+                ...rew, 
+                description: rew.description.trim(),
+                value: isNaN(val as number) ? 0 : val
+            })
+        }).filter(rew => rew.description);
     }
 
     await onSave(eraToEdit.id, detailsToUpdate);
     toast({ title: "Era Actualizada", description: `Los detalles de la Era "${eraToEdit.nombre}" han sido guardados.` });
-    onOpenChange(false); // Close dialog
+    onOpenChange(false); 
   };
 
   return (
@@ -177,27 +201,47 @@ const EraEditorDialog: React.FC<EraEditorDialogProps> = ({ eraToEdit, onSave, is
 
           {eraToEdit.isUserCreated && (
             <>
-              <div className="space-y-2 pt-2 border-t border-border">
-                <h4 className="text-sm font-medium">Editar Descripciones de Objetivos</h4>
+              <div className="space-y-3 pt-3 border-t border-border mt-3">
+                <div className='flex justify-between items-center'>
+                    <h4 className="text-base font-semibold text-primary">Objetivos de la Era</h4>
+                    <Button type="button" size="sm" variant="outline" onClick={addObjective}><PlusCircle className="mr-2 h-4 w-4"/>Añadir Objetivo</Button>
+                </div>
+                {editableObjectives.length === 0 && <p className="text-xs text-muted-foreground py-2">No has definido objetivos. ¡Añade el primero!</p>}
                 {editableObjectives.map((obj, index) => (
-                  <div key={obj.id || index}>
-                    <Label htmlFor={`obj-desc-${index}`}>Descripción Objetivo {index + 1} (ID: {obj.id || 'nuevo'})</Label>
-                    <Textarea id={`obj-desc-${index}`} value={obj.description} onChange={(e) => handleObjectiveDescriptionChange(index, e.target.value)} rows={2}/>
+                  <div key={obj.id} className="space-y-1 p-3 border border-dashed border-neutral-700 rounded-md">
+                     <div className="flex justify-between items-center">
+                        <Label htmlFor={`obj-desc-${index}`} className="text-sm">Objetivo {index + 1}</Label>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={() => removeObjective(index)}>
+                            <MinusCircle className="h-4 w-4"/>
+                        </Button>
+                     </div>
+                    <Textarea id={`obj-desc-${index}`} value={obj.description} onChange={(e) => handleObjectiveChange(index, 'description', e.target.value)} rows={2} placeholder="Describe el objetivo..."/>
                   </div>
                 ))}
-                 {editableObjectives.length === 0 && <p className="text-xs text-muted-foreground">Aún no has definido objetivos para esta Era. Añádelos aquí.</p>}
-                 {/* Placeholder for adding new objectives if needed in future */}
               </div>
-              <div className="space-y-2 pt-2 border-t border-border">
-                <h4 className="text-sm font-medium">Editar Descripciones de Recompensas</h4>
+
+              <div className="space-y-3 pt-3 border-t border-border mt-3">
+                 <div className='flex justify-between items-center'>
+                    <h4 className="text-base font-semibold text-primary">Recompensas de la Era</h4>
+                    <Button type="button" size="sm" variant="outline" onClick={addReward}><PlusCircle className="mr-2 h-4 w-4"/>Añadir Recompensa</Button>
+                </div>
+                {editableRewards.length === 0 && <p className="text-xs text-muted-foreground py-2">No has definido recompensas. ¡Añade la primera!</p>}
                 {editableRewards.map((rew, index) => (
-                  <div key={rew.type + index}>
-                     <Label htmlFor={`rew-desc-${index}`}>Descripción Recompensa {index + 1} (Tipo: {rew.type}, Valor: {rew.value || 'N/A'})</Label>
-                    <Textarea id={`rew-desc-${index}`} value={rew.description} onChange={(e) => handleRewardDescriptionChange(index, e.target.value)} rows={2}/>
+                  <div key={rew.id} className="space-y-2 p-3 border border-dashed border-neutral-700 rounded-md">
+                    <div className="flex justify-between items-center">
+                        <Label htmlFor={`rew-desc-${index}`} className="text-sm">Recompensa {index + 1} (Tipo: XP)</Label>
+                         <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={() => removeReward(index)}>
+                            <MinusCircle className="h-4 w-4"/>
+                        </Button>
+                    </div>
+                    <Textarea id={`rew-desc-${index}`} value={rew.description} onChange={(e) => handleRewardChange(index, 'description', e.target.value)} rows={2} placeholder="Describe la recompensa..."/>
+                    <div className="flex items-center gap-2">
+                        <Star className="h-4 w-4 text-yellow-400"/>
+                        <Input id={`rew-value-${index}`} type="number" placeholder="Valor XP" value={rew.value || ''} onChange={(e) => handleRewardChange(index, 'value', e.target.value)} className="w-24 text-sm h-8"/>
+                    </div>
                   </div>
                 ))}
-                {editableRewards.length === 0 && <p className="text-xs text-muted-foreground">Aún no has definido recompensas. Añádelas aquí.</p>}
-                {/* Placeholder for adding new rewards */}
+                 <p className="text-xs text-muted-foreground pt-1">Nota: Por ahora, solo se pueden añadir recompensas de tipo XP. La funcionalidad completa de otros tipos de recompensa y la evaluación automática de objetivos vendrá en futuras actualizaciones.</p>
               </div>
             </>
           )}
@@ -256,7 +300,9 @@ const CurrentEraDisplay: React.FC = () => {
   const currentEraXpRequirement = currentEra.xpRequeridoParaIniciar !== undefined ? currentEra.xpRequeridoParaIniciar : 0;
   const xpFromDominating = currentEra.recompensas.find(r => r.type === 'xp' && r.value && typeof r.value === 'number' && r.description.toLowerCase().includes("dominar"))?.value || 0; 
   const totalXpNeededForCompletion = currentEraXpRequirement + (xpFromDominating || 0); 
-  const canCompleteEra = allObjectivesMet && userXP >= totalXpNeededForCompletion;
+  // Temporarily, completion only requires XP if objectives aren't yet functional
+  const canCompleteEra = (currentEra.objetivos.length === 0 || allObjectivesMet) && userXP >= totalXpNeededForCompletion;
+
 
   const handleCompleteEra = async () => {
     setIsCompleting(true);
@@ -311,12 +357,15 @@ const CurrentEraDisplay: React.FC = () => {
         </div>
         <div>
           <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center gap-2"><Award className="h-5 w-5 text-amber-400"/>Recompensas al Completar:</h3>
-          <ul className="space-y-1 list-inside">
-            {currentEra.recompensas.map((reward, index) => (
-              <EraRewardItem key={index} reward={reward} />
-            ))}
-             {currentEra.recompensas.length === 0 && <p className="text-sm text-muted-foreground">Sin recompensas específicas definidas. Edita la era para añadir.</p>}
-          </ul>
+          {currentEra.recompensas.length > 0 ? (
+            <ul className="space-y-1 list-inside">
+                {currentEra.recompensas.map((reward) => (
+                <EraRewardItem key={reward.id} reward={reward} />
+                ))}
+            </ul>
+           ) : (
+            <p className="text-sm text-muted-foreground">Sin recompensas específicas definidas. Edita la era para añadir.</p>
+           )}
         </div>
          {currentEra.mecanicas_especiales_desc && (
             <div>
@@ -526,14 +575,17 @@ export default function ErasPage() {
   }, [getEraDetails]);
 
   const allKnownErasForFiltering = useMemo(() => {
-    // Now that predefinedEras is empty, we only care about userCreatedEras
     const eraMap = new Map<string, Era>();
+    predefinedEras.forEach(era => {
+        const detailedEra = getEraDetails(era.id); 
+        if (detailedEra) eraMap.set(detailedEra.id, detailedEra);
+    });
     userCreatedEras.forEach(era => {
         const detailedEra = getEraDetails(era.id); 
         if (detailedEra) eraMap.set(detailedEra.id, detailedEra);
     });
     return Array.from(eraMap.values());
-  }, [userCreatedEras, getEraDetails]);
+  }, [predefinedEras, userCreatedEras, getEraDetails]);
 
 
   const upcomingEras = useMemo(() => {
@@ -542,11 +594,11 @@ export default function ErasPage() {
         !completedEraObjects.find(cEra => cEra.id === era.id) && 
         era.id !== currentEraId
       )
-      .sort((a, b) => (a.createdAt && b.createdAt ? new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() : 0)); // Sort by creation date
+      .sort((a, b) => (a.createdAt && b.createdAt ? new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() : 0));
   }, [allKnownErasForFiltering, completedEraObjects, currentEraId]);
 
 
-  if (isLoading && !currentEraId && completedEraObjects.length === 0 && userCreatedEras.length === 0) {
+  if (isLoading && !currentEraId && completedEraObjects.length === 0 && userCreatedEras.length === 0 && predefinedEras.length === 0) {
     return (
       <div className="flex justify-center items-center p-10 h-full">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -580,6 +632,7 @@ export default function ErasPage() {
                 era={era} 
                 type="completed" 
                 onEdit={() => handleEditEra(era)}
+                onDelete={era.isUserCreated ? deleteUserEra : undefined}
               />
             ))}
           </div>
@@ -588,7 +641,7 @@ export default function ErasPage() {
       
       {upcomingEras.length > 0 && (
         <div className="mt-10">
-          <h2 className="text-2xl font-semibold text-primary mb-4">Eras Futuras Creadas</h2>
+          <h2 className="text-2xl font-semibold text-primary mb-4">Eras Futuras</h2>
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {upcomingEras.map(era => {
               const isPossibleToStart = canStartEra(era.id);
@@ -596,11 +649,11 @@ export default function ErasPage() {
                 <EraListItem 
                     key={era.id} 
                     era={era} 
-                    type="user-created" // All upcoming are user-created now
+                    type={era.isUserCreated ? "user-created" : "upcoming"}
                     onStart={startEra}
                     canStartStatus={isPossibleToStart}
                     onEdit={() => handleEditEra(era)}
-                    onDelete={deleteUserEra} // All user-created eras are deletable
+                    onDelete={era.isUserCreated ? deleteUserEra : undefined}
                 />
               );
             })}
@@ -608,7 +661,7 @@ export default function ErasPage() {
         </div>
       )}
       
-      {upcomingEras.length === 0 && userCreatedEras.length === 0 && !currentEraId && completedEraObjects.length === 0 && !isLoading && (
+      {upcomingEras.length === 0 && userCreatedEras.length === 0 && !currentEraId && completedEraObjects.length === 0 && predefinedEras.length === 0 && !isLoading && (
          <Card className="mt-6">
           <CardHeader>
             <CardTitle className="text-center text-muted-foreground font-normal">Tu Lienzo Te Espera</CardTitle>
@@ -634,3 +687,4 @@ export default function ErasPage() {
     </div>
   );
 }
+
