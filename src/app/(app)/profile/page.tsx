@@ -61,11 +61,11 @@ export default function ProfilePage() {
 
   return (
     <div className="flex flex-col items-center justify-start min-h-full py-8 px-4 space-y-8">
-      <h1 className="text-3xl font-bold text-foreground">Perfil</h1>
+      <h1 className="text-3xl font-bold text-gradient-red">Perfil</h1>
 
-      <Card className="w-full max-w-lg bg-neutral-900 shadow-xl rounded-3xl p-6 border-2 border-neutral-800">
+      <Card className="w-full max-w-lg bg-card shadow-neon-red-card rounded-3xl p-6 border-2 border-primary/40">
         <div className="relative flex justify-center mb-2">
-          <Avatar className="h-32 w-32 border-4 border-neutral-700">
+          <Avatar className="h-32 w-32 border-4 border-primary">
             <AvatarImage src={userAvatar || undefined} alt={userName} data-ai-hint="user portrait" />
             <AvatarFallback className="text-5xl bg-neutral-800 text-neutral-400">{userName.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
@@ -82,7 +82,7 @@ export default function ProfilePage() {
             ))}
           </div>
           
-          <p className="text-center text-sm font-medium text-muted-foreground uppercase tracking-widest">
+          <p className="text-center text-sm font-medium text-primary uppercase tracking-widest">
             {currentRank.name.split(" - ")[1] || currentRank.name}
           </p>
         </CardContent>
@@ -101,7 +101,7 @@ export default function ProfilePage() {
         <Button 
           onClick={handleUploadButtonClick}
           variant="outline"
-          className="flex-1 bg-neutral-800 border-neutral-700 text-foreground hover:bg-neutral-700 h-12 rounded-xl text-base"
+          className="flex-1 border-primary text-primary hover:bg-primary hover:text-primary-foreground focus-visible:ring-primary h-12 rounded-xl text-base"
         >
           <Download className="mr-2 h-5 w-5" /> Cambiar Avatar
         </Button>
