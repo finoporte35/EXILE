@@ -63,7 +63,7 @@ export default function ProfilePage() {
     <div className="flex flex-col items-center justify-start min-h-full py-8 px-4 space-y-8">
       <h1 className="text-3xl font-bold text-gradient-red">Perfil</h1>
 
-      <Card className="w-full max-w-lg bg-card shadow-neon-red-card rounded-3xl p-6 border-2 border-primary/40">
+      <Card className="relative w-full max-w-lg bg-card shadow-neon-red-card rounded-3xl p-6 border-2 border-primary/40">
         <div className="relative flex justify-center mb-2">
           <Avatar className="h-32 w-32 border-4 border-primary">
             <AvatarImage src={userAvatar || undefined} alt={userName} data-ai-hint="user portrait" />
@@ -86,6 +86,13 @@ export default function ProfilePage() {
             {currentRank.name.split(" - ")[1] || currentRank.name}
           </p>
         </CardContent>
+        
+        {/* Watermark */}
+        <div className="absolute bottom-4 right-6 pointer-events-none">
+          <p className="text-2xl font-headline font-bold text-primary opacity-20 select-none">
+            EXILE
+          </p>
+        </div>
       </Card>
 
       <input 
