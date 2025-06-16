@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
-import { CheckCircle, Loader2, Lock, Award, ShieldCheck, Info, Edit3, Save, Settings2, PlusCircle, Trash2, Milestone } from 'lucide-react';
+import { CheckCircle, Loader2, Lock, Award, ShieldCheck, Info, Edit3, Save, Settings2, PlusCircle, Trash2, Milestone, CalendarDays } from 'lucide-react';
 import type { Era, EraObjective, EraReward, UserEraCustomizations, EraVisualTheme } from '@/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +25,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 
 const EraObjectiveItem: React.FC<{ objective: EraObjective; completed: boolean }> = ({ objective, completed }) => (
@@ -110,8 +112,8 @@ const EraEditorDialog: React.FC<EraEditorDialogProps> = ({ eraToEdit, onSave, is
     }
 
     if (eraToEdit.isUserCreated) {
-        detailsToUpdate.objetivos = editableObjectives;
-        detailsToUpdate.recompensas = editableRewards;
+        detailsToUpdate.objetivos = editableObjectives.map(obj => ({...obj, description: obj.description.trim()}));
+        detailsToUpdate.recompensas = editableRewards.map(rew => ({...rew, description: rew.description.trim()}));
     }
 
     await onSave(eraToEdit.id, detailsToUpdate);
@@ -124,7 +126,7 @@ const EraEditorDialog: React.FC<EraEditorDialogProps> = ({ eraToEdit, onSave, is
       <DialogContent className="max-h-[90vh] sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Editar Detalles de la Era: {eraToEdit.nombre}</DialogTitle>
-          <DialogDescription>Personaliza los aspectos de esta era.</DialogDescription>
+          <DialogDescription>Personaliza los aspectos de esta era. Los cambios se guardarán para tu perfil.</DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[calc(90vh-200px)] p-1 pr-3">
         <div className="space-y-4 py-4">
@@ -158,6 +160,21 @@ const EraEditorDialog: React.FC<EraEditorDialogProps> = ({ eraToEdit, onSave, is
                 <Input id={`eraColor-${eraToEdit.id}`} value={editableColor} onChange={(e) => setEditableColor(e.target.value)} placeholder="Ej: text-blue-500"/>
             </div>
           </div>
+
+          {eraToEdit.fechaInicio && (
+            <div>
+              <Label>Fecha de Inicio</Label>
+              <Input value={format(parseISO(eraToEdit.fechaInicio), "PPP", { locale: es })} readOnly disabled className="text-muted-foreground"/>
+            </div>
+          )}
+          {eraToEdit.fechaFin && (
+            <div>
+              <Label>Fecha de Finalización</Label>
+              <Input value={format(parseISO(eraToEdit.fechaFin), "PPP", { locale: es })} readOnly disabled className="text-muted-foreground"/>
+            </div>
+          )}
+
+
           {eraToEdit.isUserCreated && (
             <>
               <div className="space-y-2 pt-2 border-t border-border">
@@ -168,15 +185,19 @@ const EraEditorDialog: React.FC<EraEditorDialogProps> = ({ eraToEdit, onSave, is
                     <Textarea id={`obj-desc-${index}`} value={obj.description} onChange={(e) => handleObjectiveDescriptionChange(index, e.target.value)} rows={2}/>
                   </div>
                 ))}
+                 {editableObjectives.length === 0 && <p className="text-xs text-muted-foreground">Aún no has definido objetivos para esta Era. Añádelos aquí.</p>}
+                 {/* Placeholder for adding new objectives if needed in future */}
               </div>
               <div className="space-y-2 pt-2 border-t border-border">
                 <h4 className="text-sm font-medium">Editar Descripciones de Recompensas</h4>
                 {editableRewards.map((rew, index) => (
                   <div key={rew.type + index}>
-                     <Label htmlFor={`rew-desc-${index}`}>Descripción Recompensa {index + 1} (Tipo: {rew.type})</Label>
+                     <Label htmlFor={`rew-desc-${index}`}>Descripción Recompensa {index + 1} (Tipo: {rew.type}, Valor: {rew.value || 'N/A'})</Label>
                     <Textarea id={`rew-desc-${index}`} value={rew.description} onChange={(e) => handleRewardDescriptionChange(index, e.target.value)} rows={2}/>
                   </div>
                 ))}
+                {editableRewards.length === 0 && <p className="text-xs text-muted-foreground">Aún no has definido recompensas. Añádelas aquí.</p>}
+                {/* Placeholder for adding new rewards */}
               </div>
             </>
           )}
@@ -201,7 +222,6 @@ const CurrentEraDisplay: React.FC = () => {
 
   const handleOpenEditor = () => {
     if (currentEra) {
-        // Refresh era details from context before opening editor
         const freshEraDetails = getEraDetails(currentEra.id);
         if (freshEraDetails) {
             setEraForEditor(freshEraDetails);
@@ -222,11 +242,11 @@ const CurrentEraDisplay: React.FC = () => {
     return (
       <Card className="shadow-lg border-primary/10">
         <CardHeader>
-          <CardTitle className="text-xl text-gradient-red">Fin de la Saga... por ahora</CardTitle>
+          <CardTitle className="text-xl text-gradient-red">Viaje en Calma</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">Has completado todas las Eras disponibles o no hay una era activa.</p>
-          <p className="text-muted-foreground mt-2">Pronto habrá nuevos capítulos en tu aventura o puedes iniciar una nueva era o crear la tuya.</p>
+          <p className="text-muted-foreground">Actualmente no hay una Era activa.</p>
+          <p className="text-muted-foreground mt-2">Puedes iniciar una nueva Era desde la sección "Eras Futuras" o crear la tuya propia.</p>
         </CardContent>
       </Card>
     );
@@ -269,6 +289,12 @@ const CurrentEraDisplay: React.FC = () => {
             </Button>
         </div>
         <CardDescription className="text-base leading-relaxed">{currentEra.descripcion}</CardDescription>
+        {currentEra.fechaInicio && (
+            <p className="text-xs text-sky-400 mt-2 flex items-center gap-1">
+                <CalendarDays className="h-3.5 w-3.5" />
+                Iniciada el: {format(parseISO(currentEra.fechaInicio), "PPP", { locale: es })}
+            </p>
+        )}
       </CardHeader>
       <CardContent className="pt-6 space-y-6">
         <div>
@@ -397,6 +423,13 @@ const EraListItem: React.FC<EraListItemProps> = ({ era, type, onStart, canStartS
       </CardHeader>
       <CardContent className="flex-grow">
         <p className="text-sm text-muted-foreground line-clamp-3">{type === 'completed' ? era.descripcionCompletada || era.descripcion : era.descripcion}</p>
+         {era.fechaInicio && (
+            <p className="text-xs text-sky-400 mt-2 flex items-center gap-1">
+                <CalendarDays className="h-3 w-3" />
+                Iniciada: {format(parseISO(era.fechaInicio), "dd MMM yy", { locale: es })}
+                 {era.fechaFin && ` - Fin: ${format(parseISO(era.fechaFin), "dd MMM yy", { locale: es })}`}
+            </p>
+        )}
       </CardContent>
       {type !== 'completed' && onStart && (
         <CardFooter>
@@ -485,7 +518,7 @@ export default function ErasPage() {
 
 
   const handleEditEra = useCallback((era: Era) => {
-    const detailedEra = getEraDetails(era.id); // Fetch fresh, composed details
+    const detailedEra = getEraDetails(era.id); 
     if (detailedEra) {
         setEraToEditInDialog(detailedEra);
         setIsEditorOpenInPage(true);
@@ -493,14 +526,14 @@ export default function ErasPage() {
   }, [getEraDetails]);
 
   const allKnownErasForFiltering = useMemo(() => {
-    const combined = [...predefinedEras, ...userCreatedEras];
+    // Now that predefinedEras is empty, we only care about userCreatedEras
     const eraMap = new Map<string, Era>();
-    combined.forEach(era => {
-        const detailedEra = getEraDetails(era.id); // Use getEraDetails to ensure customs are applied for display consistency if needed
+    userCreatedEras.forEach(era => {
+        const detailedEra = getEraDetails(era.id); 
         if (detailedEra) eraMap.set(detailedEra.id, detailedEra);
     });
     return Array.from(eraMap.values());
-  }, [predefinedEras, userCreatedEras, getEraDetails]);
+  }, [userCreatedEras, getEraDetails]);
 
 
   const upcomingEras = useMemo(() => {
@@ -509,11 +542,11 @@ export default function ErasPage() {
         !completedEraObjects.find(cEra => cEra.id === era.id) && 
         era.id !== currentEraId
       )
-      .sort((a, b) => (a.xpRequeridoParaIniciar || 0) - (b.xpRequeridoParaIniciar || 0)); // Sort by XP
+      .sort((a, b) => (a.createdAt && b.createdAt ? new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() : 0)); // Sort by creation date
   }, [allKnownErasForFiltering, completedEraObjects, currentEraId]);
 
 
-  if (isLoading && !currentEraId && completedEraObjects.length === 0 && userCreatedEras.length === 0 && predefinedEras.length === 0) {
+  if (isLoading && !currentEraId && completedEraObjects.length === 0 && userCreatedEras.length === 0) {
     return (
       <div className="flex justify-center items-center p-10 h-full">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -555,7 +588,7 @@ export default function ErasPage() {
       
       {upcomingEras.length > 0 && (
         <div className="mt-10">
-          <h2 className="text-2xl font-semibold text-primary mb-4">Eras Futuras Desbloqueables</h2>
+          <h2 className="text-2xl font-semibold text-primary mb-4">Eras Futuras Creadas</h2>
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {upcomingEras.map(era => {
               const isPossibleToStart = canStartEra(era.id);
@@ -563,17 +596,31 @@ export default function ErasPage() {
                 <EraListItem 
                     key={era.id} 
                     era={era} 
-                    type={era.isUserCreated ? "user-created" : "upcoming"}
+                    type="user-created" // All upcoming are user-created now
                     onStart={startEra}
                     canStartStatus={isPossibleToStart}
                     onEdit={() => handleEditEra(era)}
-                    onDelete={era.isUserCreated ? deleteUserEra : undefined}
+                    onDelete={deleteUserEra} // All user-created eras are deletable
                 />
               );
             })}
           </div>
         </div>
       )}
+      
+      {upcomingEras.length === 0 && userCreatedEras.length === 0 && !currentEraId && completedEraObjects.length === 0 && !isLoading && (
+         <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-center text-muted-foreground font-normal">Tu Lienzo Te Espera</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center py-10">
+            <Milestone className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground text-lg">Aún no has forjado ninguna Era.</p>
+            <p className="text-sm text-muted-foreground">Usa el botón "Crear Nueva Era" para comenzar tu saga personalizada.</p>
+          </CardContent>
+        </Card>
+      )}
+
 
       {eraToEditInDialog && (
         <EraEditorDialog

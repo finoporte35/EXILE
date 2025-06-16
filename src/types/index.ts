@@ -84,6 +84,8 @@ export interface Era {
   isUserCreated?: boolean; 
   createdAt?: string; // For sorting or tracking user-created eras
   updatedAt?: string; // For tracking user-created eras updates
+  fechaInicio?: string; // ISO date string for when the era was started
+  fechaFin?: string; // ISO date string for when the era was completed
 }
 
 // Represents user-specific overrides for CERTAIN fields of a PREDEFINED Era.
@@ -95,6 +97,8 @@ export interface UserEraCustomizations {
   mecanicas_especiales_desc?: string;
   xpRequeridoParaIniciar?: number;
   tema_visual?: EraVisualTheme; // Allow customizing visuals of predefined eras too
+  fechaInicio?: string; // If a predefined era was started by the user
+  fechaFin?: string; // If a predefined era was completed by the user
   // Note: objectives and rewards structures of predefined eras are not meant to be customized by the user via this object.
   // Their textual descriptions can be part of the main 'descripcion' or other text fields if needed for narrative.
 }
