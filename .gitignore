@@ -1,61 +1,46 @@
+
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# Dependencies
 /node_modules
 /.pnp
 .pnp.js
 .yarn/install-state.gz
 
-# testing
+# Test Coverage
 /coverage
+/.nyc_output
 
-# next.js
+# Production
+/build
+/out
+
+# Next.js
 /.next/
 /out/
 
-# production
-/build
+# VSCode
+.vscode/
 
-# misc
+# Capacitor
+/android/
+/ios/
+/www/
+capacitor.config.json # If you were using JSON instead of TS
+
+# Env files
+.env
+.env*.local
+
+# Misc
 .DS_Store
 *.pem
 *.log
-
-# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
+firebase-debug.log*
 
-# local env files
-.env.local
-.env.development.local
-.env.production.local
-.env.test.local
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# Editor directories and files
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Firebase
-firebase-debug.log
-firebase-debug.*.log
-
-# IDX specific
-.idx/
+# Genkit
+.genkit-cache/
+.genkit-devtools-db.json

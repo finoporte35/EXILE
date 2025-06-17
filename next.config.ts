@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 import withPWAInit from "@ducanh2912/next-pwa";
 
@@ -15,7 +16,7 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: 'export', // Essential for Capacitor to pick up static build files
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -23,6 +24,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    unoptimized: true, // Required for 'next export' with next/image
     remotePatterns: [
       {
         protocol: 'https',
