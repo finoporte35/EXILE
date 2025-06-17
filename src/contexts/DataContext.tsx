@@ -3,8 +3,7 @@
 
 import type { Rank } from '@/components/ranks/RankItem';
 import { RANKS_DATA, INITIAL_ATTRIBUTES, DEFAULT_USERNAME, INITIAL_XP, HABIT_CATEGORY_XP_MAP, DEFAULT_HABIT_XP, PASSIVE_SKILLS_DATA } from '@/lib/app-config';
-import { ALL_PREDEFINED_ERAS_DATA } from '@/lib/eras-config';
-import type { Habit, Attribute, Goal, SleepLog, SleepQuality, Era, EraObjective, EraReward, UserEraCustomizations, EraVisualTheme, PassiveSkill } from '@/types';
+import type { Habit, Attribute, Goal, SleepLog, SleepQuality, Era, EraObjective, EraReward, UserEraCustomizations, EraVisualTheme, PassiveSkill, AppTheme, SimpleThemeColors } from '@/types';
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { isValid, parseISO as dateFnsParseISO } from 'date-fns';
 import { db, auth } from '@/lib/firebase';
@@ -28,6 +27,8 @@ import {
 import * as LucideIcons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { APP_THEMES, DEFAULT_THEME_ID, getThemeById } from '@/lib/themes';
+import { ALL_PREDEFINED_ERAS_DATA } from '@/lib/eras-config'; // Added import
 
 
 // Helper to get Lucide icon component from string name
@@ -94,6 +95,10 @@ interface DataContextState {
   unlockedSkillIds: string[];
   unlockSkill: (skillId: string) => Promise<void>;
 
+  activeThemeId: string;
+  setAppTheme: (themeId: string) => void;
+  availableThemes: AppTheme[];
+
   isLoading: boolean;
   dataLoadingError: Error | null;
 }
@@ -125,6 +130,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   
   const passiveSkills = useMemo(() => PASSIVE_SKILLS_DATA, []);
   const [unlockedSkillIds, setUnlockedSkillIds] = useState<string[]>([]);
+  
+  const [activeThemeId, setActiveThemeId] = useState<string>(DEFAULT_THEME_ID);
+  const availableThemes = useMemo(() => APP_THEMES, []);
 
   const previousXpRef = useRef<number | undefined>(undefined);
   const previousRankRef = useRef<Rank | undefined>(undefined);
@@ -132,7 +140,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setInitialLoadComplete(false); // Reset on auth change
+      setInitialLoadComplete(false); 
       setAuthUser(user);
       setAuthLoading(false);
       if (!user) {
@@ -149,8 +157,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setAllUserEraCustomizations({});
         setUserCreatedEras([]);
         setUnlockedSkillIds([]);
+        setActiveThemeId(DEFAULT_THEME_ID); // Reset theme for logged out user
         setDataLoading(false);
-        setInitialLoadComplete(true); // No data to load for non-user
+        setInitialLoadComplete(true); 
         previousXpRef.current = undefined; 
         previousRankRef.current = undefined;
       }
@@ -161,17 +170,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const getEraDetails = useCallback((eraId: string): Era | null => {
     if (!eraId) return null;
-
+    // Find in user-created eras first
     let baseEra: Era | undefined = userCreatedEras.find(e => e.id === eraId);
     
+    // If not found, find in predefined eras
     if (!baseEra) {
       baseEra = predefinedEras.find(e => e.id === eraId);
     }
 
     if (!baseEra) return null;
 
-    const customizations = allUserEraCustomizations[eraId] || {};
-    
+    // If it's a user-created era, return it as is (with ensured defaults for safety)
     if (baseEra.isUserCreated) {
       return {
         ...baseEra,
@@ -185,7 +194,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
     }
 
-
+    // If it's a predefined era, apply customizations
+    const customizations = allUserEraCustomizations[eraId] || {};
     return {
       ...baseEra,
       nombre: customizations.nombre ?? baseEra.nombre,
@@ -197,6 +207,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         ...baseEra.tema_visual,
         ...(customizations.tema_visual || {})
       },
+      // Ensure objectives and rewards are deep copied for predefined eras to prevent shared mutation issues
       objetivos: baseEra.objetivos.map(o => ({...o})),
       recompensas: baseEra.recompensas.map(r => ({...r})),
       fechaInicio: customizations.fechaInicio !== undefined ? customizations.fechaInicio : baseEra.fechaInicio,
@@ -220,11 +231,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const loadData = async () => {
       if (!authUser) {
         setDataLoading(false);
-        setInitialLoadComplete(true); // Ensure flag is set even if no authUser
+        setInitialLoadComplete(true); 
         return;
       }
       setDataLoading(true);
-      setInitialLoadComplete(false); // Reset before loading new user data
+      setInitialLoadComplete(false); 
       setDataLoadingError(null);
 
       try {
@@ -236,6 +247,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         let initialAllUserEraCustomizations: Record<string, UserEraCustomizations> = {};
         let loadedUserXP = INITIAL_XP;
         let loadedUnlockedSkillIds: string[] = [];
+        let loadedActiveThemeId = DEFAULT_THEME_ID;
 
 
         if (userDocSnap.exists()) {
@@ -243,13 +255,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUserName(userData.username || DEFAULT_USERNAME);
           setUserEmail(userData.email || authUser.email || "");
           loadedUserXP = userData.xp || INITIAL_XP;
-          // setUserXP(loadedUserXP); // Delay setting XP until after refs are potentially set
           setUserAvatar(userData.avatarUrl || null);
 
           initialCurrentEraId = userData.currentEraId === undefined ? null : userData.currentEraId;
           initialCompletedEraIds = userData.completedEraIds || [];
           initialAllUserEraCustomizations = userData.allUserEraCustomizations || {};
           loadedUnlockedSkillIds = userData.unlockedSkillIds || [];
+          loadedActiveThemeId = userData.activeThemeId || DEFAULT_THEME_ID;
 
         } else {
           const newUserData = {
@@ -261,6 +273,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             completedEraIds: [],
             allUserEraCustomizations: {},
             unlockedSkillIds: [],
+            activeThemeId: DEFAULT_THEME_ID,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           };
@@ -268,18 +281,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUserName(newUserData.username);
           setUserEmail(newUserData.email);
           loadedUserXP = newUserData.xp;
-          // setUserXP(loadedUserXP);
           setUserAvatar(newUserData.avatarUrl);
+          loadedActiveThemeId = newUserData.activeThemeId;
         }
         
-        // Set refs first based on loaded data before setting state that triggers toasts
         previousXpRef.current = loadedUserXP; 
-        setUserXP(loadedUserXP); // Now set XP, this might trigger rank calculation
+        setUserXP(loadedUserXP); 
 
         setCurrentEraId(initialCurrentEraId);
         setCompletedEraIds(initialCompletedEraIds);
         setAllUserEraCustomizations(initialAllUserEraCustomizations);
         setUnlockedSkillIds(loadedUnlockedSkillIds);
+        setActiveThemeId(loadedActiveThemeId); 
         
         const userErasColRef = collection(db, "users", authUser.uid, "userCreatedEras");
         const userErasQuery = query(userErasColRef, orderBy("createdAt", "asc"));
@@ -359,10 +372,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setAllUserEraCustomizations({});
         setUserCreatedEras([]);
         setUnlockedSkillIds([]);
+        setActiveThemeId(DEFAULT_THEME_ID);
         previousXpRef.current = INITIAL_XP;
       } finally {
         setDataLoading(false);
-        setInitialLoadComplete(true); // Data loading attempt is complete
+        setInitialLoadComplete(true); 
       }
     };
 
@@ -370,9 +384,48 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         loadData();
     } else {
         setDataLoading(false);
-        setInitialLoadComplete(true); // No user, so initial load is "complete"
+        setInitialLoadComplete(true); 
     }
   }, [authUser]);
+
+  // Effect to apply theme CSS variables to the document root
+  useEffect(() => {
+    const theme = getThemeById(activeThemeId);
+    if (theme && typeof document !== 'undefined') {
+      const root = document.documentElement;
+      Object.entries(theme.colors).forEach(([key, value]) => {
+        // Convert camelCase to kebab-case for CSS variable names
+        const cssVarName = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+        root.style.setProperty(cssVarName, value);
+      });
+      // Special handling for sidebar primary as it's a distinct variable set
+      root.style.setProperty('--sidebar-primary', theme.colors.sidebarPrimary);
+      root.style.setProperty('--sidebar-accent', theme.colors.sidebarAccent);
+    }
+  }, [activeThemeId]);
+
+  const setAppTheme = useCallback(async (themeId: string) => {
+    const themeToSet = getThemeById(themeId);
+    if (!themeToSet) {
+      console.warn(`Theme with ID "${themeId}" not found. Reverting to default.`);
+      setActiveThemeId(DEFAULT_THEME_ID); // Revert to default if invalid
+      if (authUser) {
+         const userDocRef = doc(db, "users", authUser.uid);
+         await updateDoc(userDocRef, { activeThemeId: DEFAULT_THEME_ID, updatedAt: serverTimestamp() });
+      }
+      return;
+    }
+
+    setActiveThemeId(themeId);
+    if (authUser) {
+      const userDocRef = doc(db, "users", authUser.uid);
+      try {
+        await updateDoc(userDocRef, { activeThemeId: themeId, updatedAt: serverTimestamp() });
+      } catch (error) {
+        console.error("DataContext: Error saving theme preference to Firestore:", error);
+      }
+    }
+  }, [authUser, setActiveThemeId]);
 
 
   const updateUserProfile = useCallback(async (newUsername: string, newEmail: string): Promise<{success: boolean, message: string}> => {
@@ -391,7 +444,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
             }
         }
-        if (newEmail !== userEmail) {
+        // Email uniqueness check - only if email is actually being changed by user in UI
+        // If newEmail is the same as authUser.email, no need to check or update Auth
+        if (newEmail !== (authUser.email || userEmail)) { // Compare with authUser.email
             const usersRef = collection(db, "users");
             const qEmail = query(usersRef, where("email", "==", newEmail));
             const emailSnapshot = await getDocs(qEmail);
@@ -400,16 +455,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     return { success: false, message: "Este correo electrónico ya está registrado." };
                 }
             }
+            // Note: Updating Firebase Auth email (auth.updateEmail) is a sensitive operation,
+            // often requiring re-authentication. For now, we'll only update Firestore email.
+            // If Firebase Auth email needs to change, that logic should be carefully added.
         }
 
         await updateDoc(userDocRef, {
             username: newUsername,
-            email: newEmail,
+            email: newEmail, // Update Firestore email
             updatedAt: serverTimestamp()
         });
         setUserName(newUsername);
-        setUserEmail(newEmail);
-        return { success: true, message: "Perfil actualizado con éxito en la base deatos." };
+        setUserEmail(newEmail); // Update local state for Firestore email
+        // If you also update Firebase Auth's displayName:
+        // await updateProfile(authUser, { displayName: newUsername }); 
+        return { success: true, message: "Perfil actualizado con éxito en la base de datos." };
     } catch (error) {
         console.error("DataContext: Error updating user profile in Firestore for", authUser.uid, error);
         return { success: false, message: "No se pudo actualizar el perfil en la base de datos." };
@@ -418,18 +478,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateUserAvatar = useCallback(async (avatarDataUri: string | null) => {
     if (!authUser) return;
-    setUserAvatar(avatarDataUri);
-    if (avatarDataUri) {
-      localStorage.setItem(`userAvatar_${authUser.uid}`, avatarDataUri);
-    } else {
-      localStorage.removeItem(`userAvatar_${authUser.uid}`);
-    }
-
+    setUserAvatar(avatarDataUri); // Optimistic update for UI
+    
+    // Update Firestore
     const userDocRef = doc(db, "users", authUser.uid);
     try {
       await updateDoc(userDocRef, { avatarUrl: avatarDataUri, updatedAt: serverTimestamp() });
     } catch (error) {
       console.error("DataContext: Error updating avatar in Firestore for", authUser.uid, error);
+      // Potentially revert UI or show error to user
     }
   }, [authUser]);
 
@@ -732,22 +789,16 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [authUser, canStartEra, getEraDetails, allUserEraCustomizations, userCreatedEras, currentEraId, setCurrentEraId, setUserCreatedEras, setAllUserEraCustomizations]);
 
   const isEraObjectiveCompleted = useCallback((objectiveId: string, eraIdToCheck?: string): boolean => {
-    // Placeholder: Actual objective completion logic is complex and for future implementation.
-    // For now, if an Era is marked as "completed" in completedEras, all its objectives are considered met.
-    // If it's the current Era, objectives are considered not met (unless specific logic is added here).
     const eraInFocusId = eraIdToCheck || currentEraId;
     if (!eraInFocusId) return false;
 
     const era = getEraDetails(eraInFocusId);
     if (!era) return false;
     
-    // If the era itself is in the completed list, assume all its objectives were met for it to be completed.
     if (completedEras.some(e => e.id === eraInFocusId)) {
         return true;
     }
     
-    // For current or upcoming eras, objectives are not yet programmatically completed by the system.
-    // This function would need to be expanded significantly to track individual objective progress.
     return false;
   }, [currentEraId, completedEras, getEraDetails]);
 
@@ -767,7 +818,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     const newCompletedIds = [...completedEraIds, currentEraId];
-    const nextEraIdToStart = null; // For now, completing an era doesn't auto-start the next.
+    const nextEraIdToStart = null; 
 
     const userUpdates: Record<string, any> = {
       currentEraId: nextEraIdToStart,
@@ -813,13 +864,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const userDocRef = doc(db, "users", authUser.uid);
 
     if (eraToUpdate && eraToUpdate.isUserCreated) {
-        // This is a user-created era, update its document directly
         const eraDocRef = doc(db, "users", authUser.uid, "userCreatedEras", eraId);
         const updatePayload: Partial<Era> & { updatedAt: any } = { 
           updatedAt: serverTimestamp() 
         };
 
-        // Merge only the fields that are actually part of the Era structure
         if (details.nombre !== undefined) updatePayload.nombre = details.nombre;
         if (details.descripcion !== undefined) updatePayload.descripcion = details.descripcion;
         if (details.condiciones_completado_desc !== undefined) updatePayload.condiciones_completado_desc = details.condiciones_completado_desc;
@@ -827,7 +876,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (details.xpRequeridoParaIniciar !== undefined) updatePayload.xpRequeridoParaIniciar = details.xpRequeridoParaIniciar;
         if (details.tema_visual !== undefined) updatePayload.tema_visual = details.tema_visual;
         
-        // Handle objectives and rewards - ensure they are valid arrays
         if (details.objetivos) {
             updatePayload.objetivos = details.objetivos.map(obj => ({ 
                 id: obj.id || `obj_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, 
@@ -846,13 +894,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         try {
             await updateDoc(eraDocRef, updatePayload);
-            // Update local state
             setUserCreatedEras(prevEras => prevEras.map(e => e.id === eraId ? { ...e, ...updatePayload, updatedAt: new Date().toISOString() } : e));
         } catch (error) {
             console.error(`DataContext: Error updating user-created Era ${eraId} for ${authUser.uid}:`, error);
         }
     } else {
-        // This is a predefined era, update its customizations in the user document
         const customizationDetails: UserEraCustomizations = {};
         if (details.nombre !== undefined) customizationDetails.nombre = details.nombre;
         if (details.descripcion !== undefined) customizationDetails.descripcion = details.descripcion;
@@ -860,12 +906,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (details.mecanicas_especiales_desc !== undefined) customizationDetails.mecanicas_especiales_desc = details.mecanicas_especiales_desc;
         if (details.xpRequeridoParaIniciar !== undefined) customizationDetails.xpRequeridoParaIniciar = details.xpRequeridoParaIniciar;
         if (details.tema_visual !== undefined) customizationDetails.tema_visual = details.tema_visual;
-        // Note: objectives and rewards of predefined eras are NOT directly customizable this way.
 
-        // Get existing customizations or an empty object
         const newCustomizationsForEra = { ...(allUserEraCustomizations[eraId] || {}), ...customizationDetails };
         
-        // Clean up undefined or empty string values from customizations
         Object.keys(newCustomizationsForEra).forEach(key => {
             const K = key as keyof UserEraCustomizations;
             if (newCustomizationsForEra[K] === undefined || (typeof newCustomizationsForEra[K] === 'string' && (newCustomizationsForEra[K] as string).trim() === "")) {
@@ -877,7 +920,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (Object.keys(newCustomizationsForEra).length > 0) {
             updatedAllCustomizations[eraId] = newCustomizationsForEra;
         } else {
-            delete updatedAllCustomizations[eraId]; // Remove if no actual customizations remain
+            delete updatedAllCustomizations[eraId]; 
         }
 
         try {
@@ -895,40 +938,36 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
  const createUserEra = useCallback(async (baseDetails: { nombre: string; descripcion: string }) => {
     if (!authUser) return;
 
-    // Generate a unique ID for the new era on the client-side
     const generatedId = `user_era_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     const newEraFirestoreData = {
-        // id is implicit as document ID in Firestore
         nombre: baseDetails.nombre,
         descripcion: baseDetails.descripcion,
-        descripcionCompletada: "Has completado tu era personalizada: " + baseDetails.nombre, // Default completion desc
-        objetivos: [] as EraObjective[], // Start with empty objectives
+        descripcionCompletada: "Has completado tu era personalizada: " + baseDetails.nombre, 
+        objetivos: [] as EraObjective[], 
         condiciones_completado_desc: "Completa los objetivos que te propongas para esta era.",
         mecanicas_especiales_desc: "Define tus propias mecánicas especiales si lo deseas.",
-        recompensas: [{ type: 'xp' as const, id: `rew_default_${Date.now()}`, description: "XP por completar esta era personalizada.", value: 100, attributeName: null }] as EraReward[], // Default reward
-        tema_visual: { colorPrincipal: 'text-gray-400', icono: "Milestone" } as EraVisualTheme, // Default theme
+        recompensas: [{ type: 'xp' as const, id: `rew_default_${Date.now()}`, description: "XP por completar esta era personalizada.", value: 100, attributeName: null }] as EraReward[], 
+        tema_visual: { colorPrincipal: 'text-gray-400', icono: "Milestone" } as EraVisualTheme, 
         siguienteEraId: null,
-        xpRequeridoParaIniciar: 0, // Default XP requirement
+        xpRequeridoParaIniciar: 0, 
         isUserCreated: true,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        fechaInicio: null, // No start date initially
-        fechaFin: null, // No end date initially
+        fechaInicio: null, 
+        fechaFin: null, 
     };
 
     try {
         const userErasColRef = collection(db, "users", authUser.uid, "userCreatedEras");
-        // Use the generatedId as the document ID
         const newEraDocRef = doc(userErasColRef, generatedId); 
         await setDoc(newEraDocRef, newEraFirestoreData);
 
-        // Create the object for local state, including the client-generated ID
         const newEraForState: Era = {
-            id: generatedId, // Use the same ID for local state
-            ...newEraFirestoreData, // Spread the rest of the data (Firebase Timestamps will be handled on load)
-            createdAt: new Date().toISOString(), // For local state consistency
-            updatedAt: new Date().toISOString(), // For local state consistency
+            id: generatedId, 
+            ...newEraFirestoreData, 
+            createdAt: new Date().toISOString(), 
+            updatedAt: new Date().toISOString(), 
             fechaInicio: null,
             fechaFin: null,
         };
@@ -1096,11 +1135,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
       }
     }
-    previousXpRef.current = userXP;
+    if(initialLoadComplete) {
+      previousXpRef.current = userXP;
+    }
   }, [userXP, toast, authLoading, dataLoading, initialLoadComplete]);
 
   useEffect(() => {
-    // Ensure previousRankRef is set after the initial load and currentRank is calculated
     if (initialLoadComplete && !authLoading && !dataLoading) {
         if (previousRankRef.current && currentRank.name !== previousRankRef.current.name) {
             if (currentRank.xpRequired > previousRankRef.current.xpRequired) {
@@ -1110,10 +1150,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 });
             }
         }
-        previousRankRef.current = currentRank; // Update ref after potential toast
+        previousRankRef.current = currentRank; 
     } else if (!initialLoadComplete && !authLoading && !dataLoading) {
-        // This case might happen if initialLoadComplete becomes false again (e.g. auth state change)
-        // and then loading finishes. We want to set the baseline ref here too.
         previousRankRef.current = currentRank;
     }
   }, [currentRank, toast, authLoading, dataLoading, initialLoadComplete]);
@@ -1229,6 +1267,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addSleepLog, deleteSleepLog,
       updateUserProfile, updateUserAvatar,
       passiveSkills, unlockedSkillIds, unlockSkill,
+      activeThemeId, setAppTheme, availableThemes,
       isLoading: isLoadingCombined, dataLoadingError
     }}>
       {children}
@@ -1249,3 +1288,6 @@ export const EraIconMapper: React.FC<{ iconName?: string; className?: string }> 
   return <IconComponent className={className} />;
 };
 
+// This re-export is not strictly necessary if DataContext is the primary way to access this data,
+// but keeping it in case other modules might need direct access to the config.
+export { ALL_PREDEFINED_ERAS_DATA } from '@/lib/eras-config';

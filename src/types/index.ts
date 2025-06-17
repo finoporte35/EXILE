@@ -50,26 +50,23 @@ export interface SleepLog {
 
 
 export interface EraObjective {
-  id: string; // Unique ID for the objective
+  id: string; 
   description: string;
-  // Future: type (e.g., 'xp_reach', 'habit_streak', 'goal_complete'), targetValue, currentProgress, isMandatoryForCompletion
 }
 
 export interface EraReward {
-  id: string; // Unique ID for the reward
-  type: 'xp' | 'item' | 'attribute_boost' | 'unlock'; // For now, editor will focus on 'xp' type for simplicity
+  id: string; 
+  type: 'xp' | 'item' | 'attribute_boost' | 'unlock'; 
   description: string; 
-  value?: number | string; // For 'xp', this would be a number. For others, could be string ID.
+  value?: number | string; 
   attributeName?: string | null; 
-  // Future: itemId, attributeToBoost, etc.
 }
 
 export interface EraVisualTheme {
-  colorPrincipal?: string; // Tailwind text color class e.g. "text-blue-500"
-  icono?: string; // Lucide icon name e.g. "Sunrise"
+  colorPrincipal?: string; 
+  icono?: string; 
 }
 
-// Represents the fundamental structure of an Era, whether predefined or user-created
 export interface Era {
   id: string; 
   nombre: string; 
@@ -83,14 +80,12 @@ export interface Era {
   siguienteEraId?: string | null; 
   xpRequeridoParaIniciar?: number;
   isUserCreated?: boolean; 
-  createdAt?: string; // For sorting or tracking user-created eras
-  updatedAt?: string; // For tracking user-created eras updates
-  fechaInicio?: string | null; // ISO date string for when the era was started
-  fechaFin?: string | null; // ISO date string for when the era was completed
+  createdAt?: string; 
+  updatedAt?: string; 
+  fechaInicio?: string | null; 
+  fechaFin?: string | null; 
 }
 
-// Represents user-specific overrides for CERTAIN fields of a PREDEFINED Era.
-// User-created eras are modified directly.
 export interface UserEraCustomizations {
   nombre?: string;
   descripcion?: string;
@@ -100,7 +95,6 @@ export interface UserEraCustomizations {
   tema_visual?: EraVisualTheme; 
   fechaInicio?: string | null; 
   fechaFin?: string | null;
-  // Objectives and rewards of predefined eras are not structurally customizable by the user via this object.
 }
 
 export interface PassiveSkill {
@@ -108,8 +102,28 @@ export interface PassiveSkill {
   name: string;
   description: string;
   icon: LucideIcon;
-  cost: number; // XP cost
-  category: 'General' | 'Hábitos' | 'Metas' | 'Atributos'; // Example categories
-  effectDescription: string; // Textual description of the effect
-  // Actual functional effects will be implemented later
+  cost: number; 
+  category: 'General' | 'Hábitos' | 'Metas' | 'Atributos'; 
+  effectDescription: string; 
+}
+
+// Theme Customization Types
+export interface SimpleThemeColors {
+  primary: string; // HSL string "H S% L%"
+  accent: string;
+  background: string;
+  foreground: string;
+  card: string;
+  cardForeground: string; // Added for better card theming
+  // Sidebar
+  sidebarPrimary: string;
+  sidebarAccent: string;
+  // Add other key variables if needed, e.g., for destructive, muted, border, input, ring
+  // For now, keeping it to the most visually impactful ones.
+}
+
+export interface AppTheme {
+  id: string;   // Unique ID like "cyber-blue"
+  name: string; // User-facing name like "Ciber Azul"
+  colors: SimpleThemeColors;
 }

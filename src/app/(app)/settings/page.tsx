@@ -7,23 +7,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Bell, Palette, Shield, UserCircle, Save, Download, Upload, Database, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { DEFAULT_USERNAME, INITIAL_XP } from '@/lib/app-config';
+import { DEFAULT_USERNAME } from '@/lib/app-config';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useData } from '@/contexts/DataContext';
-import { db } from '@/lib/firebase'; // db might not be needed directly if DataContext handles all
-import { collection, query, where, getDocs, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase'; 
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import type { AppTheme } from '@/types';
 
 
 export default function SettingsPage() {
   const { toast } = useToast();
-  //authUser might be null initially or during loading, handle appropriately
-  const { authUser, userName, userEmail, updateUserProfile, isLoading: isDataLoading, habits, goals, sleepLogs, userXP, userAvatar } = useData(); 
+  const { 
+    authUser, 
+    userName, 
+    userEmail, 
+    updateUserProfile, 
+    isLoading: isDataLoading, 
+    habits, goals, sleepLogs, userXP, userAvatar,
+    activeThemeId, setAppTheme, availableThemes
+  } = useData(); 
   
   const [currentUsername, setCurrentUsername] = useState(userName);
-  const [currentEmail, setCurrentEmail] = useState(userEmail); // This should be authUser.email if different
+  const [currentEmail, setCurrentEmail] = useState(userEmail); 
   const [isSavingAccount, setIsSavingAccount] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState(activeThemeId);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -32,11 +42,14 @@ export default function SettingsPage() {
       setCurrentUsername(authUser.displayName || userName || DEFAULT_USERNAME);
       setCurrentEmail(authUser.email || userEmail || "");
     } else {
-      // Fallback if authUser is not yet available, though ideally UI is blocked until authUser loads
       setCurrentUsername(userName);
       setCurrentEmail(userEmail);
     }
   }, [authUser, userName, userEmail]);
+
+  useEffect(() => {
+    setSelectedTheme(activeThemeId);
+  }, [activeThemeId]);
 
 
   const handleAccountChanges = async () => {
@@ -45,15 +58,12 @@ export default function SettingsPage() {
         return;
     }
     setIsSavingAccount(true);
-    if (!currentUsername.trim()) { // Email validation could also be added here
+    if (!currentUsername.trim()) { 
       toast({ variant: "destructive", title: "Campos Requeridos", description: "El nombre de usuario no puede estar vacío." });
       setIsSavingAccount(false);
       return;
     }
 
-    // Pass currentEmail from state which reflects the input field.
-    // The updateUserProfile in DataContext should handle the logic of checking against its own state
-    // and potentially updating Firebase Auth email if that functionality is added there.
     const result = await updateUserProfile(currentUsername, currentEmail); 
     if (result.success) {
       toast({ title: "Perfil Actualizado", description: result.message });
@@ -63,6 +73,12 @@ export default function SettingsPage() {
     setIsSavingAccount(false);
   };
 
+  const handleThemeChange = (themeId: string) => {
+    setSelectedTheme(themeId);
+    setAppTheme(themeId);
+    toast({ title: "Tema Aplicado", description: `Se ha cambiado el tema de la aplicación.` });
+  };
+
   const handleExportData = () => {
     if (!authUser) {
         toast({ variant: "destructive", title: "Error de Exportación", description: "Debes estar autenticado para exportar datos." });
@@ -70,16 +86,16 @@ export default function SettingsPage() {
     }
     try {
       const dataToExport = {
-        username: userName, // From DataContext (should reflect DB)
-        userEmail: userEmail, // From DataContext
+        username: userName, 
+        userEmail: userEmail, 
         userXP: userXP,
         habits: habits,
         goals: goals,
         sleepLogs: sleepLogs,
         userAvatar: userAvatar,
+        activeThemeId: activeThemeId,
         // Note: Era data (currentEraId, completedEraIds, userCreatedEras, allUserEraCustomizations)
         // is complex and currently not included in this basic export.
-        // A more robust export would serialize this from DataContext too.
       };
       const jsonString = JSON.stringify(dataToExport, null, 2);
       const blob = new Blob([jsonString], { type: "application/json" });
@@ -115,19 +131,17 @@ export default function SettingsPage() {
           }
           const importedData = JSON.parse(text);
 
+          // Basic validation of imported data structure
           if (typeof importedData.username !== 'string' ||
               typeof importedData.userEmail !== 'string' ||
               typeof importedData.userXP !== 'number' ||
               !Array.isArray(importedData.habits) ||
               !Array.isArray(importedData.goals) ||
               !Array.isArray(importedData.sleepLogs) ||
-              (importedData.userAvatar !== null && typeof importedData.userAvatar !== 'string')) {
+              (importedData.userAvatar !== null && typeof importedData.userAvatar !== 'string') ||
+              (importedData.activeThemeId && typeof importedData.activeThemeId !== 'string') ) {
             throw new Error("El archivo de copia de seguridad tiene un formato incorrecto o está corrupto.");
           }
-          
-          // This is a complex operation. Ideally, this would be a server-side function or a carefully managed batch write.
-          // Directly writing all this data from client can be risky and might miss some atomicity/consistency.
-          // For now, we'll update Firestore for basic profile info and rely on DataContext reload for subcollections.
           
           const userDocRef = doc(db, "users", authUser.uid);
           await updateDoc(userDocRef, {
@@ -135,20 +149,21 @@ export default function SettingsPage() {
             email: importedData.userEmail,
             xp: importedData.userXP,
             avatarUrl: importedData.userAvatar,
+            activeThemeId: importedData.activeThemeId || DEFAULT_THEME_ID,
             updatedAt: serverTimestamp()
             // Note: Importing habits, goals, sleepLogs, eras correctly would require
             // deleting existing ones for the user and then batch-writing the new ones.
             // This simplified import only updates the main user document.
           });
-
-          // Update local storage (mainly for avatar, as other things will reload from context)
-          localStorage.setItem(`userAvatar_${authUser.uid}`, importedData.userAvatar || "");
-
+          
+          if (importedData.activeThemeId) {
+            setAppTheme(importedData.activeThemeId); // Apply imported theme
+          }
 
           toast({ title: "Datos Importados (Parcialmente)", description: "Tu perfil ha sido actualizado. Los hábitos, metas y otros datos detallados requieren una importación más avanzada y no se han restaurado completamente. La aplicación se recargará." });
           
           setTimeout(() => {
-            window.location.reload(); // Reload to apply changes from Firestore via DataContext
+            window.location.reload(); 
           }, 3000);
 
         } catch (error) {
@@ -201,8 +216,8 @@ export default function SettingsPage() {
                 type="email" 
                 value={currentEmail}
                 onChange={(e) => setCurrentEmail(e.target.value)}
-                disabled={isDataLoading || isSavingAccount || !authUser} // Email change in Firebase Auth is more complex. This only affects Firestore.
-                readOnly // For now, make email read-only as updating Firebase Auth email is complex
+                disabled={isDataLoading || isSavingAccount || !authUser} 
+                readOnly 
               />
                <p className="text-xs text-muted-foreground">La edición del correo se habilitará pronto.</p>
             </div>
@@ -218,6 +233,33 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      <Card className="shadow-lg border-primary/10">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-xl"><Palette className="h-5 w-5 text-primary"/> Apariencia</CardTitle>
+          <CardDescription>Personaliza la interfaz de la aplicación.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="theme-select">Seleccionar Tema</Label>
+            <Select value={selectedTheme} onValueChange={handleThemeChange} disabled={isDataLoading || !authUser}>
+              <SelectTrigger id="theme-select" className="w-full">
+                <SelectValue placeholder="Selecciona un tema" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableThemes.map((theme: AppTheme) => (
+                  <SelectItem key={theme.id} value={theme.id}>
+                    {theme.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Los cambios de tema se aplicarán inmediatamente.
+          </p>
+        </CardContent>
+      </Card>
+      
       <Card className="shadow-lg border-primary/10">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl"><Database className="h-5 w-5 text-primary"/> Gestión de Datos</CardTitle>
@@ -280,16 +322,6 @@ export default function SettingsPage() {
       
       <Card className="shadow-lg border-primary/10">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl"><Palette className="h-5 w-5 text-primary"/> Apariencia (Próximamente)</CardTitle>
-          <CardDescription>Personaliza la interfaz de la aplicación.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <p className="text-muted-foreground">Más opciones de personalización visual estarán disponibles pronto.</p>
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-lg border-primary/10">
-        <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl"><Shield className="h-5 w-5 text-primary"/> Seguridad y Privacidad</CardTitle>
           <CardDescription>Gestiona la seguridad de tu cuenta y tus datos.</CardDescription>
         </CardHeader>
@@ -304,5 +336,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
