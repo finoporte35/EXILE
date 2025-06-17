@@ -1,8 +1,12 @@
-
 // src/lib/firebase.ts
 import { initializeApp, getApp, getApps } from "firebase/app";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore"; // Added enableIndexedDbPersistence
-import { getAuth } from "firebase/auth"; // We'll use auth later
+import {
+  getFirestore, // Keep for fallback
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 // TODO: Replace this with your actual Firebase project configuration
 // You can get this from the Firebase Console:
@@ -25,25 +29,33 @@ if (!getApps().length) {
   app = getApp();
 }
 
-const db = getFirestore(app);
-const auth = getAuth(app); // We will use this later for user authentication
+let db;
 
-// Enable offline persistence for Firestore
-enableIndexedDbPersistence(db)
-  .catch((err) => {
-    if (err.code == 'failed-precondition') {
-      // Multiple tabs open, persistence can only be enabled
-      // in one tab at a time.
-      // This is a common scenario in development, so a warning is appropriate.
-      console.warn("Firestore persistence failed: Multiple tabs open or other precondition error. Offline data might not be available in this tab.");
-    } else if (err.code == 'unimplemented') {
-      // The current browser does not support all of the
-      // features required to enable persistence
-      console.warn("Firestore persistence failed: Browser does not support required features for offline data.");
-    } else {
-      console.error("Firestore persistence error:", err);
-    }
+try {
+  // Initialize Firestore with multi-tab persistent cache.
+  // This aligns with the recommendation to use FirestoreSettings.cache.
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
   });
+  // console.log("Firestore initialized with persistent cache (multi-tab)."); // Optional: for debugging
+} catch (error: any) {
+  console.warn("Firestore initialization with persistent cache failed:", error.code, error.message);
+  if (error.code === 'failed-precondition') {
+    console.warn(
+      "This usually means another tab has already initialized persistence. " +
+      "Firestore will work in this tab, but offline capabilities might be limited to this tab or use in-memory cache if persistent cache is locked."
+    );
+  } else if (error.code === 'unimplemented') {
+     console.warn(
+        "The browser does not support all features required for persistent cache. Firestore will use in-memory cache."
+     );
+  }
+  // Fallback to default Firestore initialization.
+  // This might still enable single-tab persistence or use memory cache depending on the browser and SDK defaults.
+  console.log("Falling back to default Firestore initialization (getFirestore).");
+  db = getFirestore(app);
+}
+
+const auth = getAuth(app);
 
 export { app, db, auth };
-
