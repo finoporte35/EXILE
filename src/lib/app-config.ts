@@ -1,7 +1,7 @@
 
 import type { Rank } from '@/components/ranks/RankItem';
-import type { Attribute, Goal, SleepLog } from '@/types';
-import { User, PersonStanding, Sparkles, Shield, Zap, Users, Brain, Crown, Atom, TrendingUp, Activity, GitFork, Lightbulb, BookOpen, ShieldCheck, Target } from 'lucide-react';
+import type { Attribute, Goal, SleepLog, PassiveSkill } from '@/types';
+import { User, PersonStanding, Sparkles, Shield, Zap, Users, Brain, Crown, Atom, TrendingUp, Activity, GitFork, Lightbulb, BookOpen, ShieldCheck, Target, Unlock, Puzzle, ZapIcon, BrainIcon, TargetIcon, ActivityIcon } from 'lucide-react';
 
 export const DEFAULT_USERNAME = "Explorador";
 export const INITIAL_XP = 0;
@@ -52,4 +52,41 @@ export const INITIAL_SLEEP_LOGS: SleepLog[] = [];
 // Define XP for logging sleep if desired, e.g.
 // export const DEFAULT_SLEEP_LOG_XP = 5;
 
-    
+export const PASSIVE_SKILLS_DATA: PassiveSkill[] = [
+  {
+    id: "ps001",
+    name: "Impulso de XP General",
+    description: "Aumenta permanentemente toda la XP ganada.",
+    icon: ZapIcon,
+    cost: 500,
+    category: "General",
+    effectDescription: "+5% a toda la XP ganada (Efecto no funcional aún).",
+  },
+  {
+    id: "ps002",
+    name: "Maestro de Hábitos",
+    description: "Gana más XP al completar hábitos.",
+    icon: BrainIcon,
+    cost: 300,
+    category: "Hábitos",
+    effectDescription: "+10% XP de hábitos (Efecto no funcional aún).",
+  },
+  {
+    id: "ps003",
+    name: "Cazador de Metas",
+    description: "Recibe un bono de XP al completar metas.",
+    icon: TargetIcon,
+    cost: 400,
+    category: "Metas",
+    effectDescription: "+15% XP de metas completadas (Efecto no funcional aún).",
+  },
+  {
+    id: "ps004",
+    name: "Fortaleza de Atributo",
+    description: "Mejora la ganancia base de un atributo específico (elegir al desbloquear).",
+    icon: ActivityIcon,
+    cost: 750,
+    category: "Atributos",
+    effectDescription: "Bonificación a la velocidad de mejora de un atributo (Efecto no funcional aún).",
+  },
+];

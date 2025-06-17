@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
-  LayoutGrid, User, TrendingUp, ClipboardList, ListChecks, Moon, Target, QuoteIcon, Settings, HelpCircle, LogOut, BookCopy as ErasIcon
+  LayoutGrid, User, TrendingUp, ClipboardList, ListChecks, Moon, Target, QuoteIcon, Settings, HelpCircle, LogOut, BookCopy as ErasIcon, Puzzle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/shared/Logo';
@@ -23,6 +23,7 @@ const menuPrincipalItems = [
   { href: '/ranks', label: 'Rangos', icon: TrendingUp },
   { href: '/eras', label: 'Eras', icon: ErasIcon },
   { href: '/development', label: 'Desarrollo Personal', icon: ClipboardList },
+  { href: '/skills', label: 'Ventajas', icon: Puzzle },
   { href: '/habits', label: 'Hábitos', icon: ListChecks },
   { href: '/sleep', label: 'Sueño', icon: Moon },
   { href: '/goals', label: 'Metas', icon: Target },
@@ -145,5 +146,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-
-    

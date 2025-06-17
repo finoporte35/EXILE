@@ -2,9 +2,9 @@
 "use client";
 
 import type { Rank } from '@/components/ranks/RankItem';
-import { RANKS_DATA, INITIAL_ATTRIBUTES, DEFAULT_USERNAME, INITIAL_XP, HABIT_CATEGORY_XP_MAP, DEFAULT_HABIT_XP } from '@/lib/app-config';
-import { ALL_PREDEFINED_ERAS_DATA } from '@/lib/eras-config';
-import type { Habit, Attribute, Goal, SleepLog, SleepQuality, Era, EraObjective, EraReward, UserEraCustomizations, EraVisualTheme } from '@/types';
+import { RANKS_DATA, INITIAL_ATTRIBUTES, DEFAULT_USERNAME, INITIAL_XP, HABIT_CATEGORY_XP_MAP, DEFAULT_HABIT_XP, PASSIVE_SKILLS_DATA } from '@/lib/app-config';
+import { ALL_PREDEFINED_ERAS_DATA } from '@/lib/eras-config'; // Added import
+import type { Habit, Attribute, Goal, SleepLog, SleepQuality, Era, EraObjective, EraReward, UserEraCustomizations, EraVisualTheme, PassiveSkill } from '@/types';
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { isValid, parseISO as dateFnsParseISO } from 'date-fns';
 import { db, auth } from '@/lib/firebase';
@@ -89,6 +89,11 @@ interface DataContextState {
   deleteSleepLog: (id: string) => void;
   updateUserProfile: (newUsername: string, newEmail: string) => Promise<{success: boolean, message: string}>;
   updateUserAvatar: (avatarDataUri: string | null) => void;
+  
+  passiveSkills: PassiveSkill[];
+  unlockedSkillIds: string[];
+  unlockSkill: (skillId: string) => Promise<void>;
+
   isLoading: boolean;
   dataLoadingError: Error | null;
 }
@@ -117,6 +122,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [currentEraId, setCurrentEraId] = useState<string | null>(null);
   const [completedEraIds, setCompletedEraIds] = useState<string[]>([]);
   
+  const passiveSkills = useMemo(() => PASSIVE_SKILLS_DATA, []);
+  const [unlockedSkillIds, setUnlockedSkillIds] = useState<string[]>([]);
+
   const previousXpRef = useRef<number | undefined>(undefined);
   const previousRankRef = useRef<Rank | undefined>(undefined);
 
@@ -138,6 +146,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setCompletedEraIds([]);
         setAllUserEraCustomizations({});
         setUserCreatedEras([]);
+        setUnlockedSkillIds([]);
         setDataLoading(false);
         previousXpRef.current = undefined; // Reset refs on logout
         previousRankRef.current = undefined;
@@ -221,6 +230,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         let initialCompletedEraIds: string[] = [];
         let initialAllUserEraCustomizations: Record<string, UserEraCustomizations> = {};
         let loadedUserXP = INITIAL_XP;
+        let loadedUnlockedSkillIds: string[] = [];
 
 
         if (userDocSnap.exists()) {
@@ -234,6 +244,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           initialCurrentEraId = userData.currentEraId === undefined ? null : userData.currentEraId;
           initialCompletedEraIds = userData.completedEraIds || [];
           initialAllUserEraCustomizations = userData.allUserEraCustomizations || {};
+          loadedUnlockedSkillIds = userData.unlockedSkillIds || [];
 
         } else {
           const newUserData = {
@@ -244,6 +255,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             currentEraId: null,
             completedEraIds: [],
             allUserEraCustomizations: {},
+            unlockedSkillIds: [],
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           };
@@ -257,6 +269,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setCurrentEraId(initialCurrentEraId);
         setCompletedEraIds(initialCompletedEraIds);
         setAllUserEraCustomizations(initialAllUserEraCustomizations);
+        setUnlockedSkillIds(loadedUnlockedSkillIds);
         
         previousXpRef.current = loadedUserXP; // Set initial XP for comparison
 
@@ -338,6 +351,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setCompletedEraIds([]);
         setAllUserEraCustomizations({});
         setUserCreatedEras([]);
+        setUnlockedSkillIds([]);
         previousXpRef.current = INITIAL_XP;
       } finally {
         setDataLoading(false);
@@ -709,16 +723,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [authUser, canStartEra, getEraDetails, allUserEraCustomizations, userCreatedEras, currentEraId, setCurrentEraId, setUserCreatedEras, setAllUserEraCustomizations]);
 
   const isEraObjectiveCompleted = useCallback((objectiveId: string, eraIdToCheck?: string): boolean => {
+    // Placeholder: Actual objective completion logic is complex and for future implementation.
+    // For now, if an Era is marked as "completed" in completedEras, all its objectives are considered met.
+    // If it's the current Era, objectives are considered not met (unless specific logic is added here).
     const eraInFocusId = eraIdToCheck || currentEraId;
     if (!eraInFocusId) return false;
 
     const era = getEraDetails(eraInFocusId);
     if (!era) return false;
     
+    // If the era itself is in the completed list, assume all its objectives were met for it to be completed.
     if (completedEras.some(e => e.id === eraInFocusId)) {
         return true;
     }
     
+    // For current or upcoming eras, objectives are not yet programmatically completed by the system.
+    // This function would need to be expanded significantly to track individual objective progress.
     return false;
   }, [currentEraId, completedEras, getEraDetails]);
 
@@ -738,7 +758,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     const newCompletedIds = [...completedEraIds, currentEraId];
-    const nextEraIdToStart = null;
+    const nextEraIdToStart = null; // For now, completing an era doesn't auto-start the next.
 
     const userUpdates: Record<string, any> = {
       currentEraId: nextEraIdToStart,
@@ -784,11 +804,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const userDocRef = doc(db, "users", authUser.uid);
 
     if (eraToUpdate && eraToUpdate.isUserCreated) {
+        // This is a user-created era, update its document directly
         const eraDocRef = doc(db, "users", authUser.uid, "userCreatedEras", eraId);
         const updatePayload: Partial<Era> & { updatedAt: any } = { 
           updatedAt: serverTimestamp() 
         };
 
+        // Merge only the fields that are actually part of the Era structure
         if (details.nombre !== undefined) updatePayload.nombre = details.nombre;
         if (details.descripcion !== undefined) updatePayload.descripcion = details.descripcion;
         if (details.condiciones_completado_desc !== undefined) updatePayload.condiciones_completado_desc = details.condiciones_completado_desc;
@@ -796,6 +818,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (details.xpRequeridoParaIniciar !== undefined) updatePayload.xpRequeridoParaIniciar = details.xpRequeridoParaIniciar;
         if (details.tema_visual !== undefined) updatePayload.tema_visual = details.tema_visual;
         
+        // Handle objectives and rewards - ensure they are valid arrays
         if (details.objetivos) {
             updatePayload.objetivos = details.objetivos.map(obj => ({ 
                 id: obj.id || `obj_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, 
@@ -814,11 +837,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         try {
             await updateDoc(eraDocRef, updatePayload);
+            // Update local state
             setUserCreatedEras(prevEras => prevEras.map(e => e.id === eraId ? { ...e, ...updatePayload, updatedAt: new Date().toISOString() } : e));
         } catch (error) {
             console.error(`DataContext: Error updating user-created Era ${eraId} for ${authUser.uid}:`, error);
         }
     } else {
+        // This is a predefined era, update its customizations in the user document
         const customizationDetails: UserEraCustomizations = {};
         if (details.nombre !== undefined) customizationDetails.nombre = details.nombre;
         if (details.descripcion !== undefined) customizationDetails.descripcion = details.descripcion;
@@ -826,8 +851,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (details.mecanicas_especiales_desc !== undefined) customizationDetails.mecanicas_especiales_desc = details.mecanicas_especiales_desc;
         if (details.xpRequeridoParaIniciar !== undefined) customizationDetails.xpRequeridoParaIniciar = details.xpRequeridoParaIniciar;
         if (details.tema_visual !== undefined) customizationDetails.tema_visual = details.tema_visual;
+        // Note: objectives and rewards of predefined eras are NOT directly customizable this way.
 
+        // Get existing customizations or an empty object
         const newCustomizationsForEra = { ...(allUserEraCustomizations[eraId] || {}), ...customizationDetails };
+        
+        // Clean up undefined or empty string values from customizations
         Object.keys(newCustomizationsForEra).forEach(key => {
             const K = key as keyof UserEraCustomizations;
             if (newCustomizationsForEra[K] === undefined || (typeof newCustomizationsForEra[K] === 'string' && (newCustomizationsForEra[K] as string).trim() === "")) {
@@ -839,7 +868,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (Object.keys(newCustomizationsForEra).length > 0) {
             updatedAllCustomizations[eraId] = newCustomizationsForEra;
         } else {
-            delete updatedAllCustomizations[eraId];
+            delete updatedAllCustomizations[eraId]; // Remove if no actual customizations remain
         }
 
         try {
@@ -857,36 +886,40 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
  const createUserEra = useCallback(async (baseDetails: { nombre: string; descripcion: string }) => {
     if (!authUser) return;
 
+    // Generate a unique ID for the new era on the client-side
     const generatedId = `user_era_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     const newEraFirestoreData = {
+        // id is implicit as document ID in Firestore
         nombre: baseDetails.nombre,
         descripcion: baseDetails.descripcion,
-        descripcionCompletada: "Has completado tu era personalizada: " + baseDetails.nombre,
-        objetivos: [] as EraObjective[],
+        descripcionCompletada: "Has completado tu era personalizada: " + baseDetails.nombre, // Default completion desc
+        objetivos: [] as EraObjective[], // Start with empty objectives
         condiciones_completado_desc: "Completa los objetivos que te propongas para esta era.",
         mecanicas_especiales_desc: "Define tus propias mecánicas especiales si lo deseas.",
-        recompensas: [{ type: 'xp' as const, id: `rew_default_${Date.now()}`, description: "XP por completar esta era personalizada.", value: 100, attributeName: null }] as EraReward[],
-        tema_visual: { colorPrincipal: 'text-gray-400', icono: "Milestone" } as EraVisualTheme,
+        recompensas: [{ type: 'xp' as const, id: `rew_default_${Date.now()}`, description: "XP por completar esta era personalizada.", value: 100, attributeName: null }] as EraReward[], // Default reward
+        tema_visual: { colorPrincipal: 'text-gray-400', icono: "Milestone" } as EraVisualTheme, // Default theme
         siguienteEraId: null,
-        xpRequeridoParaIniciar: 0,
+        xpRequeridoParaIniciar: 0, // Default XP requirement
         isUserCreated: true,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        fechaInicio: null,
-        fechaFin: null,
+        fechaInicio: null, // No start date initially
+        fechaFin: null, // No end date initially
     };
 
     try {
         const userErasColRef = collection(db, "users", authUser.uid, "userCreatedEras");
-        const newEraDocRef = doc(userErasColRef, generatedId);
+        // Use the generatedId as the document ID
+        const newEraDocRef = doc(userErasColRef, generatedId); 
         await setDoc(newEraDocRef, newEraFirestoreData);
 
+        // Create the object for local state, including the client-generated ID
         const newEraForState: Era = {
-            id: generatedId,
-            ...newEraFirestoreData,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            id: generatedId, // Use the same ID for local state
+            ...newEraFirestoreData, // Spread the rest of the data (Firebase Timestamps will be handled on load)
+            createdAt: new Date().toISOString(), // For local state consistency
+            updatedAt: new Date().toISOString(), // For local state consistency
             fechaInicio: null,
             fechaFin: null,
         };
@@ -901,23 +934,27 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!authUser) return;
 
     const eraToDelete = userCreatedEras.find(e => e.id === eraId);
-    if (!eraToDelete || !eraToDelete.isUserCreated) {
+    if (!eraToDelete || !eraToDelete.isUserCreated) { // Ensure it's a user-created era
+        // Optionally handle trying to delete a non-user-created era, though UI should prevent this
         return;
     }
 
     const originalUserCreatedEras = [...userCreatedEras];
     const originalCurrentEraId = currentEraId;
 
+    // Optimistically update local state
     setUserCreatedEras(prevEras => prevEras.filter(e => e.id !== eraId));
     
     if (currentEraId === eraId) {
-        setCurrentEraId(null);
+        setCurrentEraId(null); // If the deleted era was active, deactivate it
     }
 
+    // Prepare Firestore batch
     const batch = writeBatch(db);
     const eraDocRef = doc(db, "users", authUser.uid, "userCreatedEras", eraId);
     batch.delete(eraDocRef);
 
+    // Update user document if the current era was deleted
     const userDocRef = doc(db, "users", authUser.uid);
     const userDocUpdates: Record<string, any> = { updatedAt: serverTimestamp() };
     if (currentEraId === eraId) {
@@ -929,10 +966,48 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await batch.commit();
     } catch (error) {
         console.error(`DataContext: Error deleting user-created Era ${eraId} for ${authUser.uid}:`, error);
+        // Revert optimistic updates on error
         setUserCreatedEras(originalUserCreatedEras);
         setCurrentEraId(originalCurrentEraId);
     }
   }, [authUser, userCreatedEras, currentEraId, setUserCreatedEras, setCurrentEraId]);
+
+  const unlockSkill = useCallback(async (skillId: string) => {
+    if (!authUser || unlockedSkillIds.includes(skillId)) return;
+
+    const skillToUnlock = passiveSkills.find(s => s.id === skillId);
+    if (!skillToUnlock) {
+        toast({ variant: "destructive", title: "Error", description: "Habilidad no encontrada." });
+        return;
+    }
+
+    if (userXP < skillToUnlock.cost) {
+        toast({ variant: "destructive", title: "XP Insuficiente", description: `Necesitas ${skillToUnlock.cost} XP para desbloquear "${skillToUnlock.name}".` });
+        return;
+    }
+
+    const newXP = userXP - skillToUnlock.cost;
+    const newUnlockedSkillIds = [...unlockedSkillIds, skillId];
+
+    setUserXP(newXP);
+    setUnlockedSkillIds(newUnlockedSkillIds);
+
+    const userDocRef = doc(db, "users", authUser.uid);
+    try {
+        await updateDoc(userDocRef, {
+            xp: newXP,
+            unlockedSkillIds: newUnlockedSkillIds,
+            updatedAt: serverTimestamp()
+        });
+        toast({ title: "¡Habilidad Desbloqueada!", description: `Has desbloqueado "${skillToUnlock.name}".` });
+    } catch (error) {
+        // Revert optimistic update
+        setUserXP(userXP);
+        setUnlockedSkillIds(unlockedSkillIds);
+        console.error("DataContext: Error unlocking skill", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo desbloquear la habilidad." });
+    }
+  }, [authUser, userXP, unlockedSkillIds, passiveSkills, toast]);
 
 
   const { currentRank, nextRank, xpTowardsNextRank, totalXPForNextRankLevel, rankProgressPercent } = React.useMemo(() => {
@@ -945,59 +1020,64 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (i + 1 < RANKS_DATA.length) {
           nextRankCalculated = RANKS_DATA[i + 1];
         } else {
-          nextRankCalculated = null;
+          nextRankCalculated = null; // Max rank reached
         }
       } else {
-        if (i === 0) {
-            currentRankCalculated = RANKS_DATA[0];
-            nextRankCalculated = RANKS_DATA.length > 0 ? RANKS_DATA[i] : null;
+        // This will be the next rank if currentXP is less than this rank's requirement
+        // If currentRankCalculated is still RANKS_DATA[0] and userXP is less than RANKS_DATA[0].xpRequired (which shouldn't happen if xpRequired is 0 for the first rank)
+        // or if we haven't found the next rank yet.
+        if (i === 0) { // Should only happen if first rank has xpRequired > 0 and userXP is less.
+            currentRankCalculated = RANKS_DATA[0]; // User is at the very first rank.
+            nextRankCalculated = RANKS_DATA.length > 0 ? RANKS_DATA[i] : null; // The next rank is this one.
         }
-        else if (!nextRankCalculated) {
-             nextRankCalculated = RANKS_DATA[i];
-        }
-        break;
+        // else if (!nextRankCalculated) { // This condition means currentRankCalculated is set, but nextRankCalculated is not (i.e. userXP was >= previous rank, but < current i rank)
+        //    nextRankCalculated = RANKS_DATA[i];
+        // }
+        break; // Found the segment where userXP falls.
       }
     }
 
+    // Recalculate xpTowardsNextRank and totalXPForNextRankLevel based on confirmed current and next ranks
     let xpTowardsNext = 0;
-    let totalXPForLevel = 100;
-    let progressPercent = 0;
+    let totalXPForLevel = 100; // Default to avoid division by zero if logic error
+
     const currentRankXpRequirement = currentRankCalculated.xpRequired;
 
     if (nextRankCalculated) {
       const nextRankXpRequirement = nextRankCalculated.xpRequired;
       xpTowardsNext = Math.max(0, userXP - currentRankXpRequirement);
       totalXPForLevel = Math.max(1, nextRankXpRequirement - currentRankXpRequirement);
-      progressPercent = totalXPForLevel > 0 ? (xpTowardsNext / totalXPForLevel) * 100 : 0;
-       if (totalXPForLevel === 0 && userXP >= nextRankXpRequirement) {
-          progressPercent = 100;
-      }
-    } else {
-      const currentRankIndex = RANKS_DATA.findIndex(r => r.name === currentRankCalculated.name);
-       if (currentRankIndex >= 0 && RANKS_DATA.length === 1) {
-        totalXPForLevel = Math.max(1, currentRankXpRequirement);
-        xpTowardsNext = userXP;
-        progressPercent = currentRankXpRequirement > 0 ? Math.min(100, (userXP / currentRankXpRequirement) * 100) : (userXP > 0 ? 100 : 0);
-      } else if (currentRankIndex > 0) {
-        const previousRankXp = RANKS_DATA[currentRankIndex -1].xpRequired;
-        totalXPForLevel = Math.max(1, currentRankXpRequirement - previousRankXp);
-        xpTowardsNext = Math.max(0, userXP - previousRankXp);
-        progressPercent = (userXP >= currentRankXpRequirement) ? 100 : ((xpTowardsNext / totalXPForLevel) * 100);
-      } else {
-        totalXPForLevel = currentRankXpRequirement > 0 ? currentRankXpRequirement : (RANKS_DATA.length > 1 ? RANKS_DATA[1].xpRequired : 1);
-        xpTowardsNext = userXP;
-        progressPercent = (userXP >= currentRankXpRequirement && totalXPForLevel > 0) ? 100 : ((xpTowardsNext / totalXPForLevel) * 100);
-      }
-       if (userXP >= currentRankXpRequirement && !nextRankCalculated) {
-            progressPercent = 100;
-            xpTowardsNext = totalXPForLevel;
+    } else { // Max rank reached or only one rank defined
+        if (RANKS_DATA.length === 1) { // Only one rank
+            totalXPForLevel = Math.max(1, currentRankXpRequirement); // Progress towards completing this single rank if xpRequired > 0
+            xpTowardsNext = userXP;
+        } else { // Max rank among multiple ranks
+            // Find previous rank to currentRankCalculated
+            const currentRankIndex = RANKS_DATA.findIndex(r => r.name === currentRankCalculated.name);
+            if (currentRankIndex > 0) {
+                const previousRankXp = RANKS_DATA[currentRankIndex -1].xpRequired;
+                totalXPForLevel = Math.max(1, currentRankXpRequirement - previousRankXp);
+                xpTowardsNext = Math.max(0, userXP - previousRankXp);
+            } else { // currentRank is the first rank, and there's no next rank (implies only 1 rank)
+                totalXPForLevel = Math.max(1, currentRankXpRequirement);
+                xpTowardsNext = userXP;
+            }
         }
     }
+    
+    let progressPercent = (totalXPForLevel > 0) ? (xpTowardsNext / totalXPForLevel) * 100 : 0;
+    if (!nextRankCalculated && userXP >= currentRankXpRequirement) { // At max rank and XP met or exceeded
+        progressPercent = 100;
+        xpTowardsNext = totalXPForLevel; // Show progress bar full
+    }
+    
+    // Edge case: userXP is 0, first rank is 0 XP.
     if (userXP === 0 && currentRankCalculated.xpRequired === 0 && nextRankCalculated) {
         xpTowardsNext = 0;
         totalXPForLevel = Math.max(1, nextRankCalculated.xpRequired - currentRankCalculated.xpRequired);
         progressPercent = 0;
     }
+
     return {
       currentRank: currentRankCalculated,
       nextRank: nextRankCalculated,
@@ -1055,19 +1135,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 const completedGoalsXP = goals.filter(g => g.isCompleted).reduce((sum, g) => sum + g.xp, 0);
                 const totalPotentialGoalsXP = goals.reduce((sum, g) => sum + g.xp, 0);
                 let goalContribution = totalPotentialGoalsXP > 0 ? (completedGoalsXP / totalPotentialGoalsXP) * 70 : 0;
-                if (goals.length === 0) goalContribution = 0;
+                if (goals.length === 0) goalContribution = 0; // If no goals, no contribution from them.
 
+                // XP contribution to motivation, scaled by rank progression
                 let xpContributionRank = 0;
                  if (userXP > 0) {
+                  // Consider max XP as the requirement for the highest rank, or a large enough number if ranks aren't fully defined.
                   const maxPossibleUserXP = RANKS_DATA[RANKS_DATA.length -1]?.xpRequired;
-                  const effectiveMaxXP = (maxPossibleUserXP && maxPossibleUserXP > 0) ? maxPossibleUserXP : (userXP + 1000);
-                  xpContributionRank = (userXP / effectiveMaxXP) * 30;
+                  const effectiveMaxXP = (maxPossibleUserXP && maxPossibleUserXP > 0) ? maxPossibleUserXP : (userXP + 1000); // Fallback if max rank XP is 0 or not set
+                  xpContributionRank = (userXP / effectiveMaxXP) * 30; // Max 30 points from XP
                 }
                 rawValue = goalContribution + xpContributionRank;
                 break;
             case "Energía":
+                // Based on average sleep quality of last 7 logs
                 if (sleepLogs.length > 0) {
-                    const recentLogs = sleepLogs.slice(0, 7);
+                    const recentLogs = sleepLogs.slice(0, 7); // Get up to last 7 logs
                     const qualityScore = recentLogs.reduce((sum, log) => {
                         if (log.quality === "excellent") return sum + 4;
                         if (log.quality === "good") return sum + 3;
@@ -1075,56 +1158,65 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         if (log.quality === "poor") return sum + 1;
                         return sum;
                     }, 0);
-                    rawValue = recentLogs.length > 0 ? (qualityScore / (recentLogs.length * 4)) * 100 : 0;
+                    rawValue = recentLogs.length > 0 ? (qualityScore / (recentLogs.length * 4)) * 100 : 0; // Max score is 4 per log
                 } else {
-                    rawValue = 0;
+                    rawValue = 0; // No sleep logs, no energy from sleep
                 }
                 break;
             case "Disciplina":
+                // Based on habit completion ratio and average streak
                 const totalHabitCompletions = habits.filter(h => h.completed).length;
                 const totalHabitCount = habits.length;
                 const averageStreak = totalHabitCount > 0 ? habits.reduce((sum, h) => sum + (h.streak || 0), 0) / totalHabitCount : 0;
-                let habitCompletionRatio = totalHabitCount > 0 ? (totalHabitCompletions / totalHabitCount) * 80 : 0;
-                let streakContribution = Math.min(20, (averageStreak / 7) * 20);
+                
+                let habitCompletionRatio = totalHabitCount > 0 ? (totalHabitCompletions / totalHabitCount) * 80 : 0; // Max 80 points from completion ratio
+                let streakContribution = Math.min(20, (averageStreak / 7) * 20); // Max 20 points from streak (e.g., 7-day avg streak gives full 20)
+
                 rawValue = habitCompletionRatio + streakContribution;
                 break;
             default:
+                // For other attributes, base it on general XP progression for now
+                // This could be refined later if specific actions contribute to other attributes
                 if (userXP === 0) {
                     rawValue = 0;
                 } else if (RANKS_DATA.length > 0) {
                     const maxSystemXP = RANKS_DATA[RANKS_DATA.length - 1].xpRequired;
                     if (maxSystemXP > 0) {
                         rawValue = (userXP / maxSystemXP) * 100;
-                    } else {
+                    } else { // If max rank XP is 0, give 100 if any XP exists
                         rawValue = (userXP > 0) ? 100 : 0;
                     }
-                } else {
+                } else { // No ranks defined
                     rawValue = 0;
                 }
                 break;
         }
+        // Ensure value is between 0 and 100
         const finalValue = Math.min(100, Math.max(0, Math.round(rawValue)));
         return {
             ...attr,
             value: finalValue,
-            currentLevel: `${finalValue}/100`,
-            xpInArea: `${finalValue}/100`
+            currentLevel: `${finalValue}/100`, // Display string
+            xpInArea: `${finalValue}/100` // Simplified xpInArea for now
         };
     });
     setAttributes(calculatedAttributes);
-  }, [userXP, habits, goals, sleepLogs, currentRank, nextRank]);
+  }, [userXP, habits, goals, sleepLogs, currentRank, nextRank]); // Dependencies for attribute calculation
 
   const averageSleepLast7Days = React.useMemo(() => {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    sevenDaysAgo.setHours(0, 0, 0, 0);
+    sevenDaysAgo.setHours(0, 0, 0, 0); // Start of 7 days ago
+
     const recentSleepLogs = sleepLogs.filter(log => {
         try {
-            const logDate = dateFnsParseISO(log.date);
+            const logDate = dateFnsParseISO(log.date); // Ensure log.date is a valid ISO string
             return isValid(logDate) && logDate >= sevenDaysAgo;
-        } catch { return false; }
+        } catch { return false; } // Catch potential errors from invalid date strings
     });
+
     if (recentSleepLogs.length === 0) return "0.0 hrs";
+
     const totalSleepHours = recentSleepLogs.reduce((sum, log) => sum + (log.sleepDurationHours || 0), 0);
     const average = totalSleepHours / recentSleepLogs.length;
     return `${average.toFixed(1)} hrs`;
@@ -1151,6 +1243,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addGoal, toggleGoalCompletion, deleteGoal,
       addSleepLog, deleteSleepLog,
       updateUserProfile, updateUserAvatar,
+      passiveSkills, unlockedSkillIds, unlockSkill,
       isLoading: isLoadingCombined, dataLoadingError
     }}>
       {children}
@@ -1170,3 +1263,4 @@ export const EraIconMapper: React.FC<{ iconName?: string; className?: string }> 
   const IconComponent = getIconComponent(iconName);
   return <IconComponent className={className} />;
 };
+

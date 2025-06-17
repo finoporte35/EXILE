@@ -103,3 +103,13 @@ export interface UserEraCustomizations {
   // Objectives and rewards of predefined eras are not structurally customizable by the user via this object.
 }
 
+export interface PassiveSkill {
+  id: string;
+  name: string;
+  description: string;
+  icon: LucideIcon;
+  cost: number; // XP cost
+  category: 'General' | 'Hábitos' | 'Metas' | 'Atributos'; // Example categories
+  effectDescription: string; // Textual description of the effect
+  // Actual functional effects will be implemented later
+}
