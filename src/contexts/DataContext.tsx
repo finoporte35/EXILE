@@ -3,7 +3,7 @@
 
 import type { Rank } from '@/components/ranks/RankItem';
 import { RANKS_DATA, INITIAL_ATTRIBUTES, DEFAULT_USERNAME, INITIAL_XP, HABIT_CATEGORY_XP_MAP, DEFAULT_HABIT_XP, PASSIVE_SKILLS_DATA } from '@/lib/app-config';
-import { ALL_PREDEFINED_ERAS_DATA } from '@/lib/eras-config'; // Added import
+import { ALL_PREDEFINED_ERAS_DATA } from '@/lib/eras-config';
 import type { Habit, Attribute, Goal, SleepLog, SleepQuality, Era, EraObjective, EraReward, UserEraCustomizations, EraVisualTheme, PassiveSkill } from '@/types';
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { isValid, parseISO as dateFnsParseISO } from 'date-fns';
@@ -105,6 +105,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [authUser, setAuthUser] = useState<FirebaseUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(true);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [dataLoadingError, setDataLoadingError] = useState<Error | null>(null);
 
   const [userName, setUserName] = useState<string>(DEFAULT_USERNAME);
@@ -131,6 +132,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setInitialLoadComplete(false); // Reset on auth change
       setAuthUser(user);
       setAuthLoading(false);
       if (!user) {
@@ -148,7 +150,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUserCreatedEras([]);
         setUnlockedSkillIds([]);
         setDataLoading(false);
-        previousXpRef.current = undefined; // Reset refs on logout
+        setInitialLoadComplete(true); // No data to load for non-user
+        previousXpRef.current = undefined; 
         previousRankRef.current = undefined;
       }
     });
@@ -217,9 +220,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const loadData = async () => {
       if (!authUser) {
         setDataLoading(false);
+        setInitialLoadComplete(true); // Ensure flag is set even if no authUser
         return;
       }
       setDataLoading(true);
+      setInitialLoadComplete(false); // Reset before loading new user data
       setDataLoadingError(null);
 
       try {
@@ -238,7 +243,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUserName(userData.username || DEFAULT_USERNAME);
           setUserEmail(userData.email || authUser.email || "");
           loadedUserXP = userData.xp || INITIAL_XP;
-          setUserXP(loadedUserXP);
+          // setUserXP(loadedUserXP); // Delay setting XP until after refs are potentially set
           setUserAvatar(userData.avatarUrl || null);
 
           initialCurrentEraId = userData.currentEraId === undefined ? null : userData.currentEraId;
@@ -263,17 +268,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUserName(newUserData.username);
           setUserEmail(newUserData.email);
           loadedUserXP = newUserData.xp;
-          setUserXP(loadedUserXP);
+          // setUserXP(loadedUserXP);
           setUserAvatar(newUserData.avatarUrl);
         }
+        
+        // Set refs first based on loaded data before setting state that triggers toasts
+        previousXpRef.current = loadedUserXP; 
+        setUserXP(loadedUserXP); // Now set XP, this might trigger rank calculation
+
         setCurrentEraId(initialCurrentEraId);
         setCompletedEraIds(initialCompletedEraIds);
         setAllUserEraCustomizations(initialAllUserEraCustomizations);
         setUnlockedSkillIds(loadedUnlockedSkillIds);
         
-        previousXpRef.current = loadedUserXP; // Set initial XP for comparison
-
-
         const userErasColRef = collection(db, "users", authUser.uid, "userCreatedEras");
         const userErasQuery = query(userErasColRef, orderBy("createdAt", "asc"));
         const userErasSnapshot = await getDocs(userErasQuery);
@@ -355,6 +362,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         previousXpRef.current = INITIAL_XP;
       } finally {
         setDataLoading(false);
+        setInitialLoadComplete(true); // Data loading attempt is complete
       }
     };
 
@@ -362,6 +370,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         loadData();
     } else {
         setDataLoading(false);
+        setInitialLoadComplete(true); // No user, so initial load is "complete"
     }
   }, [authUser]);
 
@@ -934,27 +943,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!authUser) return;
 
     const eraToDelete = userCreatedEras.find(e => e.id === eraId);
-    if (!eraToDelete || !eraToDelete.isUserCreated) { // Ensure it's a user-created era
-        // Optionally handle trying to delete a non-user-created era, though UI should prevent this
+    if (!eraToDelete || !eraToDelete.isUserCreated) { 
         return;
     }
 
     const originalUserCreatedEras = [...userCreatedEras];
     const originalCurrentEraId = currentEraId;
 
-    // Optimistically update local state
     setUserCreatedEras(prevEras => prevEras.filter(e => e.id !== eraId));
     
     if (currentEraId === eraId) {
-        setCurrentEraId(null); // If the deleted era was active, deactivate it
+        setCurrentEraId(null); 
     }
 
-    // Prepare Firestore batch
     const batch = writeBatch(db);
     const eraDocRef = doc(db, "users", authUser.uid, "userCreatedEras", eraId);
     batch.delete(eraDocRef);
 
-    // Update user document if the current era was deleted
     const userDocRef = doc(db, "users", authUser.uid);
     const userDocUpdates: Record<string, any> = { updatedAt: serverTimestamp() };
     if (currentEraId === eraId) {
@@ -966,7 +971,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await batch.commit();
     } catch (error) {
         console.error(`DataContext: Error deleting user-created Era ${eraId} for ${authUser.uid}:`, error);
-        // Revert optimistic updates on error
         setUserCreatedEras(originalUserCreatedEras);
         setCurrentEraId(originalCurrentEraId);
     }
@@ -1001,7 +1005,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
         toast({ title: "¡Habilidad Desbloqueada!", description: `Has desbloqueado "${skillToUnlock.name}".` });
     } catch (error) {
-        // Revert optimistic update
         setUserXP(userXP);
         setUnlockedSkillIds(unlockedSkillIds);
         console.error("DataContext: Error unlocking skill", error);
@@ -1020,45 +1023,36 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (i + 1 < RANKS_DATA.length) {
           nextRankCalculated = RANKS_DATA[i + 1];
         } else {
-          nextRankCalculated = null; // Max rank reached
+          nextRankCalculated = null; 
         }
       } else {
-        // This will be the next rank if currentXP is less than this rank's requirement
-        // If currentRankCalculated is still RANKS_DATA[0] and userXP is less than RANKS_DATA[0].xpRequired (which shouldn't happen if xpRequired is 0 for the first rank)
-        // or if we haven't found the next rank yet.
-        if (i === 0) { // Should only happen if first rank has xpRequired > 0 and userXP is less.
-            currentRankCalculated = RANKS_DATA[0]; // User is at the very first rank.
-            nextRankCalculated = RANKS_DATA.length > 0 ? RANKS_DATA[i] : null; // The next rank is this one.
+        if (i === 0) { 
+            currentRankCalculated = RANKS_DATA[0]; 
+            nextRankCalculated = RANKS_DATA.length > 0 ? RANKS_DATA[i] : null; 
         }
-        // else if (!nextRankCalculated) { // This condition means currentRankCalculated is set, but nextRankCalculated is not (i.e. userXP was >= previous rank, but < current i rank)
-        //    nextRankCalculated = RANKS_DATA[i];
-        // }
-        break; // Found the segment where userXP falls.
+        break; 
       }
     }
 
-    // Recalculate xpTowardsNextRank and totalXPForNextRankLevel based on confirmed current and next ranks
     let xpTowardsNext = 0;
-    let totalXPForLevel = 100; // Default to avoid division by zero if logic error
-
+    let totalXPForLevel = 100; 
     const currentRankXpRequirement = currentRankCalculated.xpRequired;
 
     if (nextRankCalculated) {
       const nextRankXpRequirement = nextRankCalculated.xpRequired;
       xpTowardsNext = Math.max(0, userXP - currentRankXpRequirement);
       totalXPForLevel = Math.max(1, nextRankXpRequirement - currentRankXpRequirement);
-    } else { // Max rank reached or only one rank defined
-        if (RANKS_DATA.length === 1) { // Only one rank
-            totalXPForLevel = Math.max(1, currentRankXpRequirement); // Progress towards completing this single rank if xpRequired > 0
+    } else { 
+        if (RANKS_DATA.length === 1) { 
+            totalXPForLevel = Math.max(1, currentRankXpRequirement); 
             xpTowardsNext = userXP;
-        } else { // Max rank among multiple ranks
-            // Find previous rank to currentRankCalculated
+        } else { 
             const currentRankIndex = RANKS_DATA.findIndex(r => r.name === currentRankCalculated.name);
             if (currentRankIndex > 0) {
                 const previousRankXp = RANKS_DATA[currentRankIndex -1].xpRequired;
                 totalXPForLevel = Math.max(1, currentRankXpRequirement - previousRankXp);
                 xpTowardsNext = Math.max(0, userXP - previousRankXp);
-            } else { // currentRank is the first rank, and there's no next rank (implies only 1 rank)
+            } else { 
                 totalXPForLevel = Math.max(1, currentRankXpRequirement);
                 xpTowardsNext = userXP;
             }
@@ -1066,12 +1060,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     
     let progressPercent = (totalXPForLevel > 0) ? (xpTowardsNext / totalXPForLevel) * 100 : 0;
-    if (!nextRankCalculated && userXP >= currentRankXpRequirement) { // At max rank and XP met or exceeded
+    if (!nextRankCalculated && userXP >= currentRankXpRequirement) { 
         progressPercent = 100;
-        xpTowardsNext = totalXPForLevel; // Show progress bar full
+        xpTowardsNext = totalXPForLevel; 
     }
     
-    // Edge case: userXP is 0, first rank is 0 XP.
     if (userXP === 0 && currentRankCalculated.xpRequired === 0 && nextRankCalculated) {
         xpTowardsNext = 0;
         totalXPForLevel = Math.max(1, nextRankCalculated.xpRequired - currentRankCalculated.xpRequired);
@@ -1088,8 +1081,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [userXP]);
 
   useEffect(() => {
-    // XP Change Toast
-    if (previousXpRef.current !== undefined && userXP !== previousXpRef.current && !authLoading && !dataLoading) {
+    if (initialLoadComplete && previousXpRef.current !== undefined && userXP !== previousXpRef.current && !authLoading && !dataLoading) {
       const xpDifference = userXP - previousXpRef.current;
       if (xpDifference > 0) {
         toast({
@@ -1100,31 +1092,31 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         toast({
           title: "Experiencia Ajustada",
           description: `${xpDifference} XP`,
-          variant: "default", // Using default, could be "destructive" if it implies an error state
+          variant: "default", 
         });
       }
     }
     previousXpRef.current = userXP;
-  }, [userXP, toast, authLoading, dataLoading]);
+  }, [userXP, toast, authLoading, dataLoading, initialLoadComplete]);
 
   useEffect(() => {
-    // Rank Change (Level Up) Toast
-    if (previousRankRef.current && currentRank.name !== previousRankRef.current.name && !authLoading && !dataLoading) {
-      // Check if it's a promotion (new rank has higher XP requirement)
-      if (currentRank.xpRequired > previousRankRef.current.xpRequired) {
-        toast({
-          title: "¡Has Subido de Rango!",
-          description: `Nuevo rango: ${currentRank.name.split(" - ")[1] || currentRank.name}`,
-        });
-      }
-    }
-    // Set initial rank for comparison after data is loaded
-    if (!dataLoading && !previousRankRef.current) {
+    // Ensure previousRankRef is set after the initial load and currentRank is calculated
+    if (initialLoadComplete && !authLoading && !dataLoading) {
+        if (previousRankRef.current && currentRank.name !== previousRankRef.current.name) {
+            if (currentRank.xpRequired > previousRankRef.current.xpRequired) {
+                toast({
+                title: "¡Has Subido de Rango!",
+                description: `Nuevo rango: ${currentRank.name.split(" - ")[1] || currentRank.name}`,
+                });
+            }
+        }
+        previousRankRef.current = currentRank; // Update ref after potential toast
+    } else if (!initialLoadComplete && !authLoading && !dataLoading) {
+        // This case might happen if initialLoadComplete becomes false again (e.g. auth state change)
+        // and then loading finishes. We want to set the baseline ref here too.
         previousRankRef.current = currentRank;
-    } else if (!dataLoading && previousRankRef.current && currentRank.name !== previousRankRef.current.name) {
-        previousRankRef.current = currentRank;
     }
-  }, [currentRank, toast, authLoading, dataLoading]);
+  }, [currentRank, toast, authLoading, dataLoading, initialLoadComplete]);
 
 
   useEffect(() => {
@@ -1135,22 +1127,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 const completedGoalsXP = goals.filter(g => g.isCompleted).reduce((sum, g) => sum + g.xp, 0);
                 const totalPotentialGoalsXP = goals.reduce((sum, g) => sum + g.xp, 0);
                 let goalContribution = totalPotentialGoalsXP > 0 ? (completedGoalsXP / totalPotentialGoalsXP) * 70 : 0;
-                if (goals.length === 0) goalContribution = 0; // If no goals, no contribution from them.
+                if (goals.length === 0) goalContribution = 0; 
 
-                // XP contribution to motivation, scaled by rank progression
                 let xpContributionRank = 0;
                  if (userXP > 0) {
-                  // Consider max XP as the requirement for the highest rank, or a large enough number if ranks aren't fully defined.
                   const maxPossibleUserXP = RANKS_DATA[RANKS_DATA.length -1]?.xpRequired;
-                  const effectiveMaxXP = (maxPossibleUserXP && maxPossibleUserXP > 0) ? maxPossibleUserXP : (userXP + 1000); // Fallback if max rank XP is 0 or not set
-                  xpContributionRank = (userXP / effectiveMaxXP) * 30; // Max 30 points from XP
+                  const effectiveMaxXP = (maxPossibleUserXP && maxPossibleUserXP > 0) ? maxPossibleUserXP : (userXP + 1000); 
+                  xpContributionRank = (userXP / effectiveMaxXP) * 30; 
                 }
                 rawValue = goalContribution + xpContributionRank;
                 break;
             case "Energía":
-                // Based on average sleep quality of last 7 logs
                 if (sleepLogs.length > 0) {
-                    const recentLogs = sleepLogs.slice(0, 7); // Get up to last 7 logs
+                    const recentLogs = sleepLogs.slice(0, 7); 
                     const qualityScore = recentLogs.reduce((sum, log) => {
                         if (log.quality === "excellent") return sum + 4;
                         if (log.quality === "good") return sum + 3;
@@ -1158,61 +1147,57 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         if (log.quality === "poor") return sum + 1;
                         return sum;
                     }, 0);
-                    rawValue = recentLogs.length > 0 ? (qualityScore / (recentLogs.length * 4)) * 100 : 0; // Max score is 4 per log
+                    rawValue = recentLogs.length > 0 ? (qualityScore / (recentLogs.length * 4)) * 100 : 0; 
                 } else {
-                    rawValue = 0; // No sleep logs, no energy from sleep
+                    rawValue = 0; 
                 }
                 break;
             case "Disciplina":
-                // Based on habit completion ratio and average streak
                 const totalHabitCompletions = habits.filter(h => h.completed).length;
                 const totalHabitCount = habits.length;
                 const averageStreak = totalHabitCount > 0 ? habits.reduce((sum, h) => sum + (h.streak || 0), 0) / totalHabitCount : 0;
                 
-                let habitCompletionRatio = totalHabitCount > 0 ? (totalHabitCompletions / totalHabitCount) * 80 : 0; // Max 80 points from completion ratio
-                let streakContribution = Math.min(20, (averageStreak / 7) * 20); // Max 20 points from streak (e.g., 7-day avg streak gives full 20)
+                let habitCompletionRatio = totalHabitCount > 0 ? (totalHabitCompletions / totalHabitCount) * 80 : 0; 
+                let streakContribution = Math.min(20, (averageStreak / 7) * 20); 
 
                 rawValue = habitCompletionRatio + streakContribution;
                 break;
             default:
-                // For other attributes, base it on general XP progression for now
-                // This could be refined later if specific actions contribute to other attributes
                 if (userXP === 0) {
                     rawValue = 0;
                 } else if (RANKS_DATA.length > 0) {
                     const maxSystemXP = RANKS_DATA[RANKS_DATA.length - 1].xpRequired;
                     if (maxSystemXP > 0) {
                         rawValue = (userXP / maxSystemXP) * 100;
-                    } else { // If max rank XP is 0, give 100 if any XP exists
+                    } else { 
                         rawValue = (userXP > 0) ? 100 : 0;
                     }
-                } else { // No ranks defined
+                } else { 
                     rawValue = 0;
                 }
                 break;
         }
-        // Ensure value is between 0 and 100
         const finalValue = Math.min(100, Math.max(0, Math.round(rawValue)));
         return {
             ...attr,
             value: finalValue,
-            currentLevel: `${finalValue}/100`, // Display string
-            xpInArea: `${finalValue}/100` // Simplified xpInArea for now
+            currentLevel: `${finalValue}/100`, 
+            xpInArea: `${finalValue}/100` 
         };
     });
     setAttributes(calculatedAttributes);
-  }, [userXP, habits, goals, sleepLogs, currentRank, nextRank]); // Dependencies for attribute calculation
+  }, [userXP, habits, goals, sleepLogs, currentRank, nextRank]); 
 
   const averageSleepLast7Days = React.useMemo(() => {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    sevenDaysAgo.setHours(0, 0, 0, 0); // Start of 7 days ago
+    sevenDaysAgo.setHours(0, 0, 0, 0); 
 
     const recentSleepLogs = sleepLogs.filter(log => {
         try {
-            const logDate = dateFnsParseISO(log.date); // Ensure log.date is a valid ISO string
+            const logDate = dateFnsParseISO(log.date); 
             return isValid(logDate) && logDate >= sevenDaysAgo;
-        } catch { return false; } // Catch potential errors from invalid date strings
+        } catch { return false; } 
     });
 
     if (recentSleepLogs.length === 0) return "0.0 hrs";
