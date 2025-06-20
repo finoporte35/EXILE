@@ -7,7 +7,7 @@ import type { Habit, Attribute, Goal, SleepLog, SleepQuality, Era, EraObjective,
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { isValid, parseISO as dateFnsParseISO } from 'date-fns';
 import { db, auth } from '@/lib/firebase';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, type User as FirebaseUser, updateProfile } from 'firebase/auth';
 import {
   doc,
   getDoc,
@@ -24,6 +24,7 @@ import {
   orderBy,
   where
 } from 'firebase/firestore';
+import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import * as LucideIcons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -89,7 +90,7 @@ interface DataContextState {
   addSleepLog: (logData: { date: Date; timeToBed: string; timeWokeUp: string; quality: SleepQuality; notes?: string }) => void;
   deleteSleepLog: (id: string) => void;
   updateUserProfile: (newUsername: string, newEmail: string) => Promise<{success: boolean, message: string}>;
-  updateUserAvatar: (avatarDataUri: string | null) => void;
+  updateUserAvatar: (avatarDataUri: string | null) => Promise<void>;
   
   passiveSkills: PassiveSkill[];
   unlockedSkillIds: string[];
@@ -287,20 +288,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUserEmail(loadedEmail);
         setUserAvatar(loadedAvatarUrl);
         
-        // Set base references after loading XP but before setting state that might trigger notifications
         previousXpRef.current = loadedUserXP;
         let loadedRank: Rank = RANKS_DATA[0];
         for (let i = 0; i < RANKS_DATA.length; i++) {
             if (loadedUserXP >= RANKS_DATA[i].xpRequired) {
                 loadedRank = RANKS_DATA[i];
             } else {
-                if (i === 0) loadedRank = RANKS_DATA[0]; // Ensure NPC if XP is 0 but 0 is the first rank's requirement
+                if (i === 0) loadedRank = RANKS_DATA[0]; 
                 break;
             }
         }
         previousRankRef.current = loadedRank;
         
-        setUserXP(loadedUserXP); // Now set state XP, which will trigger currentRank calculation via useMemo
+        setUserXP(loadedUserXP); 
 
         setCurrentEraId(initialCurrentEraId);
         setCompletedEraIds(initialCompletedEraIds);
@@ -374,7 +374,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch (error: any) {
         console.error("DataContext: Error loading data from Firestore for", authUser.uid, error);
         setDataLoadingError(error);
-        // Reset to defaults on error
         setUserName(DEFAULT_USERNAME);
         setUserEmail(authUser.email || "");
         setUserXP(INITIAL_XP);
@@ -388,24 +387,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUserCreatedEras([]);
         setUnlockedSkillIds([]);
         setActiveThemeId(DEFAULT_THEME_ID);
-        previousXpRef.current = undefined; // Clear refs on error too
+        previousXpRef.current = undefined; 
         previousRankRef.current = undefined;
       } finally {
         setDataLoading(false);
-        setInitialLoadComplete(true); // Crucial: set to true after all loading logic
+        setInitialLoadComplete(true); 
       }
     };
 
     if (authUser) {
         loadData();
     } else {
-        // Clear data for logged out user (already handled in onAuthStateChanged)
         setDataLoading(false);
         setInitialLoadComplete(true);
     }
   }, [authUser]);
 
-  // Effect to apply theme CSS variables to the document root
   useEffect(() => {
     const theme = getThemeById(activeThemeId);
     if (theme && typeof document !== 'undefined') {
@@ -485,16 +482,63 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [authUser, userName, userEmail]);
 
   const updateUserAvatar = useCallback(async (avatarDataUri: string | null) => {
-    if (!authUser) return;
-    setUserAvatar(avatarDataUri); 
-    
+    if (!authUser || !auth.currentUser) {
+        toast({ variant: "destructive", title: "Error", description: "Usuario no autenticado." });
+        return;
+    }
+
+    let finalAvatarUrl = avatarDataUri;
+    const oldAvatarUrl = authUser.photoURL; // Store old URL to potentially delete from Storage
+
+    // If avatarDataUri is a new base64 data URI, upload it to Firebase Storage
+    if (avatarDataUri && avatarDataUri.startsWith('data:image')) {
+        try {
+            const storage = getStorage();
+            const mimeType = avatarDataUri.substring(avatarDataUri.indexOf(':') + 1, avatarDataUri.indexOf(';'));
+            const base64Data = avatarDataUri.substring(avatarDataUri.indexOf(',') + 1);
+            const fileExtension = mimeType.split('/')[1] || 'png';
+            // Use a consistent name for the profile picture to overwrite, or timestamp for unique versions
+            const imageRef = storageRef(storage, `avatars/${authUser.uid}/profile.${fileExtension}`);
+            
+            const snapshot = await uploadString(imageRef, base64Data, 'base64', { contentType: mimeType });
+            finalAvatarUrl = await getDownloadURL(snapshot.ref);
+        } catch (error) {
+            console.error("DataContext: Error uploading new avatar to Firebase Storage:", error);
+            toast({ variant: "destructive", title: "Error al Subir Avatar", description: "No se pudo subir la nueva imagen de perfil." });
+            return; 
+        }
+    }
+
+    // Update Firebase Auth profile and Firestore
     const userDocRef = doc(db, "users", authUser.uid);
     try {
-      await updateDoc(userDocRef, { avatarUrl: avatarDataUri, updatedAt: serverTimestamp() });
+        await updateProfile(auth.currentUser, { photoURL: finalAvatarUrl });
+        await updateDoc(userDocRef, { avatarUrl: finalAvatarUrl, updatedAt: serverTimestamp() });
+        
+        setUserAvatar(finalAvatarUrl); // Update local state
+        toast({ title: "Avatar Actualizado", description: "Tu foto de perfil ha sido guardada." });
+
+        // Optionally, delete the old avatar from Firebase Storage if it's different and was a Storage URL
+        // This part is more complex as it requires knowing if the oldAvatarUrl was from Firebase Storage
+        // For simplicity, this example doesn't delete the old image automatically.
+        // If you want to implement deletion, you'd need to parse oldAvatarUrl and check if it's a Firebase Storage URL.
+        // Example: if (oldAvatarUrl && oldAvatarUrl.includes("firebasestorage.googleapis.com") && oldAvatarUrl !== finalAvatarUrl) {
+        //   try {
+        //     const oldImageRef = storageRef(storage, oldAvatarUrl);
+        //     await deleteObject(oldImageRef);
+        //   } catch (deleteError) {
+        //     console.warn("DataContext: Failed to delete old avatar from Storage:", deleteError);
+        //   }
+        // }
+
     } catch (error) {
-      console.error("DataContext: Error updating avatar in Firestore for", authUser.uid, error);
+        console.error("DataContext: Error updating avatar in Auth/Firestore for", authUser.uid, error);
+        toast({ variant: "destructive", title: "Error al Guardar Avatar", description: "No se pudo guardar la nueva imagen de perfil." });
+        // Optionally revert local state if update fails to the original photoURL from authUser
+        // setUserAvatar(authUser.photoURL); 
     }
-  }, [authUser]);
+  }, [authUser, toast]);
+
 
   const addHabit = useCallback(async (name: string, category: string) => {
     if (!authUser) return;
@@ -1125,13 +1169,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [userXP]);
 
-  // useEffect for XP and Rank change notifications
   useEffect(() => {
     if (!initialLoadComplete || authLoading || dataLoading) {
       return; 
     }
 
-    // XP Notification
     if (previousXpRef.current !== undefined && userXP !== previousXpRef.current) {
       const xpDifference = userXP - previousXpRef.current;
       if (xpDifference > 0) {
@@ -1139,16 +1181,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           title: "¡Experiencia Ganada!",
           description: `+${xpDifference} XP`,
         });
-      } else if (xpDifference < 0) {
-        // Optional: notify XP loss if relevant for your app logic
-        // toast({
-        //   title: "Experiencia Ajustada",
-        //   description: `${xpDifference} XP`,
-        // });
       }
     }
 
-    // Rank Notification
     if (previousRankRef.current && currentRank.name !== previousRankRef.current.name) {
       if (currentRank.xpRequired > previousRankRef.current.xpRequired) {
         toast({
@@ -1156,10 +1191,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           description: `Nuevo rango: ${currentRank.name.split(" - ")[1] || currentRank.name}`,
         });
       }
-      // Optional: notify rank down if it's possible in your app
     }
 
-    // Update refs for the next comparison *after* checking for notifications
     previousXpRef.current = userXP;
     previousRankRef.current = currentRank;
 
