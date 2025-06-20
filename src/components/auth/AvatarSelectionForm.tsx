@@ -11,7 +11,7 @@ import Logo from '@/components/shared/Logo';
 import { useToast } from '@/hooks/use-toast';
 import { DEFAULT_USERNAME } from '@/lib/app-config';
 import { useData } from '@/contexts/DataContext'; 
-import { auth, db } from '@/lib/firebase'; 
+import { auth } from '@/lib/firebase'; 
 import { updateProfile } from 'firebase/auth';
 import { getStorage, ref as storageRef, uploadString, getDownloadURL } from "firebase/storage";
 
@@ -35,17 +35,19 @@ export default function AvatarSelectionForm() {
       setUsername(authUser.displayName);
     }
 
+    // Prioritize authUser.photoURL if it's a real URL (not a placeholder)
     if (authUser?.photoURL && !authUser.photoURL.startsWith(PLACEHOLDER_AVATAR_PREFIX)) {
       setAvatarSrc(authUser.photoURL);
       setIsAvatarSetByUser(true);
     } else {
-      const localAvatarKey = authUser ? `userAvatar_${authUser.uid}` : 'userAvatar';
+      // Fallback to localStorage if authUser.photoURL is placeholder or null
+      const localAvatarKey = authUser ? `userAvatar_${authUser.uid}` : 'userAvatar_temp_key'; // Ensure a key even if authUser is briefly null
       const storedAvatar = localStorage.getItem(localAvatarKey);
        if (storedAvatar && !storedAvatar.startsWith(PLACEHOLDER_AVATAR_PREFIX)) {
         setAvatarSrc(storedAvatar);
         setIsAvatarSetByUser(true);
       } else {
-        setAvatarSrc(null);
+        setAvatarSrc(null); // Default to null if nothing good is found
         setIsAvatarSetByUser(false);
       }
     }
@@ -88,28 +90,30 @@ export default function AvatarSelectionForm() {
     try {
       let finalAvatarUrl = avatarSrc;
 
-      // Check if avatarSrc is a new base64 data URI that needs to be uploaded
+      // If avatarSrc is a new base64 data URI, upload it to Firebase Storage
       if (avatarSrc.startsWith('data:image')) {
         const storage = getStorage();
-        // Extract base64 data and mime type
         const mimeType = avatarSrc.substring(avatarSrc.indexOf(':') + 1, avatarSrc.indexOf(';'));
         const base64Data = avatarSrc.substring(avatarSrc.indexOf(',') + 1);
         const fileExtension = mimeType.split('/')[1] || 'png';
+        // User-specific path in Firebase Storage
         const imageRef = storageRef(storage, `avatars/${authUser.uid}/${Date.now()}.${fileExtension}`);
         
         const snapshot = await uploadString(imageRef, base64Data, 'base64', { contentType: mimeType });
         finalAvatarUrl = await getDownloadURL(snapshot.ref);
       }
 
-      // Update Firebase Auth profile photoURL
+      // Update Firebase Auth profile photoURL (specific to authUser)
       await updateProfile(authUser, { photoURL: finalAvatarUrl });
-      // Update Firestore via DataContext
+      
+      // Update Firestore via DataContext (specific to authUser.uid)
       await contextUpdateUserAvatar(finalAvatarUrl); 
       
       localStorage.removeItem('usernameForAvatar'); 
 
       toast({ title: "¡Perfil Completo!", description: `Bienvenido a EXILE, ${username}. ¡Tu aventura comienza ahora!` });
       router.push('/dashboard');
+
     } catch (error) {
       console.error("Error updating avatar:", error);
       let errorMessage = "No se pudo actualizar tu avatar. Inténtalo de nuevo.";
@@ -117,8 +121,8 @@ export default function AvatarSelectionForm() {
         const firebaseError = error as { code: string; message: string };
         if (firebaseError.code === 'storage/unauthorized') {
           errorMessage = "Error de permisos al subir la imagen. Verifica las reglas de Firebase Storage.";
-        } else if (firebaseError.code === 'auth/invalid-profile-attribute') {
-            errorMessage = "La URL de la foto del perfil no es válida. Esto no debería ocurrir con la subida a Storage.";
+        } else if (firebaseError.code === 'storage/object-not-found' || firebaseError.code === 'storage/retry-limit-exceeded') {
+            errorMessage = "Error de red o problema con el servidor de almacenamiento. Intenta de nuevo.";
         }
       }
       toast({ variant: "destructive", title: "Error al Guardar Avatar", description: errorMessage});
