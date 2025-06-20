@@ -35,19 +35,17 @@ export default function AvatarSelectionForm() {
       setUsername(authUser.displayName);
     }
 
-    // Prioritize authUser.photoURL if it's a real URL (not a placeholder)
     if (authUser?.photoURL && !authUser.photoURL.startsWith(PLACEHOLDER_AVATAR_PREFIX)) {
       setAvatarSrc(authUser.photoURL);
       setIsAvatarSetByUser(true);
     } else {
-      // Fallback to localStorage if authUser.photoURL is placeholder or null
-      const localAvatarKey = authUser ? `userAvatar_${authUser.uid}` : 'userAvatar_temp_key'; // Ensure a key even if authUser is briefly null
+      const localAvatarKey = authUser ? `userAvatar_${authUser.uid}` : 'userAvatar_temp_key';
       const storedAvatar = localStorage.getItem(localAvatarKey);
        if (storedAvatar && !storedAvatar.startsWith(PLACEHOLDER_AVATAR_PREFIX)) {
         setAvatarSrc(storedAvatar);
         setIsAvatarSetByUser(true);
       } else {
-        setAvatarSrc(null); // Default to null if nothing good is found
+        setAvatarSrc(null);
         setIsAvatarSetByUser(false);
       }
     }
@@ -71,46 +69,40 @@ export default function AvatarSelectionForm() {
   };
 
   const handleContinue = async () => {
-    if (!isAvatarSetByUser || !avatarSrc) {
-      toast({
-        variant: "destructive",
-        title: "Avatar Requerido",
-        description: "Por favor, sube una imagen para tu avatar antes de continuar.",
-      });
-      return;
-    }
     if (!authUser) {
       toast({ variant: "destructive", title: "Error", description: "Usuario no autenticado. Por favor, vuelve a registrarte." });
       router.push('/signup');
       return;
     }
 
+    // If no avatar was chosen, just continue to the dashboard.
+    if (!isAvatarSetByUser || !avatarSrc) {
+      localStorage.removeItem('usernameForAvatar');
+      toast({ title: "¡Perfil Creado!", description: `Bienvenido a EXILE, ${username}. Puedes añadir un avatar más tarde.` });
+      router.push('/dashboard');
+      return;
+    }
+
+    // If an avatar was chosen, attempt to upload it.
     setIsLoading(true);
     
     try {
       let finalAvatarUrl = avatarSrc;
 
-      // If avatarSrc is a new base64 data URI, upload it to Firebase Storage
       if (avatarSrc.startsWith('data:image')) {
         const storage = getStorage();
         const mimeType = avatarSrc.substring(avatarSrc.indexOf(':') + 1, avatarSrc.indexOf(';'));
         const base64Data = avatarSrc.substring(avatarSrc.indexOf(',') + 1);
         const fileExtension = mimeType.split('/')[1] || 'png';
-        // User-specific path in Firebase Storage
         const imageRef = storageRef(storage, `avatars/${authUser.uid}/${Date.now()}.${fileExtension}`);
         
         const snapshot = await uploadString(imageRef, base64Data, 'base64', { contentType: mimeType });
         finalAvatarUrl = await getDownloadURL(snapshot.ref);
       }
 
-      // Update Firebase Auth profile photoURL (specific to authUser)
       await updateProfile(authUser, { photoURL: finalAvatarUrl });
-      
-      // Update Firestore via DataContext (specific to authUser.uid)
       await contextUpdateUserAvatar(finalAvatarUrl); 
       
-      localStorage.removeItem('usernameForAvatar'); 
-
       toast({ title: "¡Perfil Completo!", description: `Bienvenido a EXILE, ${username}. ¡Tu aventura comienza ahora!` });
       router.push('/dashboard');
 
@@ -119,14 +111,17 @@ export default function AvatarSelectionForm() {
       let errorMessage = "No se pudo actualizar tu avatar. Inténtalo de nuevo.";
       if (error instanceof Error && 'code' in error) {
         const firebaseError = error as { code: string; message: string };
-        if (firebaseError.code === 'storage/unauthorized') {
-          errorMessage = "Error de permisos al subir la imagen. Verifica las reglas de Firebase Storage.";
+        if (firebaseError.code === 'storage/unauthorized' || firebaseError.code === 'storage/project-not-found') {
+          errorMessage = "Error de permisos o Storage no está activado. Verifica el plan de facturación de tu proyecto en Firebase.";
         } else if (firebaseError.code === 'storage/object-not-found' || firebaseError.code === 'storage/retry-limit-exceeded') {
-            errorMessage = "Error de red o problema con el servidor de almacenamiento. Intenta de nuevo.";
+            errorMessage = "Error de red o problema con el servidor de almacenamiento.";
         }
       }
-      toast({ variant: "destructive", title: "Error al Guardar Avatar", description: errorMessage});
+      // Continue to dashboard even if upload fails
+      toast({ variant: "destructive", title: "Error al Guardar Avatar", description: `${errorMessage} Omitiendo este paso.`});
+      router.push('/dashboard');
     } finally {
+      localStorage.removeItem('usernameForAvatar');
       setIsLoading(false); 
     }
   };
@@ -138,7 +133,7 @@ export default function AvatarSelectionForm() {
       <CardHeader className="text-center">
         <Logo className="mx-auto mb-2" />
         <CardTitle className="font-headline text-2xl">Elige tu Avatar</CardTitle>
-        <CardDescription>Selecciona una imagen para tu perfil, {currentUsernameForDisplay}.</CardDescription>
+        <CardDescription>Selecciona una imagen para tu perfil, {currentUsernameForDisplay}. (Opcional)</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6 flex flex-col items-center">
         <Avatar className="h-32 w-32 mb-4 border-4 border-primary shadow-lg">
@@ -164,7 +159,7 @@ export default function AvatarSelectionForm() {
         <Button 
           onClick={handleContinue} 
           className="w-full max-w-xs bg-new-button-gradient text-primary-foreground hover:opacity-90" 
-          disabled={isLoading || !isAvatarSetByUser}
+          disabled={isLoading}
         >
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
           {isLoading ? "Finalizando..." : "Continuar a EXILE"}
