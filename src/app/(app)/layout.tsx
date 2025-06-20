@@ -4,10 +4,11 @@ import { useRouter } from 'next/navigation';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { useData } from '@/contexts/DataContext'; // DataProvider import removed
 import { Button } from '@/components/ui/button';
 import { useEffect } from 'react';
+import SplashScreen from '@/components/layout/SplashScreen';
 
 
 function AppContent({ children }: { children: React.ReactNode }) {
@@ -21,14 +22,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
   }, [authLoading, authUser, router]);
   
   if (authLoading || (authUser && isDataLoading)) { 
-     return (
-      <div className="flex h-screen w-screen flex-col items-center justify-center bg-background space-y-4">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-xl text-foreground">
-          {authLoading ? "Verificando sesión..." : "Cargando datos de EXILE..."}
-        </p>
-      </div>
-     );
+     return <SplashScreen />;
   }
 
   if (!authUser && !authLoading) { 

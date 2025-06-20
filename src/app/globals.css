@@ -154,3 +154,38 @@
 .animate-scale-up-center {
   animation: scale-up-center 0.4s cubic-bezier(0.390, 0.575, 0.565, 1.000) both;
 }
+
+/* Particle Animation for Landing Page */
+.particle-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  bottom: -10%; /* Start off-screen */
+  border-radius: 50%;
+  background-color: hsla(var(--primary), 0.6);
+  box-shadow: 0 0 8px hsla(var(--primary), 0.5), 0 0 12px hsla(var(--primary), 0.3);
+  animation: floatUp linear infinite;
+  opacity: 0;
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  10%, 90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-110vh);
+    opacity: 0;
+  }
+}

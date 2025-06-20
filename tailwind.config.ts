@@ -9,6 +9,9 @@ export default {
   ],
   theme: {
     extend: {
+      backgroundImage: {
+        'feature-rome': "linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0.2), transparent), url('/rome.jpeg')",
+      },
       fontFamily: {
         body: ['SF Pro Display', 'Poppins', 'sans-serif'],
         headline: ['SF Pro Display', 'Poppins', 'sans-serif'],
@@ -99,7 +102,12 @@ export default {
         'scale-up-center': {
           '0%': { transform: 'scale(0.5)' },
           '100%': { transform: 'scale(1)' },
-        }
+        },
+        'float': {
+          '0%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+          '100%': { transform: 'translateY(0px)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -107,6 +115,7 @@ export default {
         'fade-in': 'fade-in 0.5s ease-out forwards',
         'fade-out': 'fade-out 0.5s ease-out forwards',
         'scale-up-center': 'scale-up-center 0.4s cubic-bezier(0.390, 0.575, 0.565, 1.000) both',
+        'float': 'float 6s ease-in-out infinite',
       },
     },
   },

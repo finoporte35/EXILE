@@ -114,8 +114,8 @@ export default function SignupForm() {
     <Card className="w-full max-w-md shadow-2xl border-primary/20">
       <CardHeader className="text-center">
         <Logo className="mx-auto mb-2" />
-        <CardTitle className="font-headline text-2xl">Configura tu Perfil</CardTitle>
-        <CardDescription>Establece tus credenciales para comenzar en EXILE.</CardDescription>
+        <CardTitle className="font-headline text-2xl">Forja tu destino con un click</CardTitle>
+        <CardDescription>Potencia tu desarrollo al maximo con la aplicación 1# de desarrollo colectivo</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -176,5 +176,3 @@ export default function SignupForm() {
     </Card>
   );
 }
-
-    
