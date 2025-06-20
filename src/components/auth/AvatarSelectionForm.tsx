@@ -10,16 +10,17 @@ import { ImageUp, Send, Loader2 } from 'lucide-react';
 import Logo from '@/components/shared/Logo';
 import { useToast } from '@/hooks/use-toast';
 import { DEFAULT_USERNAME } from '@/lib/app-config';
-import { useData } from '@/contexts/DataContext'; // Import useData
-import { auth } from '@/lib/firebase'; // Import auth
-import { updateProfile } from 'firebase/auth'; // Import updateProfile
+import { useData } from '@/contexts/DataContext'; 
+import { auth, db } from '@/lib/firebase'; 
+import { updateProfile } from 'firebase/auth';
+import { getStorage, ref as storageRef, uploadString, getDownloadURL } from "firebase/storage";
 
 const PLACEHOLDER_AVATAR_PREFIX = 'https://placehold.co/';
 
 export default function AvatarSelectionForm() {
   const router = useRouter();
   const { toast } = useToast();
-  const { authUser, updateUserAvatar: contextUpdateUserAvatar } = useData(); // Get authUser and context's avatar update function
+  const { authUser, updateUserAvatar: contextUpdateUserAvatar } = useData(); 
   const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
   const [isAvatarSetByUser, setIsAvatarSetByUser] = useState(false);
   const [username, setUsername] = useState<string>(DEFAULT_USERNAME);
@@ -27,7 +28,6 @@ export default function AvatarSelectionForm() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Get username passed from signup form (e.g., via localStorage or rely on authUser.displayName)
     const storedUsername = localStorage.getItem('usernameForAvatar');
     if (storedUsername) {
       setUsername(storedUsername);
@@ -35,12 +35,10 @@ export default function AvatarSelectionForm() {
       setUsername(authUser.displayName);
     }
 
-    // Check if user already has an avatar in Firebase Auth or local state from DataContext
     if (authUser?.photoURL && !authUser.photoURL.startsWith(PLACEHOLDER_AVATAR_PREFIX)) {
       setAvatarSrc(authUser.photoURL);
       setIsAvatarSetByUser(true);
     } else {
-      // Check local storage if migrating or fallback needed (scoped by UID if possible)
       const localAvatarKey = authUser ? `userAvatar_${authUser.uid}` : 'userAvatar';
       const storedAvatar = localStorage.getItem(localAvatarKey);
        if (storedAvatar && !storedAvatar.startsWith(PLACEHOLDER_AVATAR_PREFIX)) {
@@ -61,7 +59,6 @@ export default function AvatarSelectionForm() {
         const result = reader.result as string;
         setAvatarSrc(result);
         setIsAvatarSetByUser(true);
-        // Don't save to localStorage or Firestore yet, do it on "Continue"
       };
       reader.readAsDataURL(file);
     }
@@ -89,18 +86,42 @@ export default function AvatarSelectionForm() {
     setIsLoading(true);
     
     try {
+      let finalAvatarUrl = avatarSrc;
+
+      // Check if avatarSrc is a new base64 data URI that needs to be uploaded
+      if (avatarSrc.startsWith('data:image')) {
+        const storage = getStorage();
+        // Extract base64 data and mime type
+        const mimeType = avatarSrc.substring(avatarSrc.indexOf(':') + 1, avatarSrc.indexOf(';'));
+        const base64Data = avatarSrc.substring(avatarSrc.indexOf(',') + 1);
+        const fileExtension = mimeType.split('/')[1] || 'png';
+        const imageRef = storageRef(storage, `avatars/${authUser.uid}/${Date.now()}.${fileExtension}`);
+        
+        const snapshot = await uploadString(imageRef, base64Data, 'base64', { contentType: mimeType });
+        finalAvatarUrl = await getDownloadURL(snapshot.ref);
+      }
+
       // Update Firebase Auth profile photoURL
-      await updateProfile(authUser, { photoURL: avatarSrc });
+      await updateProfile(authUser, { photoURL: finalAvatarUrl });
       // Update Firestore via DataContext
-      await contextUpdateUserAvatar(avatarSrc); 
+      await contextUpdateUserAvatar(finalAvatarUrl); 
       
-      localStorage.removeItem('usernameForAvatar'); // Clean up temp username
+      localStorage.removeItem('usernameForAvatar'); 
 
       toast({ title: "¡Perfil Completo!", description: `Bienvenido a EXILE, ${username}. ¡Tu aventura comienza ahora!` });
       router.push('/dashboard');
     } catch (error) {
       console.error("Error updating avatar:", error);
-      toast({ variant: "destructive", title: "Error al Guardar Avatar", description: "No se pudo actualizar tu avatar. Inténtalo de nuevo."});
+      let errorMessage = "No se pudo actualizar tu avatar. Inténtalo de nuevo.";
+      if (error instanceof Error && 'code' in error) {
+        const firebaseError = error as { code: string; message: string };
+        if (firebaseError.code === 'storage/unauthorized') {
+          errorMessage = "Error de permisos al subir la imagen. Verifica las reglas de Firebase Storage.";
+        } else if (firebaseError.code === 'auth/invalid-profile-attribute') {
+            errorMessage = "La URL de la foto del perfil no es válida. Esto no debería ocurrir con la subida a Storage.";
+        }
+      }
+      toast({ variant: "destructive", title: "Error al Guardar Avatar", description: errorMessage});
     } finally {
       setIsLoading(false); 
     }
@@ -153,5 +174,3 @@ export default function AvatarSelectionForm() {
     </Card>
   );
 }
-
-    
