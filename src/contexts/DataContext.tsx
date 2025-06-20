@@ -90,7 +90,7 @@ interface DataContextState {
   addSleepLog: (logData: { date: Date; timeToBed: string; timeWokeUp: string; quality: SleepQuality; notes?: string }) => void;
   deleteSleepLog: (id: string) => void;
   updateUserProfile: (newUsername: string, newEmail: string) => Promise<{success: boolean, message: string}>;
-  updateUserAvatar: (avatarDataUri: string | null) => Promise<void>;
+  updateUserAvatar: (avatarInput: string | null) => Promise<void>;
   
   passiveSkills: PassiveSkill[];
   unlockedSkillIds: string[];
@@ -481,60 +481,48 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [authUser, userName, userEmail]);
 
-  const updateUserAvatar = useCallback(async (avatarDataUri: string | null) => {
+  const updateUserAvatar = useCallback(async (avatarInput: string | null) => {
     if (!authUser || !auth.currentUser) {
         toast({ variant: "destructive", title: "Error", description: "Usuario no autenticado." });
         return;
     }
 
-    let finalAvatarUrl = avatarDataUri;
-    const oldAvatarUrl = authUser.photoURL; // Store old URL to potentially delete from Storage
+    let urlToPersist: string | null = null;
 
-    // If avatarDataUri is a new base64 data URI, upload it to Firebase Storage
-    if (avatarDataUri && avatarDataUri.startsWith('data:image')) {
+    if (avatarInput && avatarInput.startsWith('data:image')) {
+        // New Base64 image, needs upload
         try {
             const storage = getStorage();
-            const mimeType = avatarDataUri.substring(avatarDataUri.indexOf(':') + 1, avatarDataUri.indexOf(';'));
-            const base64Data = avatarDataUri.substring(avatarDataUri.indexOf(',') + 1);
+            const mimeType = avatarInput.substring(avatarInput.indexOf(':') + 1, avatarInput.indexOf(';'));
+            const base64Data = avatarInput.substring(avatarInput.indexOf(',') + 1);
             const fileExtension = mimeType.split('/')[1] || 'png';
-            // Use a consistent name for the profile picture to overwrite, or timestamp for unique versions
             const imageRef = storageRef(storage, `avatars/${authUser.uid}/profile.${fileExtension}`);
             
             const snapshot = await uploadString(imageRef, base64Data, 'base64', { contentType: mimeType });
-            finalAvatarUrl = await getDownloadURL(snapshot.ref);
-        } catch (error) {
-            console.error("DataContext: Error uploading new avatar to Firebase Storage:", error);
+            urlToPersist = await getDownloadURL(snapshot.ref);
+        } catch (uploadError) {
+            console.error("DataContext: Error uploading new avatar to Firebase Storage:", uploadError);
             toast({ variant: "destructive", title: "Error al Subir Avatar", description: "No se pudo subir la nueva imagen de perfil." });
-            return; 
+            return; // Important: Exit if upload fails
         }
+    } else {
+        // Input is already a URL (e.g., from AvatarSelectionForm after its own upload) or null (to remove avatar)
+        urlToPersist = avatarInput;
     }
 
-    // Update Firebase Auth profile and Firestore
+    // Proceed to update Auth and Firestore with urlToPersist
     const userDocRef = doc(db, "users", authUser.uid);
     try {
-        await updateProfile(auth.currentUser, { photoURL: finalAvatarUrl });
-        await updateDoc(userDocRef, { avatarUrl: finalAvatarUrl, updatedAt: serverTimestamp() });
+        await updateProfile(auth.currentUser, { photoURL: urlToPersist });
+        await updateDoc(userDocRef, { avatarUrl: urlToPersist, updatedAt: serverTimestamp() });
         
-        setUserAvatar(finalAvatarUrl); // Update local state
+        setUserAvatar(urlToPersist); // Update local state
         toast({ title: "Avatar Actualizado", description: "Tu foto de perfil ha sido guardada." });
-
-        // Optionally, delete the old avatar from Firebase Storage if it's different and was a Storage URL
-        // This part is more complex as it requires knowing if the oldAvatarUrl was from Firebase Storage
-        // For simplicity, this example doesn't delete the old image automatically.
-        // If you want to implement deletion, you'd need to parse oldAvatarUrl and check if it's a Firebase Storage URL.
-        // Example: if (oldAvatarUrl && oldAvatarUrl.includes("firebasestorage.googleapis.com") && oldAvatarUrl !== finalAvatarUrl) {
-        //   try {
-        //     const oldImageRef = storageRef(storage, oldAvatarUrl);
-        //     await deleteObject(oldImageRef);
-        //   } catch (deleteError) {
-        //     console.warn("DataContext: Failed to delete old avatar from Storage:", deleteError);
-        //   }
-        // }
-
-    } catch (error) {
-        console.error("DataContext: Error updating avatar in Auth/Firestore for", authUser.uid, error);
+    } catch (updateError) {
+        // This is where the original error was logged
+        console.error("DataContext: Error updating avatar in Auth/Firestore for", authUser.uid, updateError);
         toast({ variant: "destructive", title: "Error al Guardar Avatar", description: "No se pudo guardar la nueva imagen de perfil." });
-        // Optionally revert local state if update fails to the original photoURL from authUser
+        // Optionally, revert local state if update fails, though it might cause UI flicker
         // setUserAvatar(authUser.photoURL); 
     }
   }, [authUser, toast]);
