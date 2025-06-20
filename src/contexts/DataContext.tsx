@@ -446,40 +446,44 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     const userDocRef = doc(db, "users", authUser.uid);
     try {
-        if (newUsername !== userName) {
+        // Check username uniqueness only if it has changed
+        if (newUsername.trim() && newUsername !== userName) {
             const usersRef = collection(db, "users");
             const qUsername = query(usersRef, where("username", "==", newUsername));
             const usernameSnapshot = await getDocs(qUsername);
             for (const userDoc of usernameSnapshot.docs) {
-                if (userDoc.id !== authUser.uid) {
+                if (userDoc.id !== authUser.uid) { // Make sure it's not the current user's document
                     return { success: false, message: "Este nombre de usuario ya está en uso." };
                 }
             }
         }
-        if (newEmail !== (authUser.email || userEmail)) { 
-            const usersRef = collection(db, "users");
-            const qEmail = query(usersRef, where("email", "==", newEmail));
-            const emailSnapshot = await getDocs(qEmail);
-            for (const userDoc of emailSnapshot.docs) {
-                if (userDoc.id !== authUser.uid) {
-                    return { success: false, message: "Este correo electrónico ya está registrado." };
-                }
-            }
+        // Email is read-only in the UI for now, so no uniqueness check or Auth update for email here.
+
+        // Update Firebase Auth display name if current user exists and name changed
+        if (auth.currentUser && newUsername.trim() && newUsername !== auth.currentUser.displayName) {
+            await updateProfile(auth.currentUser, { displayName: newUsername });
         }
 
+        // Update Firestore (only username, as email is read-only in UI and not being changed here)
         await updateDoc(userDocRef, {
             username: newUsername,
-            email: newEmail, 
+            // email: newEmail, // Email is read-only, so not updating it in Firestore via this function
             updatedAt: serverTimestamp()
         });
         setUserName(newUsername);
-        setUserEmail(newEmail); 
-        return { success: true, message: "Perfil actualizado con éxito en la base de datos." };
-    } catch (error) {
-        console.error("DataContext: Error updating user profile in Firestore for", authUser.uid, error);
-        return { success: false, message: "No se pudo actualizar el perfil en la base de datos." };
+        // setUserEmail remains unchanged as it's read-only in UI
+        return { success: true, message: "Nombre de usuario actualizado con éxito." };
+    } catch (error: any) {
+        console.error("DataContext: Error updating user profile for", authUser.uid, error);
+        let defaultMessage = "No se pudo actualizar el perfil.";
+        if (error.code === 'auth/requires-recent-login' && error.message?.includes('updateProfile')) {
+            defaultMessage = "Esta operación requiere que hayas iniciado sesión recientemente. Por favor, cierra sesión y vuelve a ingresar.";
+        } else if (error.message) {
+            defaultMessage = error.message;
+        }
+        return { success: false, message: defaultMessage };
     }
-  }, [authUser, userName, userEmail]);
+  }, [authUser, userName]); // Removed userEmail from dependencies as it's not being changed
 
   const updateUserAvatar = useCallback(async (avatarInput: string | null) => {
     if (!authUser || !auth.currentUser) {
@@ -488,42 +492,71 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     let urlToPersist: string | null = null;
+    let oldAvatarUrl: string | null = auth.currentUser.photoURL; // Get old URL for potential deletion
 
     if (avatarInput && avatarInput.startsWith('data:image')) {
-        // New Base64 image, needs upload
         try {
             const storage = getStorage();
             const mimeType = avatarInput.substring(avatarInput.indexOf(':') + 1, avatarInput.indexOf(';'));
             const base64Data = avatarInput.substring(avatarInput.indexOf(',') + 1);
-            const fileExtension = mimeType.split('/')[1] || 'png';
-            const imageRef = storageRef(storage, `avatars/${authUser.uid}/profile.${fileExtension}`);
+            const fileExtension = mimeType.split('/')[1] || 'png'; // default to png
+            const imageFileName = `profile.${fileExtension}`; // Consistent file name
+            const imageRef = storageRef(storage, `avatars/${authUser.uid}/${imageFileName}`);
+            
+            // If there was an old avatar (and it wasn't a placeholder), try to delete it
+            // This check is simplified; a more robust check would involve parsing the URL
+            // to ensure it's actually from Firebase Storage and belongs to this user.
+            if (oldAvatarUrl && oldAvatarUrl.includes(authUser.uid) && oldAvatarUrl.includes('firebasestorage.googleapis.com')) {
+                try {
+                    const oldImageRef = storageRef(storage, oldAvatarUrl);
+                    // Check if it's not the same path we are about to write to
+                    if (oldImageRef.fullPath !== imageRef.fullPath) {
+                        await deleteObject(oldImageRef);
+                    }
+                } catch (deleteError: any) {
+                    // Log deletion error but don't block avatar update for it
+                    if (deleteError.code !== 'storage/object-not-found') {
+                        console.warn("DataContext: Could not delete old avatar:", deleteError);
+                    }
+                }
+            }
             
             const snapshot = await uploadString(imageRef, base64Data, 'base64', { contentType: mimeType });
             urlToPersist = await getDownloadURL(snapshot.ref);
         } catch (uploadError) {
             console.error("DataContext: Error uploading new avatar to Firebase Storage:", uploadError);
             toast({ variant: "destructive", title: "Error al Subir Avatar", description: "No se pudo subir la nueva imagen de perfil." });
-            return; // Important: Exit if upload fails
+            return; 
+        }
+    } else if (avatarInput === null && oldAvatarUrl && oldAvatarUrl.includes(authUser.uid) && oldAvatarUrl.includes('firebasestorage.googleapis.com')) {
+        // If avatarInput is null, it means remove avatar
+        try {
+            const storage = getStorage();
+            const oldImageRef = storageRef(storage, oldAvatarUrl);
+            await deleteObject(oldImageRef);
+            urlToPersist = null;
+        } catch (deleteError: any) {
+            if (deleteError.code !== 'storage/object-not-found') {
+                console.warn("DataContext: Could not delete avatar on removal:", deleteError);
+                toast({ variant: "destructive", title: "Error al Eliminar Avatar", description: "No se pudo eliminar la imagen anterior." });
+                return; // Exit if deletion fails when trying to remove
+            }
+            urlToPersist = null; // Still set to null if object not found (already deleted)
         }
     } else {
-        // Input is already a URL (e.g., from AvatarSelectionForm after its own upload) or null (to remove avatar)
-        urlToPersist = avatarInput;
+        urlToPersist = avatarInput; // It's already a URL or explicitly null and no old one to delete
     }
 
-    // Proceed to update Auth and Firestore with urlToPersist
     const userDocRef = doc(db, "users", authUser.uid);
     try {
         await updateProfile(auth.currentUser, { photoURL: urlToPersist });
         await updateDoc(userDocRef, { avatarUrl: urlToPersist, updatedAt: serverTimestamp() });
         
-        setUserAvatar(urlToPersist); // Update local state
+        setUserAvatar(urlToPersist); 
         toast({ title: "Avatar Actualizado", description: "Tu foto de perfil ha sido guardada." });
     } catch (updateError) {
-        // This is where the original error was logged
         console.error("DataContext: Error updating avatar in Auth/Firestore for", authUser.uid, updateError);
         toast({ variant: "destructive", title: "Error al Guardar Avatar", description: "No se pudo guardar la nueva imagen de perfil." });
-        // Optionally, revert local state if update fails, though it might cause UI flicker
-        // setUserAvatar(authUser.photoURL); 
     }
   }, [authUser, toast]);
 
