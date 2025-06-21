@@ -1080,8 +1080,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
  const createUserEra = useCallback(async (baseDetails: { nombre: string; descripcion: string }) => {
     if (!authUser) return;
 
+    // Re-calculate the rank here to avoid the initialization error with the memoized 'currentRank'
+    let rankForXpCalculation: Rank = RANKS_DATA[0];
+    for (const rank of RANKS_DATA) {
+      if (userXP >= rank.xpRequired) {
+        rankForXpCalculation = rank;
+      } else {
+        break;
+      }
+    }
+
     const isAdmin = authUser.displayName === 'emptystreet';
-    const calculatedXp = isAdmin ? 500 : 100 + (currentRank.level * 20);
+    const calculatedXp = isAdmin ? 500 : 100 + (rankForXpCalculation.level * 20);
 
     const generatedId = `user_era_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
@@ -1120,7 +1130,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
         console.error(`DataContext: Error creating new Era for ${authUser.uid}:`, error);
     }
-  }, [authUser, currentRank]);
+  }, [authUser, userXP]);
 
 
   const deleteUserEra = useCallback(async (eraId: string) => {
