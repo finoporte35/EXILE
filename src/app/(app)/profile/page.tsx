@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Download, Send } from 'lucide-react';
+import { Download, Send, Crown } from 'lucide-react';
 import { useData, EraIconMapper } from '@/contexts/DataContext';
 import type { Attribute, Era } from '@/types';
 import { cn } from '@/lib/utils';
@@ -37,7 +37,8 @@ export default function ProfilePage() {
     updateUserAvatar,
     currentRank,
     attributes,
-    completedEras
+    completedEras,
+    isPremium
   } = useData();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,8 +87,20 @@ export default function ProfilePage() {
           </div>
 
           <div className="text-center mb-4">
-            <p className="text-sm font-medium text-primary uppercase tracking-widest">
+            <p className="text-sm font-medium text-primary uppercase tracking-widest flex items-center justify-center gap-2">
               {currentRank.name.split(" - ")[1] || currentRank.name}
+              {isPremium && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Crown className="h-5 w-5 text-yellow-400" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Cuenta Premium</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </p>
             {mostRecentCompletedEra && (
               <TooltipProvider delayDuration={100}>

@@ -1,6 +1,8 @@
 
 import type { LucideIcon } from 'lucide-react';
 
+export type UserStatus = 'free' | 'premium' | 'lifetime';
+
 export interface Habit {
   id: string;
   name: string;

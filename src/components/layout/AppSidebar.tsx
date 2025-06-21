@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
-  LayoutGrid, User, TrendingUp, ClipboardList, ListChecks, Moon, Target, QuoteIcon, Settings, HelpCircle, LogOut, BookCopy as ErasIcon, Puzzle, Trophy
+  LayoutGrid, User, TrendingUp, ClipboardList, ListChecks, Moon, Target, QuoteIcon, Settings, HelpCircle, LogOut, BookCopy as ErasIcon, Puzzle, Trophy, Crown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/shared/Logo';
@@ -42,7 +42,7 @@ export function AppSidebar() {
   const router = useRouter();
   const { open, isMobile, setOpenMobile } = useSidebar();
   // isLoading here refers to combined auth and data loading
-  const { authUser, userName, userAvatar, currentRank, isLoading } = useData(); 
+  const { authUser, userName, userAvatar, currentRank, isLoading, isPremium } = useData(); 
 
   const handleLogout = async () => {
     try {
@@ -126,7 +126,10 @@ export function AppSidebar() {
               </AvatarFallback>
             </Avatar>
             <div className={cn("flex-grow overflow-hidden", open ? "block" : "hidden group-data-[collapsible=icon]:hidden")}>
-              <p className="text-sm font-semibold truncate text-sidebar-foreground">{sidebarUserName}</p>
+              <p className="text-sm font-semibold truncate text-sidebar-foreground flex items-center gap-1.5">
+                {sidebarUserName}
+                {isPremium && <Crown className="h-4 w-4 text-yellow-400 flex-shrink-0" />}
+              </p>
               <p className="text-xs text-muted-foreground truncate">{sidebarRankName}</p>
             </div>
           </div>

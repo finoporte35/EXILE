@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -86,6 +87,7 @@ export default function SignupForm() {
         allUserEraCustomizations: {},
         unlockedSkillIds: [],
         activeThemeId: DEFAULT_THEME_ID,
+        status: 'premium', // TEMP: Everyone starts as premium as requested.
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };

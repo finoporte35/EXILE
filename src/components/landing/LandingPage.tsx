@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -187,11 +188,11 @@ export default function LandingPage() {
 
         {/* Features Section */}
         <section id="features" className="container mx-auto px-4 py-20 sm:py-24 text-center">
-            <h2 className="text-4xl font-bold text-gradient-red font-headline">Un Arsenal para tu Desarrollo</h2>
-            <p className="mx-auto mt-4 max-w-3xl text-lg text-muted-foreground">
+            <h2 className="text-4xl font-bold text-gradient-red font-headline animate-in fade-in">Un Arsenal para tu Desarrollo</h2>
+            <p className="mx-auto mt-4 max-w-3xl text-lg text-muted-foreground animate-in fade-in [animation-delay:0.2s]">
                 Herramientas diseñadas para la élite. Mide tu progreso, optimiza tus rutinas y conquista tus metas con precisión.
             </p>
-            <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 animate-in fade-in [animation-delay:0.4s]">
                 <div className="flex flex-col items-center gap-4 rounded-xl bg-card p-8 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-primary/20">
                     <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10"><BarChart3 className="h-8 w-8 text-primary"/></div>
                     <h3 className="text-xl font-semibold text-foreground">Rangos y Estadísticas</h3>

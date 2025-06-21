@@ -3,7 +3,7 @@
 
 import type { Rank } from '@/components/ranks/RankItem';
 import { RANKS_DATA, INITIAL_ATTRIBUTES, DEFAULT_USERNAME, INITIAL_XP, HABIT_CATEGORY_XP_MAP, DEFAULT_HABIT_XP, PASSIVE_SKILLS_DATA } from '@/lib/app-config';
-import type { Habit, Attribute, Goal, SleepLog, SleepQuality, Era, EraObjective, EraReward, UserEraCustomizations, EraVisualTheme, PassiveSkill, AppTheme, SimpleThemeColors } from '@/types';
+import type { Habit, Attribute, Goal, SleepLog, SleepQuality, Era, EraObjective, EraReward, UserEraCustomizations, EraVisualTheme, PassiveSkill, AppTheme, SimpleThemeColors, UserStatus } from '@/types';
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { isValid, parseISO as dateFnsParseISO } from 'date-fns';
 import { db, auth } from '@/lib/firebase';
@@ -49,6 +49,11 @@ interface DataContextState {
   userEmail: string;
   userXP: number;
   userAvatar: string | null;
+  userStatus: UserStatus;
+  isPremium: boolean;
+  isLifetime: boolean;
+  isAdmin: boolean;
+
   habits: Habit[];
   attributes: Attribute[];
   goals: Goal[];
@@ -118,6 +123,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [userEmail, setUserEmail] = useState<string>("");
   const [userXP, setUserXP] = useState<number>(INITIAL_XP);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [userStatus, setUserStatus] = useState<UserStatus>('free');
   const [habits, setHabits] = useState<Habit[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>(INITIAL_ATTRIBUTES);
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -134,6 +140,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   
   const [activeThemeId, setActiveThemeId] = useState<string>(DEFAULT_THEME_ID);
   const availableThemes = useMemo(() => APP_THEMES, []);
+
+  const isAdmin = useMemo(() => authUser?.displayName === 'emptystreet', [authUser]);
+  const isLifetime = useMemo(() => userStatus === 'lifetime', [userStatus]);
+  const isPremium = useMemo(() => isLifetime || userStatus === 'premium' || isAdmin, [isLifetime, userStatus, isAdmin]);
 
   const { currentRank, nextRank, xpTowardsNextRank, totalXPForNextRankLevel, rankProgressPercent } = React.useMemo(() => {
     let currentRankCalculated: Rank = RANKS_DATA[0];
@@ -215,6 +225,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUserEmail("");
         setUserXP(INITIAL_XP);
         setUserAvatar(null);
+        setUserStatus('free');
         setHabits([]);
         setAttributes(INITIAL_ATTRIBUTES);
         setGoals([]);
@@ -314,6 +325,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         let loadedUsername = DEFAULT_USERNAME;
         let loadedEmail = "";
         let loadedAvatarUrl = null;
+        let loadedStatus: UserStatus = 'premium'; // Default to premium as per request
 
 
         if (userDocSnap.exists()) {
@@ -322,6 +334,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           loadedEmail = userData.email || authUser.email || "";
           loadedUserXP = userData.xp || INITIAL_XP;
           loadedAvatarUrl = userData.avatarUrl || authUser.photoURL || null;
+          loadedStatus = userData.status || 'premium'; // Default existing users to premium for now
 
           initialCurrentEraId = userData.currentEraId === undefined ? null : userData.currentEraId;
           initialCompletedEraIds = userData.completedEraIds || [];
@@ -335,11 +348,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           loadedUserXP = INITIAL_XP;
           loadedAvatarUrl = authUser.photoURL || null;
           loadedActiveThemeId = DEFAULT_THEME_ID;
+          loadedStatus = 'premium'; // New users are premium
           const newUserData = {
             username: loadedUsername,
             email: loadedEmail,
             xp: loadedUserXP,
             avatarUrl: loadedAvatarUrl,
+            status: loadedStatus,
             currentEraId: null,
             completedEraIds: [],
             allUserEraCustomizations: {},
@@ -354,6 +369,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUserName(loadedUsername);
         setUserEmail(loadedEmail);
         setUserAvatar(loadedAvatarUrl);
+        setUserStatus(loadedStatus);
         
         previousXpRef.current = loadedUserXP;
         let loadedRank: Rank = RANKS_DATA[0];
@@ -445,6 +461,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUserEmail(authUser.email || "");
         setUserXP(INITIAL_XP);
         setUserAvatar(authUser.photoURL || null);
+        setUserStatus('free');
         setHabits([]);
         setGoals([]);
         setSleepLogs([]);
@@ -1077,21 +1094,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [authUser, userCreatedEras, allUserEraCustomizations]);
 
- const createUserEra = useCallback(async (baseDetails: { nombre: string; descripcion: string }) => {
+  const createUserEra = useCallback(async (baseDetails: { nombre: string; descripcion: string }) => {
     if (!authUser) return;
 
-    // Re-calculate the rank here to avoid the initialization error with the memoized 'currentRank'
-    let rankForXpCalculation: Rank = RANKS_DATA[0];
-    for (const rank of RANKS_DATA) {
-      if (userXP >= rank.xpRequired) {
-        rankForXpCalculation = rank;
-      } else {
-        break;
-      }
-    }
+    const rankForXpCalculation = RANKS_DATA.slice().reverse().find(r => userXP >= r.xpRequired) || RANKS_DATA[0];
 
-    const isAdmin = authUser.displayName === 'emptystreet';
-    const calculatedXp = isAdmin ? 500 : 100 + (rankForXpCalculation.level * 20);
+    const isAdminCheck = authUser.displayName === 'emptystreet';
+    const calculatedXp = isAdminCheck ? 500 : 100 + (rankForXpCalculation.level * 20);
 
     const generatedId = `user_era_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
@@ -1333,7 +1342,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <DataContext.Provider value={{
       authUser, authLoading,
-      userName, userEmail, userXP, userAvatar,
+      userName, userEmail, userXP, userAvatar, userStatus, isPremium, isLifetime, isAdmin,
       habits, attributes, goals, sleepLogs,
       currentRank, nextRank, xpTowardsNextRank, totalXPForNextRankLevel, rankProgressPercent,
       totalHabits, completedHabits, activeGoalsCount, averageSleepLast7Days,
