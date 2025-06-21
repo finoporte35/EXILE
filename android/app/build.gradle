@@ -1,5 +1,4 @@
 apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
 
 android {
     namespace "com.exile.app"
@@ -11,9 +10,8 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        aaptOptions {
-             ignoreAssetsPattern '!.svn:!.git:!.hg:!*.h:!*.c:!*.cpp:!*.cc:!*.s:!*.s.mp3:!*.wav:!*.mp3:!*.ogg'
-        }
+        // For Android 12 splash screen
+        coreSplashScreenVersion = '1.0.1'
     }
     buildTypes {
         release {
@@ -22,36 +20,35 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = '17'
-    }
-    lintOptions {
-        abortOnError false
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
 repositories {
-    flatDir{
-        dirs '../capacitor-cordova-android-plugins/src/main/libs'
-    }
+    google()
+    mavenCentral()
 }
 
 dependencies {
-    implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation "androidx.appcompat:appcompat:1.6.1"
-    implementation "androidx.coordinatorlayout:coordinatorlayout:1.2.0"
-    implementation "androidx.core:core-ktx:1.12.0"
-    implementation "androidx.activity:activity-ktx:1.8.2"
-    implementation "androidx.fragment:fragment-ktx:1.6.2"
-    implementation "androidx.webkit:webkit:1.9.0"
-    implementation "androidx.core:core-splashscreen:1.0.1"
-    testImplementation "junit:junit:4.13.2"
-    androidTestImplementation "androidx.test.ext:junit:1.1.5"
-    androidTestImplementation "androidx.test.espresso:espresso-core:3.5.1"
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.coordinatorlayout:coordinatorlayout:1.2.0'
+    implementation "androidx.core:core-splashscreen:${defaultConfig.coreSplashScreenVersion}"
     implementation project(':capacitor-android')
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    implementation project(':capacitor-cordova-android-plugins')
 }
 
 apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = new File(project.projectDir, "google-services.json")
+    if (servicesJSON.exists()) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, skipping google-services plugin")
+}
