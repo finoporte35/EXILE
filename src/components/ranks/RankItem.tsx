@@ -6,6 +6,7 @@ export interface Rank {
   xpRequired: number;
   description: string;
   icon: LucideIcon;
+  level: number;
   percentage?: number; // Percentage of people with this rank
   isCurrent?: boolean;
   isNext?: boolean;

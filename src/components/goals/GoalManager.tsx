@@ -37,16 +37,17 @@ const goalSchema = z.object({
   achievable: z.string().min(3, "Describe los pasos o cómo es alcanzable."),
   relevant: z.string().min(3, "Explica la relevancia de esta meta."),
   timeBound: z.date({ required_error: "La fecha límite es obligatoria." }),
-  xp: z.coerce.number().min(1, "La XP debe ser al menos 1.").default(DEFAULT_GOAL_XP),
+  xp: z.coerce.number().min(1, "La XP debe ser al menos 1.").optional(),
 });
 
 type GoalFormData = z.infer<typeof goalSchema>;
 
 export default function GoalManager() {
-  const { goals, addGoal, isLoading: isDataContextLoading } = useData();
+  const { goals, addGoal, isLoading: isDataContextLoading, userName, currentRank } = useData();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isAdmin = userName === 'emptystreet';
 
   const { control, handleSubmit, register, reset, formState: { errors } } = useForm<GoalFormData>({
     resolver: zodResolver(goalSchema),
@@ -64,8 +65,13 @@ export default function GoalManager() {
   const onSubmit = async (data: GoalFormData) => {
     setIsSubmitting(true);
     try {
+      const goalXp = isAdmin
+        ? (data.xp || DEFAULT_GOAL_XP)
+        : (DEFAULT_GOAL_XP + (currentRank.level * 10));
+
       const goalToAdd: Omit<Goal, 'id' | 'isCompleted' | 'createdAt'> = {
         ...data,
+        xp: goalXp,
         timeBound: data.timeBound.toISOString(),
       };
       addGoal(goalToAdd);
@@ -161,11 +167,13 @@ export default function GoalManager() {
               />
               {errors.timeBound && <p className="text-xs text-destructive mt-1">{errors.timeBound.message}</p>}
             </div>
-             <div>
-              <Label htmlFor="xp">XP por Completar</Label>
-              <Input id="xp" type="number" {...register("xp")} defaultValue={DEFAULT_GOAL_XP} />
-              {errors.xp && <p className="text-xs text-destructive mt-1">{errors.xp.message}</p>}
-            </div>
+             {isAdmin && (
+              <div>
+                <Label htmlFor="xp">XP por Completar</Label>
+                <Input id="xp" type="number" {...register("xp")} defaultValue={DEFAULT_GOAL_XP} />
+                {errors.xp && <p className="text-xs text-destructive mt-1">{errors.xp.message}</p>}
+              </div>
+            )}
             <DialogFooter>
               <DialogClose asChild>
                 <Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>

@@ -53,6 +53,9 @@ interface EraEditorDialogProps {
 
 const EraEditorDialog: React.FC<EraEditorDialogProps> = ({ eraToEdit, onSave, isOpen, onOpenChange }) => {
   const { toast } = useToast();
+  const { userName } = useData();
+  const isAdmin = userName === 'emptystreet';
+
   const [editableName, setEditableName] = useState(eraToEdit.nombre);
   const [editableDescription, setEditableDescription] = useState(eraToEdit.descripcion);
   const [editableCondiciones, setEditableCondiciones] = useState(eraToEdit.condiciones_completado_desc);
@@ -237,7 +240,7 @@ const EraEditorDialog: React.FC<EraEditorDialogProps> = ({ eraToEdit, onSave, is
                     <Textarea id={`rew-desc-${index}`} value={rew.description} onChange={(e) => handleRewardChange(index, 'description', e.target.value)} rows={2} placeholder="Describe la recompensa..."/>
                     <div className="flex items-center gap-2">
                         <Star className="h-4 w-4 text-yellow-400"/>
-                        <Input id={`rew-value-${index}`} type="number" placeholder="Valor XP" value={rew.value || ''} onChange={(e) => handleRewardChange(index, 'value', e.target.value)} className="w-24 text-sm h-8"/>
+                        <Input id={`rew-value-${index}`} type="number" placeholder="Valor XP" value={rew.value || ''} onChange={(e) => handleRewardChange(index, 'value', e.target.value)} className="w-24 text-sm h-8" disabled={!isAdmin} />
                     </div>
                   </div>
                 ))}
@@ -687,4 +690,3 @@ export default function ErasPage() {
     </div>
   );
 }
-

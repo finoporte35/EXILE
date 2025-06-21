@@ -135,6 +135,73 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [activeThemeId, setActiveThemeId] = useState<string>(DEFAULT_THEME_ID);
   const availableThemes = useMemo(() => APP_THEMES, []);
 
+  const { currentRank, nextRank, xpTowardsNextRank, totalXPForNextRankLevel, rankProgressPercent } = React.useMemo(() => {
+    let currentRankCalculated: Rank = RANKS_DATA[0];
+    let nextRankCalculated: Rank | null = null;
+
+    for (let i = 0; i < RANKS_DATA.length; i++) {
+      if (userXP >= RANKS_DATA[i].xpRequired) {
+        currentRankCalculated = RANKS_DATA[i];
+        if (i + 1 < RANKS_DATA.length) {
+          nextRankCalculated = RANKS_DATA[i + 1];
+        } else {
+          nextRankCalculated = null; 
+        }
+      } else {
+        if (i === 0) { 
+            currentRankCalculated = RANKS_DATA[0]; 
+            nextRankCalculated = RANKS_DATA.length > 0 ? RANKS_DATA[i] : null; 
+        }
+        break; 
+      }
+    }
+
+    let xpTowardsNext = 0;
+    let totalXPForLevel = 100; 
+    const currentRankXpRequirement = currentRankCalculated.xpRequired;
+
+    if (nextRankCalculated) {
+      const nextRankXpRequirement = nextRankCalculated.xpRequired;
+      xpTowardsNext = Math.max(0, userXP - currentRankXpRequirement);
+      totalXPForLevel = Math.max(1, nextRankXpRequirement - currentRankXpRequirement);
+    } else { 
+        if (RANKS_DATA.length === 1) { 
+            totalXPForLevel = Math.max(1, currentRankXpRequirement); 
+            xpTowardsNext = userXP;
+        } else { 
+            const currentRankIndex = RANKS_DATA.findIndex(r => r.name === currentRankCalculated.name);
+            if (currentRankIndex > 0) {
+                const previousRankXp = RANKS_DATA[currentRankIndex -1].xpRequired;
+                totalXPForLevel = Math.max(1, currentRankXpRequirement - previousRankXp);
+                xpTowardsNext = Math.max(0, userXP - previousRankXp);
+            } else { 
+                totalXPForLevel = Math.max(1, currentRankXpRequirement);
+                xpTowardsNext = userXP;
+            }
+        }
+    }
+    
+    let progressPercent = (totalXPForLevel > 0) ? (xpTowardsNext / totalXPForLevel) * 100 : 0;
+    if (!nextRankCalculated && userXP >= currentRankXpRequirement) { 
+        progressPercent = 100;
+        xpTowardsNext = totalXPForLevel; 
+    }
+    
+    if (userXP === 0 && currentRankCalculated.xpRequired === 0 && nextRankCalculated) {
+        xpTowardsNext = 0;
+        totalXPForLevel = Math.max(1, nextRankCalculated.xpRequired - currentRankCalculated.xpRequired);
+        progressPercent = 0;
+    }
+
+    return {
+      currentRank: currentRankCalculated,
+      nextRank: nextRankCalculated,
+      xpTowardsNextRank: xpTowardsNext,
+      totalXPForNextRankLevel: totalXPForLevel,
+      rankProgressPercent: Math.min(100, Math.max(0, progressPercent))
+    };
+  }, [userXP]);
+
   const previousXpRef = useRef<number | undefined>(undefined);
   const previousRankRef = useRef<Rank | undefined>(undefined);
 
@@ -814,6 +881,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const eraToStart = getEraDetails(eraId);
     if (!eraToStart) return false;
     if (completedEraIds.includes(eraId) || currentEraId === eraId) return false;
+    if (currentEraId) return false; // Strict one-era-at-a-time rule
 
     const xpRequired = eraToStart.xpRequeridoParaIniciar;
     if (xpRequired !== undefined && userXP < xpRequired) {
@@ -866,10 +934,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const era = getEraDetails(eraInFocusId);
     if (!era) return false;
     
+    // For now, this is a placeholder. If an era is in completedEras, all its objectives are considered met.
     if (completedEras.some(e => e.id === eraInFocusId)) {
         return true;
     }
     
+    // In the future, this would check against real progress data.
+    // e.g., check if a specific goalId related to the objective is completed.
     return false;
   }, [currentEraId, completedEras, getEraDetails]);
 
@@ -889,7 +960,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     const newCompletedIds = [...completedEraIds, currentEraId];
-    const nextEraIdToStart = null; 
+    const nextEraIdToStart = null; // Enforces stopping before starting a new one
 
     const userUpdates: Record<string, any> = {
       currentEraId: nextEraIdToStart,
@@ -1009,6 +1080,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
  const createUserEra = useCallback(async (baseDetails: { nombre: string; descripcion: string }) => {
     if (!authUser) return;
 
+    const isAdmin = authUser.displayName === 'emptystreet';
+    const calculatedXp = isAdmin ? 500 : 100 + (currentRank.level * 20);
+
     const generatedId = `user_era_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     const newEraFirestoreData = {
@@ -1018,7 +1092,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         objetivos: [] as EraObjective[], 
         condiciones_completado_desc: "Completa los objetivos que te propongas para esta era.",
         mecanicas_especiales_desc: "Define tus propias mecánicas especiales si lo deseas.",
-        recompensas: [{ type: 'xp' as const, id: `rew_default_${Date.now()}`, description: "XP por completar esta era personalizada.", value: 100, attributeName: null }] as EraReward[], 
+        recompensas: [{ type: 'xp' as const, id: `rew_default_${Date.now()}`, description: "XP por completar esta era personalizada.", value: calculatedXp, attributeName: null }] as EraReward[], 
         tema_visual: { colorPrincipal: 'text-gray-400', icono: "Milestone" } as EraVisualTheme, 
         siguienteEraId: null,
         xpRequeridoParaIniciar: 0, 
@@ -1046,7 +1120,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
         console.error(`DataContext: Error creating new Era for ${authUser.uid}:`, error);
     }
-  }, [authUser]);
+  }, [authUser, currentRank]);
 
 
   const deleteUserEra = useCallback(async (eraId: string) => {
@@ -1121,74 +1195,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         toast({ variant: "destructive", title: "Error", description: "No se pudo desbloquear la habilidad." });
     }
   }, [authUser, userXP, unlockedSkillIds, passiveSkills, toast]);
-
-
-  const { currentRank, nextRank, xpTowardsNextRank, totalXPForNextRankLevel, rankProgressPercent } = React.useMemo(() => {
-    let currentRankCalculated: Rank = RANKS_DATA[0];
-    let nextRankCalculated: Rank | null = null;
-
-    for (let i = 0; i < RANKS_DATA.length; i++) {
-      if (userXP >= RANKS_DATA[i].xpRequired) {
-        currentRankCalculated = RANKS_DATA[i];
-        if (i + 1 < RANKS_DATA.length) {
-          nextRankCalculated = RANKS_DATA[i + 1];
-        } else {
-          nextRankCalculated = null; 
-        }
-      } else {
-        if (i === 0) { 
-            currentRankCalculated = RANKS_DATA[0]; 
-            nextRankCalculated = RANKS_DATA.length > 0 ? RANKS_DATA[i] : null; 
-        }
-        break; 
-      }
-    }
-
-    let xpTowardsNext = 0;
-    let totalXPForLevel = 100; 
-    const currentRankXpRequirement = currentRankCalculated.xpRequired;
-
-    if (nextRankCalculated) {
-      const nextRankXpRequirement = nextRankCalculated.xpRequired;
-      xpTowardsNext = Math.max(0, userXP - currentRankXpRequirement);
-      totalXPForLevel = Math.max(1, nextRankXpRequirement - currentRankXpRequirement);
-    } else { 
-        if (RANKS_DATA.length === 1) { 
-            totalXPForLevel = Math.max(1, currentRankXpRequirement); 
-            xpTowardsNext = userXP;
-        } else { 
-            const currentRankIndex = RANKS_DATA.findIndex(r => r.name === currentRankCalculated.name);
-            if (currentRankIndex > 0) {
-                const previousRankXp = RANKS_DATA[currentRankIndex -1].xpRequired;
-                totalXPForLevel = Math.max(1, currentRankXpRequirement - previousRankXp);
-                xpTowardsNext = Math.max(0, userXP - previousRankXp);
-            } else { 
-                totalXPForLevel = Math.max(1, currentRankXpRequirement);
-                xpTowardsNext = userXP;
-            }
-        }
-    }
-    
-    let progressPercent = (totalXPForLevel > 0) ? (xpTowardsNext / totalXPForLevel) * 100 : 0;
-    if (!nextRankCalculated && userXP >= currentRankXpRequirement) { 
-        progressPercent = 100;
-        xpTowardsNext = totalXPForLevel; 
-    }
-    
-    if (userXP === 0 && currentRankCalculated.xpRequired === 0 && nextRankCalculated) {
-        xpTowardsNext = 0;
-        totalXPForLevel = Math.max(1, nextRankCalculated.xpRequired - currentRankCalculated.xpRequired);
-        progressPercent = 0;
-    }
-
-    return {
-      currentRank: currentRankCalculated,
-      nextRank: nextRankCalculated,
-      xpTowardsNextRank: xpTowardsNext,
-      totalXPForNextRankLevel: totalXPForLevel,
-      rankProgressPercent: Math.min(100, Math.max(0, progressPercent))
-    };
-  }, [userXP]);
 
   useEffect(() => {
     if (!initialLoadComplete || authLoading || dataLoading) {

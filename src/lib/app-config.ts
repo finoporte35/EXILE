@@ -8,15 +8,15 @@ export const INITIAL_XP = 0;
 export const MOCK_USER_ID = "default-exile-user"; // Note: MOCK_USER_ID is largely deprecated by Firebase Auth
 
 export const RANKS_DATA: Rank[] = [
-  { name: "Level 1 - NPC", xpRequired: 0, description: "El inicio de tu jornada.", icon: User, percentage: 86 },
-  { name: "Level 2 - Hombre", xpRequired: 100, description: "Desbloquea Chat con miembros.", icon: PersonStanding, percentage: 6 },
-  { name: "Level 3 - Hombre de alto valor", xpRequired: 500, description: "Demuestras valor y potencial.", icon: Sparkles, percentage: 3 },
-  { name: "Level 4 - Héroe", xpRequired: 1500, description: "Tus hazañas comienzan a ser reconocidas.", icon: Shield, percentage: 1 },
-  { name: "Level 5 - Superheroe", xpRequired: 5000, description: "Un poder extraordinario reside en ti.", icon: Zap, percentage: 1 },
-  { name: "Level 6 - Lider", xpRequired: 15000, description: "Guías a otros con tu ejemplo.", icon: Users, percentage: 1 },
-  { name: "Level 7 - Líder experto", xpRequired: 30000, description: "Tu sabiduría y liderazgo son incomparables.", icon: Brain, percentage: 1 },
-  { name: "Level 8 - Rey", xpRequired: 60000, description: "Gobiernas tu dominio con autoridad.", icon: Crown, percentage: 1 },
-  { name: "Level 9 - Dios Griego", xpRequired: 100000, description: "Has trascendido a un plano divino.", icon: Atom, percentage: 0 }
+  { name: "Level 1 - NPC", level: 1, xpRequired: 0, description: "El inicio de tu jornada.", icon: User, percentage: 86 },
+  { name: "Level 2 - Hombre", level: 2, xpRequired: 100, description: "Desbloquea Chat con miembros.", icon: PersonStanding, percentage: 6 },
+  { name: "Level 3 - Hombre de alto valor", level: 3, xpRequired: 500, description: "Demuestras valor y potencial.", icon: Sparkles, percentage: 3 },
+  { name: "Level 4 - Héroe", level: 4, xpRequired: 1500, description: "Tus hazañas comienzan a ser reconocidas.", icon: Shield, percentage: 1 },
+  { name: "Level 5 - Superheroe", level: 5, xpRequired: 5000, description: "Un poder extraordinario reside en ti.", icon: Zap, percentage: 1 },
+  { name: "Level 6 - Lider", level: 6, xpRequired: 15000, description: "Guías a otros con tu ejemplo.", icon: Users, percentage: 1 },
+  { name: "Level 7 - Líder experto", level: 7, xpRequired: 30000, description: "Tu sabiduría y liderazgo son incomparables.", icon: Brain, percentage: 1 },
+  { name: "Level 8 - Rey", level: 8, xpRequired: 60000, description: "Gobiernas tu dominio con autoridad.", icon: Crown, percentage: 1 },
+  { name: "Level 9 - Dios Griego", level: 9, xpRequired: 100000, description: "Has trascendido a un plano divino.", icon: Atom, percentage: 0 }
 ];
 
 export const INITIAL_ATTRIBUTES: Attribute[] = [
