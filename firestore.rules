@@ -2,25 +2,22 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users Collection Rules
     match /users/{userId} {
-      // ANY authenticated user can READ any user's profile data (for ranking, profiles, etc.)
-      allow get: if request.auth != null;
-      
-      // ANY authenticated user can LIST users (for the ranking query)
-      allow list: if request.auth != null;
-      
-      // A user can CREATE their own document on signup.
-      allow create: if request.auth != null;
-      
-      // ONLY the user themselves can UPDATE or DELETE their own document.
-      allow update, delete: if request.auth != null && request.auth.uid == userId;
-    }
+      // Allow anyone to query the users collection for username check on signup.
+      // Also allows reading user profiles for the leaderboard.
+      allow list, get: if true;
 
-    // User Subcollection Rules (habits, goals, etc.)
-    match /users/{userId}/{collection}/{documentId} {
-      // ONLY the user themselves can access their private subcollections.
-      allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
+      // Allow authenticated users to create their own user document.
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow users to update or delete their own document.
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
+
+      // Generic rule for all user subcollections (habits, goals, etc.)
+      // Allows an authenticated user to read and write to their own subcollections.
+      match /{subcollection}/{docId} {
+        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+      }
     }
   }
 }

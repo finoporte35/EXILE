@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -13,6 +12,7 @@ import Logo from '@/components/shared/Logo';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { INITIAL_XP } from '@/lib/app-config';
+import { DEFAULT_THEME_ID } from '@/lib/themes';
 import { db, auth } from '@/lib/firebase'; // Import auth
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'; // Import Firebase Auth functions
 import {
@@ -57,8 +57,7 @@ export default function SignupForm() {
     }
 
     try {
-      // Check username uniqueness (excluding MOCK_USER_ID itself - this logic needs to be UID based now)
-      // For signup, username uniqueness check against Firestore should still be performed.
+      // Check username uniqueness
       const usersRef = collection(db, "users");
       const qUsername = query(usersRef, where("username", "==", username));
       const usernameSnapshot = await getDocs(qUsername);
@@ -79,18 +78,19 @@ export default function SignupForm() {
       const userDocRef = doc(db, "users", firebaseUser.uid);
       const userDataToSave = {
         username: username,
-        email: firebaseUser.email, // Use email from Firebase Auth user
+        email: firebaseUser.email,
         xp: INITIAL_XP,
-        avatarUrl: null, // Initially no avatar
+        avatarUrl: null,
         currentEraId: null,
         completedEraIds: [],
         allUserEraCustomizations: {},
+        unlockedSkillIds: [],
+        activeThemeId: DEFAULT_THEME_ID,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
       await setDoc(userDocRef, userDataToSave);
       
-      // Store username in localStorage for avatar page (or pass via query params)
       localStorage.setItem('usernameForAvatar', username); 
       
       toast({ title: "Cuenta Creada", description: "Ahora, selecciona tu avatar para continuar." });
@@ -103,6 +103,8 @@ export default function SignupForm() {
         errorMessage = "Este correo electrónico ya está registrado. Intenta iniciar sesión.";
       } else if (error.code === 'auth/weak-password') {
         errorMessage = "La contraseña es demasiado débil. Debe tener al menos 6 caracteres.";
+      } else if (error.code === 'permission-denied') {
+        errorMessage = "Permiso denegado por Firestore. Asegúrate de haber publicado las reglas de seguridad en tu consola de Firebase.";
       }
       toast({ variant: "destructive", title: "Error de Registro", description: errorMessage });
     } finally {
