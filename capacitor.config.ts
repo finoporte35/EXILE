@@ -5,7 +5,6 @@ const config: CapacitorConfig = {
   appId: 'com.exile.app', // Cambia esto por el ID de tu aplicación
   appName: 'EXILE',       // El nombre de tu aplicación
   webDir: 'out',          // La carpeta de salida de 'next export'
-  bundledWebRuntime: false, // `false` es generalmente recomendado para frameworks como Next.js
   server: {
     // Si necesitas servir localmente durante el desarrollo con Capacitor:
     // hostname: 'localhost', 
