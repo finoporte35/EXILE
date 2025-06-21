@@ -5,7 +5,7 @@ android {
     compileSdkVersion 34
     defaultConfig {
         applicationId "com.exile.app"
-        minSdkVersion 24
+        minSdkVersion 22
         targetSdkVersion 34
         versionCode 1
         versionName "1.0"
@@ -20,29 +20,26 @@ android {
     lintOptions {
         abortOnError false
     }
-    compileOptions {
-      sourceCompatibility JavaVersion.VERSION_17
-      targetCompatibility JavaVersion.VERSION_17
-    }
 }
 
 repositories {
-    google()
-    mavenCentral()
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
 }
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation "androidx.appcompat:appcompat:${rootProject.ext.androidxAppCompatVersion}"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:${rootProject.ext.androidxCoordinatorLayoutVersion}"
+    implementation "androidx.core:core-splashscreen:${rootProject.ext.coreSplashScreenVersion}"
+    testImplementation "junit:junit:${rootProject.ext.junitVersion}"
+    androidTestImplementation "androidx.test.ext:junit:${rootProject.ext.androidxJunitVersion}"
+    androidTestImplementation "androidx.test.espresso:espresso-core:${rootProject.ext.androidxEspressoCoreVersion}"
     implementation project(':capacitor-android')
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
-    implementation project(':capacitor-cordova-android-plugins')
 }
 
-// Applies the splash screen logic for Capacitor
-apply from: "$rootDir/capacitor-cordova-android-plugins/src/main/assets/capacitor_splash_screen_config_launch.gradle"
+apply from: 'capacitor.build.gradle'
 
 try {
     def servicesJSON = file('google-services.json')
