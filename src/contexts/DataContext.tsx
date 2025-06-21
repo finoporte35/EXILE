@@ -411,7 +411,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
         setUserCreatedEras(loadedUserCreatedEras);
 
-
+        // --- Habit Reset Logic ---
         const habitsColRef = collection(db, "users", authUser.uid, "habits");
         const habitsQuery = query(habitsColRef, orderBy("createdAt", "desc"));
         const habitsSnapshot = await getDocs(habitsQuery);
@@ -424,7 +424,49 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 createdAt: (data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt || Date.now())).toISOString()
             } as Habit;
         });
-        setHabits(loadedHabits);
+        
+        const todayString = new Date().toISOString().split('T')[0];
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayString = yesterday.toISOString().split('T')[0];
+        
+        const habitResetBatch = writeBatch(db);
+        let needsBatchCommit = false;
+
+        const processedHabits = loadedHabits.map(habit => {
+            const habitCopy = { ...habit };
+            let updated = false;
+
+            // Reset completion if last completion was not today
+            if (habitCopy.completed && habitCopy.lastCompletedDate !== todayString) {
+                habitCopy.completed = false;
+                updated = true;
+            }
+
+            // Reset streak if last completion was not yesterday
+            if (habitCopy.lastCompletedDate && habitCopy.lastCompletedDate !== todayString && habitCopy.lastCompletedDate !== yesterdayString) {
+                 if (habitCopy.streak > 0) {
+                    habitCopy.streak = 0;
+                    updated = true;
+                 }
+            }
+
+            if (updated) {
+                const habitDocRef = doc(db, "users", authUser.uid, "habits", habit.id);
+                habitResetBatch.update(habitDocRef, { completed: habitCopy.completed, streak: habitCopy.streak });
+                needsBatchCommit = true;
+            }
+            return habitCopy;
+        });
+
+        if (needsBatchCommit) {
+            habitResetBatch.update(userDocRef, { updatedAt: serverTimestamp() });
+            await habitResetBatch.commit();
+        }
+
+        setHabits(processedHabits);
+        // --- End of Habit Reset Logic ---
+
 
         const goalsColRef = collection(db, "users", authUser.uid, "goals");
         const goalsQuery = query(goalsColRef, orderBy("createdAt", "desc"));
