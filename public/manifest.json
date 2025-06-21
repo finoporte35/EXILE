@@ -1,7 +1,7 @@
 {
-  "name": "EXILE - Desarrollo Colectivo",
+  "name": "EXILE",
   "short_name": "EXILE",
-  "description": "Potencia tu desarrollo colectivo con EXILE. Gamifica tus hábitos, metas y progreso.",
+  "description": "Potencia tu desarrollo colectivo con EXILE.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
@@ -10,12 +10,6 @@
     {
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-384x384.png",
-      "sizes": "384x384",
       "type": "image/png"
     },
     {
