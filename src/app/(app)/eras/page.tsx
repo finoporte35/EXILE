@@ -29,10 +29,18 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 
-const EraObjectiveItem: React.FC<{ objective: EraObjective; completed: boolean }> = ({ objective, completed }) => (
-  <li className={cn("flex items-start gap-2", completed ? "text-green-400" : "text-muted-foreground")}>
-    <CheckCircle className={cn("h-5 w-5 mt-0.5 flex-shrink-0", completed ? "text-green-500" : "text-gray-500")} />
-    <span className={cn(completed && "line-through")}>{objective.description}</span>
+const EraObjectiveItem: React.FC<{ objective: EraObjective; completed: boolean; onToggle: () => void; }> = ({ objective, completed, onToggle }) => (
+  <li 
+    onClick={onToggle}
+    className={cn(
+      "flex items-start gap-3 p-2 rounded-md transition-colors duration-200 cursor-pointer", 
+      completed 
+        ? "text-green-400/80 bg-green-900/10" 
+        : "text-muted-foreground hover:bg-neutral-800/50"
+    )}
+  >
+    <CheckCircle className={cn("h-5 w-5 mt-0.5 flex-shrink-0 transition-colors", completed ? "text-green-500" : "text-gray-500")} />
+    <span className={cn("flex-1 break-words", completed && "line-through")}>{objective.description}</span>
   </li>
 );
 
@@ -262,7 +270,7 @@ const EraEditorDialog: React.FC<EraEditorDialogProps> = ({ eraToEdit, onSave, is
 
 
 const CurrentEraDisplay: React.FC = () => {
-  const { currentEra, completeCurrentEra, isLoading, isEraObjectiveCompleted, userXP, updateEraCustomizations, getEraDetails } = useData();
+  const { currentEra, completeCurrentEra, isLoading, isEraObjectiveCompleted, userXP, updateEraCustomizations, getEraDetails, toggleEraObjectiveCompletion } = useData();
   const [isCompleting, setIsCompleting] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [eraForEditor, setEraForEditor] = useState<Era | null>(null);
@@ -274,6 +282,12 @@ const CurrentEraDisplay: React.FC = () => {
             setEraForEditor(freshEraDetails);
             setIsEditorOpen(true);
         }
+    }
+  };
+  
+  const handleToggleObjective = (objectiveId: string) => {
+    if (currentEra) {
+        toggleEraObjectiveCompletion(objectiveId, currentEra.id);
     }
   };
 
@@ -303,8 +317,8 @@ const CurrentEraDisplay: React.FC = () => {
   const currentEraXpRequirement = currentEra.xpRequeridoParaIniciar !== undefined ? currentEra.xpRequeridoParaIniciar : 0;
   const xpFromDominating = currentEra.recompensas.find(r => r.type === 'xp' && r.value && typeof r.value === 'number' && r.description.toLowerCase().includes("dominar"))?.value || 0; 
   const totalXpNeededForCompletion = currentEraXpRequirement + (xpFromDominating || 0); 
-  // Temporarily, completion only requires XP if objectives aren't yet functional
-  const canCompleteEra = (currentEra.objetivos.length === 0 || allObjectivesMet) && userXP >= totalXpNeededForCompletion;
+  // Completion now requires XP AND all objectives to be met
+  const canCompleteEra = allObjectivesMet && userXP >= totalXpNeededForCompletion;
 
 
   const handleCompleteEra = async () => {
@@ -349,9 +363,14 @@ const CurrentEraDisplay: React.FC = () => {
         <div>
           <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-sky-400"/>Objetivos de la Era:</h3>
            {currentEra.objetivos.length > 0 ? (
-            <ul className="space-y-1.5 list-inside">
+            <ul className="space-y-1.5">
                 {objectivesWithStatus.map(obj => (
-                <EraObjectiveItem key={obj.id} objective={obj} completed={obj.completed} />
+                  <EraObjectiveItem 
+                    key={obj.id} 
+                    objective={obj} 
+                    completed={obj.completed}
+                    onToggle={() => handleToggleObjective(obj.id)} 
+                  />
                 ))}
             </ul>
             ) : (
@@ -690,3 +709,5 @@ export default function ErasPage() {
     </div>
   );
 }
+
+    

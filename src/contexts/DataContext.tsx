@@ -94,6 +94,7 @@ interface DataContextState {
   startEra: (eraId: string) => Promise<void>;
   completeCurrentEra: () => Promise<void>;
   isEraObjectiveCompleted: (objectiveId: string, eraId?: string) => boolean;
+  toggleEraObjectiveCompletion: (objectiveId: string, eraId: string) => Promise<void>;
 
   updateEraCustomizations: (eraId: string, details: Partial<Era>) => Promise<void>;
   createUserEra: (baseDetails: { nombre: string, descripcion: string }) => Promise<void>;
@@ -948,6 +949,66 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [authUser, sleepLogs]);
 
+  const toggleEraObjectiveCompletion = useCallback(async (objectiveId: string, eraId: string) => {
+    if (!authUser || !eraId) return;
+
+    const originalCustomizations = {...allUserEraCustomizations};
+    
+    const eraCustoms = allUserEraCustomizations[eraId] || {};
+    const completedIds = eraCustoms.completedObjectiveIds || [];
+    
+    let newCompletedIds: string[];
+    if (completedIds.includes(objectiveId)) {
+      newCompletedIds = completedIds.filter(id => id !== objectiveId);
+    } else {
+      newCompletedIds = [...completedIds, objectiveId];
+    }
+    
+    const updatedCustomsForEra: UserEraCustomizations = {
+      ...eraCustoms,
+      completedObjectiveIds: newCompletedIds
+    };
+    
+    const newAllCustomizations = {
+      ...allUserEraCustomizations,
+      [eraId]: updatedCustomsForEra
+    };
+
+    setAllUserEraCustomizations(newAllCustomizations); // Optimistic update
+
+    try {
+      const userDocRef = doc(db, "users", authUser.uid);
+      await updateDoc(userDocRef, {
+        allUserEraCustomizations: newAllCustomizations,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error(`DataContext: Error toggling objective completion for era ${eraId}`, error);
+      setAllUserEraCustomizations(originalCustomizations); // Revert on failure
+      toast({
+        variant: "destructive",
+        title: "Error al actualizar",
+        description: "No se pudo guardar el estado del objetivo.",
+      });
+    }
+
+  }, [authUser, allUserEraCustomizations, toast]);
+
+  const isEraObjectiveCompleted = useCallback((objectiveId: string, eraIdToCheck?: string): boolean => {
+    const eraInFocusId = eraIdToCheck || currentEraId;
+    if (!eraInFocusId) return false;
+
+    // If the whole era is in the completed list, all objectives are considered met.
+    if (completedEraIds.includes(eraInFocusId)) {
+        return true;
+    }
+    
+    // Check individual objective completion status from customizations
+    const eraCustoms = allUserEraCustomizations[eraInFocusId];
+    return eraCustoms?.completedObjectiveIds?.includes(objectiveId) || false;
+
+  }, [currentEraId, completedEraIds, allUserEraCustomizations]);
+
 
   const canStartEra = useCallback((eraId: string): boolean => {
     const eraToStart = getEraDetails(eraId);
@@ -999,26 +1060,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [authUser, canStartEra, getEraDetails, allUserEraCustomizations, userCreatedEras, currentEraId]);
 
-  const isEraObjectiveCompleted = useCallback((objectiveId: string, eraIdToCheck?: string): boolean => {
-    const eraInFocusId = eraIdToCheck || currentEraId;
-    if (!eraInFocusId) return false;
-
-    const era = getEraDetails(eraInFocusId);
-    if (!era) return false;
-    
-    // For now, this is a placeholder. If an era is in completedEras, all its objectives are considered met.
-    if (completedEras.some(e => e.id === eraInFocusId)) {
-        return true;
-    }
-    
-    // In the future, this would check against real progress data.
-    // e.g., check if a specific goalId related to the objective is completed.
-    return false;
-  }, [currentEraId, completedEras, getEraDetails]);
-
-
   const completeCurrentEra = useCallback(async () => {
     if (!authUser || !currentEraId || !currentEra) return;
+    
+    // Check if all objectives for the current era are completed before allowing completion.
+    const allObjectivesMet = currentEra.objetivos.every(obj => isEraObjectiveCompleted(obj.id, currentEra.id));
+    if (!allObjectivesMet) {
+        toast({
+            variant: 'destructive',
+            title: 'Objetivos Incompletos',
+            description: 'Debes completar todos los objetivos de la era antes de marcarla como completada.'
+        });
+        return;
+    }
 
     const userDocRef = doc(db, "users", authUser.uid);
     const batch = writeBatch(db);
@@ -1069,7 +1123,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setCurrentEraId(currentEraId);
       setUserXP(userXP);
     }
-  }, [authUser, currentEraId, currentEra, completedEraIds, userXP, allUserEraCustomizations, userCreatedEras]);
+  }, [authUser, currentEraId, currentEra, completedEraIds, userXP, allUserEraCustomizations, userCreatedEras, isEraObjectiveCompleted, toast]);
 
   const updateEraCustomizations = useCallback(async (eraId: string, details: Partial<Era>) => {
     if (!authUser) return;
@@ -1403,7 +1457,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       totalHabits, completedHabits, activeGoalsCount, averageSleepLast7Days,
       predefinedEras, userCreatedEras, allUserEraCustomizations,
       getEraDetails, currentEra, currentEraId, completedEras,
-      canStartEra, startEra, completeCurrentEra, isEraObjectiveCompleted,
+      canStartEra, startEra, completeCurrentEra, isEraObjectiveCompleted, toggleEraObjectiveCompletion,
       updateEraCustomizations, createUserEra, deleteUserEra,
       addHabit, toggleHabit, deleteHabit,
       addGoal, toggleGoalCompletion, deleteGoal,
@@ -1432,3 +1486,5 @@ export const EraIconMapper: React.FC<{ iconName?: string; className?: string }> 
 };
 
 export { ALL_PREDEFINED_ERAS_DATA } from '@/lib/eras-config';
+
+    

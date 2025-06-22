@@ -97,6 +97,7 @@ export interface UserEraCustomizations {
   tema_visual?: EraVisualTheme; 
   fechaInicio?: string | null; 
   fechaFin?: string | null;
+  completedObjectiveIds?: string[];
 }
 
 export interface PassiveSkill {
@@ -129,3 +130,5 @@ export interface AppTheme {
   name: string; // User-facing name like "Ciber Azul"
   colors: SimpleThemeColors;
 }
+
+    
