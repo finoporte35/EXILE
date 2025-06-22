@@ -180,11 +180,11 @@ const EraEditorDialog: React.FC<EraEditorDialogProps> = ({ eraToEdit, onSave, is
           <div className="grid grid-cols-2 gap-4">
             <div>
                 <Label htmlFor={`eraIcono-${eraToEdit.id}`}>Icono (Nombre de Lucide Icon)</Label>
-                <Input id={`eraIcono-${eraToEdit.id}`} value={editableIcono} onChange={(e) => setEditableIcono(e.target.value)} placeholder="Ej: Sunrise, Zap"/>
+                <Input id={`eraIcono-${eraToEdit.id}`} value={editableIcono} onChange={(e) => setEditableIcono(e.target.value)} placeholder="Ej: Swords, Zap"/>
             </div>
             <div>
                 <Label htmlFor={`eraColor-${eraToEdit.id}`}>Color Principal (Clase Tailwind)</Label>
-                <Input id={`eraColor-${eraToEdit.id}`} value={editableColor} onChange={(e) => setEditableColor(e.target.value)} placeholder="Ej: text-blue-500"/>
+                <Input id={`eraColor-${eraToEdit.id}`} value={editableColor} onChange={(e) => setEditableColor(e.target.value)} placeholder="Ej: text-amber-500"/>
             </div>
           </div>
 
@@ -337,7 +337,7 @@ const CurrentEraDisplay: React.FC = () => {
                 <span className="sr-only">Editar Era Actual</span>
             </Button>
         </div>
-        <CardDescription className="text-base leading-relaxed">{currentEra.descripcion}</CardDescription>
+        <CardDescription className="text-base leading-relaxed whitespace-pre-wrap">{currentEra.descripcion}</CardDescription>
         {currentEra.fechaInicio && (
             <p className="text-xs text-sky-400 mt-2 flex items-center gap-1">
                 <CalendarDays className="h-3.5 w-3.5" />
@@ -373,12 +373,12 @@ const CurrentEraDisplay: React.FC = () => {
          {currentEra.mecanicas_especiales_desc && (
             <div>
                 <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center gap-2"><Settings2 className="h-5 w-5 text-indigo-400"/>Mecánicas Especiales:</h3>
-                <p className="text-sm text-muted-foreground">{currentEra.mecanicas_especiales_desc}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{currentEra.mecanicas_especiales_desc}</p>
             </div>
         )}
         <div>
             <h3 className="text-lg font-semibold text-foreground mb-2">Condiciones para Completar:</h3>
-            <p className="text-sm text-muted-foreground">{currentEra.condiciones_completado_desc}</p>
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{currentEra.condiciones_completado_desc}</p>
             {currentEra.xpRequeridoParaIniciar !== undefined && (
                  <p className="text-xs text-muted-foreground">(XP de inicio base: {currentEra.xpRequeridoParaIniciar.toLocaleString()})</p>
             )}
@@ -474,7 +474,7 @@ const EraListItem: React.FC<EraListItemProps> = ({ era, type, onStart, canStartS
         {era.xpRequeridoParaIniciar !== undefined && <p className="text-xs text-muted-foreground pt-1">Requiere: {era.xpRequeridoParaIniciar.toLocaleString()} XP</p>}
       </CardHeader>
       <CardContent className="flex-grow">
-        <p className="text-sm text-muted-foreground line-clamp-3">{type === 'completed' ? era.descripcionCompletada || era.descripcion : era.descripcion}</p>
+        <p className="text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap">{type === 'completed' ? era.descripcionCompletada || era.descripcion : era.descripcion}</p>
          {era.fechaInicio && (
             <p className="text-xs text-sky-400 mt-2 flex items-center gap-1">
                 <CalendarDays className="h-3 w-3" />

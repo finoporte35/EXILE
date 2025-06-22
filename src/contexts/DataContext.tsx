@@ -34,10 +34,23 @@ import { ALL_PREDEFINED_ERAS_DATA } from '@/lib/eras-config';
 
 // Helper to get Lucide icon component from string name
 const getIconComponent = (iconName?: string): LucideIcon => {
-  if (iconName && LucideIcons[iconName as keyof typeof LucideIcons]) {
-    return LucideIcons[iconName as keyof typeof LucideIcons] as LucideIcon;
+  if (!iconName) return LucideIcons.Milestone;
+
+  // Handle various cases: camelCase, PascalCase, kebab-case, snake_case, space separated, and lowercase
+  const formattedName = iconName
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2') // Add space before capital letters for camelCase
+    .replace(/[-_]/g, ' ') // Replace hyphens and underscores with spaces
+    .toLowerCase()
+    .split(' ')
+    .filter(word => word.length > 0)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join('');
+  
+  if (LucideIcons[formattedName as keyof typeof LucideIcons]) {
+    return LucideIcons[formattedName as keyof typeof LucideIcons] as LucideIcon;
   }
-  return LucideIcons.Milestone; // Default icon for eras
+  
+  return LucideIcons.Milestone;
 };
 
 
@@ -443,7 +456,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 updated = true;
             }
 
-            // Reset streak if last completion was not yesterday
+            // Reset streak if last completion was not yesterday or today
             if (habitCopy.lastCompletedDate && habitCopy.lastCompletedDate !== todayString && habitCopy.lastCompletedDate !== yesterdayString) {
                  if (habitCopy.streak > 0) {
                     habitCopy.streak = 0;
