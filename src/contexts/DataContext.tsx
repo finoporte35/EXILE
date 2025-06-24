@@ -439,10 +439,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             } as Habit;
         });
         
-        const todayString = new Date().toISOString().split('T')[0];
+        const getLocalDateString = (date: Date): string => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        const today = new Date();
+        const todayString = getLocalDateString(today);
+        
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayString = yesterday.toISOString().split('T')[0];
+        const yesterdayString = getLocalDateString(yesterday);
         
         const habitResetBatch = writeBatch(db);
         let needsBatchCommit = false;
@@ -451,13 +460,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const habitCopy = { ...habit };
             let updated = false;
 
-            // Reset completion if last completion was not today
             if (habitCopy.completed && habitCopy.lastCompletedDate !== todayString) {
                 habitCopy.completed = false;
                 updated = true;
             }
 
-            // Reset streak if last completion was not yesterday or today
             if (habitCopy.lastCompletedDate && habitCopy.lastCompletedDate !== todayString && habitCopy.lastCompletedDate !== yesterdayString) {
                  if (habitCopy.streak > 0) {
                     habitCopy.streak = 0;
@@ -743,25 +750,35 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const xpChange = newCompletedStatus ? habitToToggle.xp : -habitToToggle.xp;
     const newTotalUserXP = Math.max(0, originalUserXP + xpChange);
 
+    const getLocalDateString = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    const todayString = getLocalDateString(new Date());
+
     let newStreak = habitToToggle.streak;
     let newLastCompletedDateString: string | null = habitToToggle.lastCompletedDate;
-    const todayDateString = new Date().toISOString().split('T')[0];
 
     if (newCompletedStatus) {
-        if (habitToToggle.lastCompletedDate !== todayDateString) {
-            newStreak = (habitToToggle.streak || 0) + 1;
-            newLastCompletedDateString = todayDateString;
-        }
+      newLastCompletedDateString = todayString;
+      if (habitToToggle.lastCompletedDate !== todayString) {
+        newStreak = (habitToToggle.streak || 0) + 1;
+      }
     } else {
-        if (habitToToggle.lastCompletedDate === todayDateString) {
-            newStreak = Math.max(0, (habitToToggle.streak || 0) - 1);
-        }
+      if (habitToToggle.lastCompletedDate === todayString) {
+        newStreak = Math.max(0, (habitToToggle.streak || 0) - 1);
+      }
+      newLastCompletedDateString = null; 
     }
+    
     const updatedHabitClientData = {
         completed: newCompletedStatus,
         streak: newStreak,
         lastCompletedDate: newLastCompletedDateString,
     };
+    
     setHabits(prev => prev.map(h => h.id === id ? { ...h, ...updatedHabitClientData } : h));
     setUserXP(newTotalUserXP);
 
@@ -1486,5 +1503,3 @@ export const EraIconMapper: React.FC<{ iconName?: string; className?: string }> 
 };
 
 export { ALL_PREDEFINED_ERAS_DATA } from '@/lib/eras-config';
-
-    
