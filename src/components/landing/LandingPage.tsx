@@ -79,7 +79,7 @@ const FeatureShowcase = () => (
 const TestimonialAvatar = () => (
     <div className="flex-shrink-0">
         <Avatar className="h-16 w-16 border-2 border-primary/50">
-            <AvatarImage src="/images/founder.jpeg" alt="Founder of EXILE" data-ai-hint="person face" />
+            <AvatarImage src="https://placehold.co/128x128.png" alt="Founder of EXILE" data-ai-hint="person face" />
             <AvatarFallback>E</AvatarFallback>
         </Avatar>
     </div>
