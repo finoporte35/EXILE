@@ -742,41 +742,62 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const toggleHabit = useCallback(async (id: string) => {
     if (!authUser) return;
     const originalHabits = [...habits];
-    const originalUserXP = userXP;
     const habitToToggle = originalHabits.find(h => h.id === id);
     if (!habitToToggle) return;
 
+    const originalUserXP = userXP;
     const newCompletedStatus = !habitToToggle.completed;
     const xpChange = newCompletedStatus ? habitToToggle.xp : -habitToToggle.xp;
     const newTotalUserXP = Math.max(0, originalUserXP + xpChange);
-
+    
+    // --- New Streak Logic ---
     const getLocalDateString = (date: Date): string => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     };
-    const todayString = getLocalDateString(new Date());
+    const today = new Date();
+    const todayString = getLocalDateString(today);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayString = getLocalDateString(yesterday);
 
-    let newStreak = habitToToggle.streak;
-    let newLastCompletedDateString: string | null = habitToToggle.lastCompletedDate;
-
-    if (newCompletedStatus) {
-      newLastCompletedDateString = todayString;
-      if (habitToToggle.lastCompletedDate !== todayString) {
-        newStreak = (habitToToggle.streak || 0) + 1;
-      }
-    } else {
-      if (habitToToggle.lastCompletedDate === todayString) {
-        newStreak = Math.max(0, (habitToToggle.streak || 0) - 1);
-      }
-      newLastCompletedDateString = null; 
-    }
+    let newStreak = habitToToggle.streak || 0;
+    let newLastCompletedDate = habitToToggle.lastCompletedDate;
     
+    if (newCompletedStatus) { // Logic for CHECKING a habit
+        newLastCompletedDate = todayString;
+        if (habitToToggle.lastCompletedDate === yesterdayString) {
+            newStreak++; // Consecutive day, increment streak
+        } else if (habitToToggle.lastCompletedDate !== todayString) {
+            newStreak = 1; // Not consecutive, reset streak to 1
+        }
+        // If it was already completed today, streak doesn't change.
+    } else { // Logic for UNCHECKING a habit
+        // This action should only revert the state of checking it today
+        if (habitToToggle.lastCompletedDate === todayString) {
+             if (newStreak > 1 && habitToToggle.lastCompletedDate === yesterdayString) {
+                 // This condition is tricky. A simpler revert is better.
+                 // Let's assume unchecking on the same day means it was a mistake.
+                 // The streak should go back to what it was *before* we checked it.
+                 // If the streak was 5 before checking, it should go back to 4.
+                 newStreak--;
+                 newLastCompletedDate = yesterdayString; // The last completion was yesterday.
+             } else {
+                 // If the streak was 1, it means it wasn't completed yesterday.
+                 newStreak = 0;
+                 newLastCompletedDate = null;
+             }
+        }
+    }
+    newStreak = Math.max(0, newStreak);
+    // --- End of New Streak Logic ---
+
     const updatedHabitClientData = {
         completed: newCompletedStatus,
         streak: newStreak,
-        lastCompletedDate: newLastCompletedDateString,
+        lastCompletedDate: newLastCompletedDate,
     };
     
     setHabits(prev => prev.map(h => h.id === id ? { ...h, ...updatedHabitClientData } : h));
@@ -786,13 +807,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const userDocRef = doc(db, "users", authUser.uid);
     const batch = writeBatch(db);
 
-    const firestoreHabitUpdate: Record<string, any> = {
-      completed: newCompletedStatus,
-      streak: newStreak,
-      lastCompletedDate: newLastCompletedDateString,
-    };
-
-    batch.update(habitDocRef, firestoreHabitUpdate);
+    batch.update(habitDocRef, updatedHabitClientData);
     batch.update(userDocRef, { xp: newTotalUserXP, updatedAt: serverTimestamp() });
     try {
         await batch.commit();
