@@ -130,5 +130,3 @@ export interface AppTheme {
   name: string; // User-facing name like "Ciber Azul"
   colors: SimpleThemeColors;
 }
-
-    
